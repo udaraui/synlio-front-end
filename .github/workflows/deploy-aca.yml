@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ACR_NAME: "synliocr"
+  ACR_NAME: "synlioacr"
   ACA_NAME: "synliofrontendcon"
   RESOURCE_GROUP: "Synlio"
   IMAGE_NAME: "synliofrontend"
