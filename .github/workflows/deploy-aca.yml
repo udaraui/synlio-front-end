@@ -33,7 +33,7 @@ jobs:
       # Log in to ACR
       - name: Login to ACR
         run: |
-          az acr login --name ${{ env.ACR_NAME }}
+          az acr login --name ${{ env.ACR_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
 
       # Build and Push Docker Image
       - name: Build and Push Docker Image
