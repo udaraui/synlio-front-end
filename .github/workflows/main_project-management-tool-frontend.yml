@@ -1,0 +1,89 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy Node.js app to Azure Web App - project-management-tool-frontend
+
+on:
+  push:
+    branches:
+      - main-old
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          # Clean install with optional dependencies explicitly enabled
+          npm ci --include=optional
+
+      - name: Verify and fix native dependencies
+        run: |
+          # Check if native binaries exist, if not, reinstall
+          if [ ! -d "node_modules/lightningcss-linux-x64-gnu" ] || [ ! -d "node_modules/@tailwindcss/oxide-linux-x64-gnu" ]; then
+            echo "Native binaries missing, reinstalling with explicit platform..."
+            npm install --no-save --force lightningcss @tailwindcss/oxide
+          else
+            echo "Native binaries found successfully"
+            ls -la node_modules/lightningcss-linux-x64-gnu/ || true
+            ls -la node_modules/@tailwindcss/oxide-linux-x64-gnu/ || true
+          fi
+
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Copy production artifacts
+        run: |
+          mkdir output
+          cp -r .next public package.json package-lock.json node_modules next.config.js output/ || true
+
+      - name: Zip artifact for deployment
+        run: |
+          cd output
+          zip -r ../release.zip .
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: release.zip
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip -d .
+
+      - name: Delete Oryx manifest if present (disable auto-build)
+        run: rm -f oryx-manifest.toml node_modules.tar.gz
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'project-management-tool-frontend'
+          slot-name: 'Production'
+          package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_E15B953807F44C808A30946BEB01A14B }}

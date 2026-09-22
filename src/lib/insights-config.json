@@ -1,0 +1,63 @@
+[
+  {
+    "process": "Ticket Space",
+    "pathPattern": "/ticket-management/ticket-space",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Tickets",
+    "pathPattern": "/ticket-management/ticket",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Project Space",
+    "pathPattern": "/task-management/task-space",
+    "link": "",
+    "show": true
+  },
+  {
+    "process": "Tasks",
+    "pathPattern": "/task-management/task",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Resource Management",
+    "pathPattern": "/resource/management",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Resource Calendar",
+    "pathPattern": "/resource/calendar",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Resource Group",
+    "pathPattern": "/resource/pools",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Resource Skills",
+    "pathPattern": "/resource/skills",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "User Management",
+    "pathPattern": "/user-management",
+    "link": "",
+    "show": false
+  },
+  {
+    "process": "Home",
+    "pathPattern": "/home",
+    "link": "",
+    "show": false
+  }
+]
+

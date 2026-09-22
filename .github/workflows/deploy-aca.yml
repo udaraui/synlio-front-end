@@ -1,0 +1,70 @@
+name: Build and Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: "synliocr"
+  ACA_NAME: "synliofrontendcon"
+  RESOURCE_GROUP: "Synlio"
+  IMAGE_NAME: "synliofrontend"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Log in to Azure
+      - name: Azure Login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Log in to ACR
+      - name: Login to ACR
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      # Build and Push Docker Image
+      - name: Build and Push Docker Image
+        id: build_image
+        run: |
+          # Get the correct login server
+          ACR_LOGIN_SERVER=$(az acr show --name ${{ env.ACR_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query loginServer --output tsv)
+          
+          # Define full image path
+          FULL_IMAGE_NAME="$ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          LATEST_IMAGE_NAME="$ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest"
+          
+          echo "Building image: $FULL_IMAGE_NAME"
+          
+          # Build
+          docker build --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} -t $FULL_IMAGE_NAME .
+          
+          # Push both tags
+          docker push $FULL_IMAGE_NAME
+          docker tag $FULL_IMAGE_NAME $LATEST_IMAGE_NAME
+          docker push $LATEST_IMAGE_NAME
+          
+          # Save the login server for the next step
+          echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+
+      # Deploy to Azure Container App
+      - name: Deploy to Azure Container App
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppName: ${{ env.ACA_NAME }}
+          # Use the env variable set in the previous step
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          targetPort: 3000
