@@ -136,7 +136,7 @@ import { TaskSpaceResourceDropdown } from '@/components/common/TaskSpaceResource
 import { createResourceLog, deleteResourceLog, getResourceTaskLogHistory, updateResourceLog } from '@/services/work-log/work-log.service';
 import { AssigneeType } from "@/enums/assignee-type.enum";
 import { setMeetingActionState } from '@/services/meetings-integration.service';
-import { linkTaskToActivity } from '@/services/new-activity.service';
+import { linkTaskToActivity } from '@/services/activity.service';
 import LinkWorkItemDialog from '@/components/link-management/LinkWorkItemDialog';
 import {
   getWorkItemLinks,

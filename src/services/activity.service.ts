@@ -1,6 +1,6 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
 
-export interface NewActivity {
+export interface Activity {
   id: number;
   postType: 'Activity';
   title: string;
@@ -14,25 +14,25 @@ export interface NewActivity {
   createdAt: string;
 }
 
-export const createNewActivity = async (data: {
+export const createActivity = async (data: {
   title: string;
   description?: string;
   startDate: string;
   endDate?: string;
   durationMinutes?: number;
   taskId?: number;
-}): Promise<NewActivity> => {
-  const response = await axiosInstance.post('/pulse/new-activity', data, {
+}): Promise<Activity> => {
+  const response = await axiosInstance.post('/pulse/activity', data, {
     withCredentials: true,
   });
   return response.data;
 };
 
-export const getNewActivities = async (params?: {
+export const getActivities = async (params?: {
   startDate?: string;
   endDate?: string;
-}): Promise<NewActivity[]> => {
-  const response = await axiosInstance.get('/pulse/new-activity', {
+}): Promise<Activity[]> => {
+  const response = await axiosInstance.get('/pulse/activity', {
     params,
     withCredentials: true,
   });
@@ -42,26 +42,26 @@ export const getNewActivities = async (params?: {
 export const linkTaskToActivity = async (
   activityId: number,
   data: { taskId: number },
-): Promise<NewActivity> => {
+): Promise<Activity> => {
   const response = await axiosInstance.patch(
-    `/pulse/new-activity/${activityId}/link-task`,
+    `/pulse/activity/${activityId}/link-task`,
     data,
     { withCredentials: true },
   );
   return response.data;
 };
 
-export const unlinkTaskFromActivity = async (activityId: number): Promise<NewActivity> => {
+export const unlinkTaskFromActivity = async (activityId: number): Promise<Activity> => {
   const response = await axiosInstance.patch(
-    `/pulse/new-activity/${activityId}/unlink-task`,
+    `/pulse/activity/${activityId}/unlink-task`,
     {},
     { withCredentials: true },
   );
   return response.data;
 };
 
-export const deleteNewActivity = async (activityId: number): Promise<void> => {
-  await axiosInstance.delete(`/pulse/new-activity/${activityId}`, {
+export const deleteActivity = async (activityId: number): Promise<void> => {
+  await axiosInstance.delete(`/pulse/activity/${activityId}`, {
     withCredentials: true,
   });
 };

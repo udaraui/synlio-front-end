@@ -12,7 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Activity, CalendarIcon } from "lucide-react";
-import { createNewActivity } from "@/services/new-activity.service";
+import { createActivity } from "@/services/activity.service";
 import { syncPulseRecord } from "@/services/pulse.service";
 import { toast } from "sonner";
 import { format, startOfToday } from "date-fns";
@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { cn } from "@/lib/utils";
 
-interface NewActivityDialogProps {
+interface ActivityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
@@ -29,7 +29,7 @@ interface NewActivityDialogProps {
   pulseWeekEndDate?: string;
 }
 
-export const NewActivityDialog: React.FC<NewActivityDialogProps> = ({
+export const ActivityDialog: React.FC<ActivityDialogProps> = ({
   open,
   onOpenChange,
   onCreated,
@@ -93,7 +93,7 @@ export const NewActivityDialog: React.FC<NewActivityDialogProps> = ({
 
     setSubmitting(true);
     try {
-      const response = await createNewActivity({
+      const response = await createActivity({
         title: title.trim(),
         description: description.trim() || undefined,
         startDate: startDate.toISOString(),

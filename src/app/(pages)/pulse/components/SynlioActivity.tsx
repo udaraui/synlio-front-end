@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from 'react';
-import { differenceInMinutes, differenceInHours, differenceInCalendarDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import {
   AlertCircle,
   ArrowUpRight,
@@ -15,25 +15,20 @@ import {
   MousePointerClick
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getHierarchyLevelIcon, getTicketTypeIcon } from "@/enums/space-configure-icon.enum";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn, formatRelativeTime, getInitials } from "@/lib/utils";
 import { ParentLevelsHoverCard } from '@/components/common/ParentLevelsHoverCard';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createResourceLog } from '@/services/work-log/work-log.service';
-import { unlinkTaskFromActivity, NewActivity } from '@/services/new-activity.service';
-import { Loader2, ClockPlus } from 'lucide-react';
+import { unlinkTaskFromActivity, Activity } from '@/services/activity.service';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { NewActivityDialog } from './NewActivityDialog';
+import { ActivityDialog } from './ActivityDialog';
 import { WorkLogPopover } from './WorkLogPopover';
 import { useRouter } from 'next/navigation';
-import { syncPulseRecord } from "@/services/pulse.service";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -413,7 +408,7 @@ const ActivityRow = ({
   isLast,
   onActionComplete,
 }: {
-  activity: NewActivity;
+  activity: Activity;
   isLast: boolean;
   onActionComplete?: () => void;
 }) => {
@@ -526,7 +521,7 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
   const [openGroupId, setOpenGroupId] = useState<number | null>(null);
   const [showCompletedWork, setShowCompletedWork] = useState(false);
   const [showInProgressWork, setShowInProgressWork] = useState(false);
-  const [isNewActivityDialogOpen, setIsNewActivityDialogOpen] = useState(false);
+  const [isActivityDialogOpen, setIsActivityDialogOpen] = useState(false);
 
   const groupedData = useMemo(() => {
     if (!data) return [];
@@ -624,7 +619,7 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
             variant="outline"
             size="xs"
             className="text-xs h-6 px-2 font-medium cursor-pointer gap-1.5 border-dashed"
-            onClick={() => setIsNewActivityDialogOpen(true)}
+            onClick={() => setIsActivityDialogOpen(true)}
           >
             <Plus className="w-3 h-3" />
             Add Activity
@@ -871,9 +866,9 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
       )}
 
       {/* New Activity Dialog */}
-      <NewActivityDialog
-        open={isNewActivityDialogOpen}
-        onOpenChange={setIsNewActivityDialogOpen}
+      <ActivityDialog
+        open={isActivityDialogOpen}
+        onOpenChange={setIsActivityDialogOpen}
         onCreated={onActionComplete}
         pulseWeekEndDate={endDate}
       />

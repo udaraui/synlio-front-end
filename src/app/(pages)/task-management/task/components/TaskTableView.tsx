@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CommentSection } from '@/components/common/CommentSection';
 import { toast } from 'sonner';
 import { setMeetingActionState } from '@/services/meetings-integration.service';
-import { linkTaskToActivity } from '@/services/new-activity.service';
+import { linkTaskToActivity } from '@/services/activity.service';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,

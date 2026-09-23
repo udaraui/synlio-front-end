@@ -17,10 +17,9 @@ import {
   InlineEditableTaskCoAssignees,
 } from './InlineEditableTaskComponents';
 import type { TaskCardConfigData } from './task-card.types';
-import { NoMembersWarningAvatarPair } from './NoMembersWarningAvatar';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { setMeetingActionState } from '@/services/meetings-integration.service';
-import { linkTaskToActivity } from '@/services/new-activity.service';
+import { linkTaskToActivity } from '@/services/activity.service';
 import { toast } from 'sonner';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
