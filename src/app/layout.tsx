@@ -9,7 +9,6 @@ import { ThemeProvider } from '@/components/theme-wrapper';
 
 export const metadata: Metadata = {
   title: 'Synlio',
-  // description: '',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
