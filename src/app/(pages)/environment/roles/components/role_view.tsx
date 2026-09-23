@@ -6,10 +6,9 @@ import {
   getAllPrivilegeByUser,
   getAllPrivilegeByRole,
 } from "@/services/privilege-services";
-import { RefreshCw, Search, XIcon, Shield, ChevronDown, ShieldUser } from "lucide-react";
+import { RefreshCw, Search, XIcon, ChevronDown, ShieldUser } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +24,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { safeParse } from "@/services/auth-service";
-import Info_button from "@/components/Info_button";
 
 interface RoleViewProps {
   open: boolean;
@@ -402,7 +400,7 @@ const RoleView: React.FC<RoleViewProps> = ({ open, onOpenChange, roleId, roleNam
 
               return (
                 <AccordionItem key={groupName} value={groupName} className="border-none relative group">
-                  <AccordionTrigger className="flex items-center justify-between w-full p-2 rounded-md hover:bg-accent/50 hover:no-underline transition-colors pr-[80px]">
+                  <AccordionTrigger className="flex items-center justify-between w-full p-2 rounded-md hover:bg-accent/50 hover:no-underline transition-colors pr-[100px]">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{groupName}</span>
                       <Badge variant="outline" className="text-xs">
@@ -411,12 +409,13 @@ const RoleView: React.FC<RoleViewProps> = ({ open, onOpenChange, roleId, roleNam
                     </div>
                   </AccordionTrigger>
                   <div
-                    className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10"
+                    className="absolute right-4 top-2 flex items-center gap-2 z-10"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {isAnyItemUpdating && (
                       <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
                     )}
+                    <span className="text-[10px] uppercase font-semibold text-muted-foreground">All</span>
                     <Switch
                       checked={groupChecked}
                       disabled={isAnyItemUpdating}
@@ -431,7 +430,7 @@ const RoleView: React.FC<RoleViewProps> = ({ open, onOpenChange, roleId, roleNam
                         return (
                           <div
                             key={p.id}
-                            className="py-1 px-3 flex items-center justify-between gap-2 hover:bg-accent/50 transition-colors border-b"
+                            className="py-1 pl-3 pr-4 flex items-center justify-between gap-2 hover:bg-accent/50 transition-colors border-b"
                           >
                             <div className="min-w-0 flex-1">
                               <div className="text-sm truncate flex items-center gap-1.5">
