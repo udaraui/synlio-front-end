@@ -136,4 +136,4 @@ dist
 .pnp.*
 
 # JetBrains IDEs
-.idea/
+.idea/package-lock.json
