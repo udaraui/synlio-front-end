@@ -17,6 +17,8 @@ import {
   Activity,
   ShieldUser,
   ChartNoAxesCombined,
+  BotMessageSquare,
+  Brain,
 } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../../public/logo.png";
@@ -138,6 +140,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return isSystemUser ? items.filter((item) => item.title !== "Pulse") : items;
   }, [isSystemUser]);
 
+  const aiData = React.useMemo(() => [
+    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [] },
+    { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [] },
+  ], []);
+
   const resourceData = React.useMemo(() => [
     { title: "Resource", url: "/resource/management", icon: Users, privilege_codes: ["38"], activePaths: ["/resource/management"] },
     { title: "Resource Group", url: "/resource/pools", icon: Contact, privilege_codes: ["42"], activePaths: ["/resource/pools"] },
@@ -162,6 +169,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const visibleDashboardItems = React.useMemo(() => filterItems(dashboardData), [dashboardData, filterItems]);
   const visibleSpacesItems = React.useMemo(() => filterItems(spacesData), [spacesData, filterItems]);
+  const visibleAiItems = React.useMemo(() => filterItems(aiData), [aiData, filterItems]);
   const visibleResourceItems = React.useMemo(() => filterItems(resourceData), [resourceData, filterItems]);
   const visibleMastersItems = React.useMemo(() => filterItems(mastersData), [mastersData, filterItems]);
 
@@ -173,6 +181,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="sidebar gap-3 pt-1">
         {visibleDashboardItems.length > 0 && <NavMain items={visibleDashboardItems} />}
         {visibleSpacesItems.length > 0 && (<NavMain items={visibleSpacesItems} label="Spaces" />)}
+        {visibleAiItems.length > 0 && (<NavMain items={visibleAiItems} label="AI" />)}
         {visibleResourceItems.length > 0 && <NavMain items={visibleResourceItems} label="Team" />}
         <NavMasters masters={visibleMastersItems} />
       </SidebarContent>

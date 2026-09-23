@@ -43,4 +43,6 @@ export const API_ENDPOINTS = {
   IMPORT_EXCEL: `${API_URL}/import/excel`,
   PULSE: `${API_URL}/pulse`,
   TICKET_TEMPLATE: `${API_URL}/ticket-templates`,
+  CHAT: `${API_URL}/chat`,
 };
+

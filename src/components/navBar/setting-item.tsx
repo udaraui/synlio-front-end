@@ -1010,7 +1010,7 @@ function SettingItem() {
           )}
 
           {/* Ask AI button */}
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             className="text-sm ml-[5px] cursor-pointer rounded-md hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
@@ -1019,9 +1019,9 @@ function SettingItem() {
             <span className="font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               Ask AI
             </span>
-          </Button>
+          </Button> */}
           {/* NavUser */}
-          <div className="ml-[15px]">
+          <div className="ml-[5px]">
             <NavUser />
           </div>
         </div>
