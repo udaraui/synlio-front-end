@@ -4,7 +4,7 @@ import {
   Meeting,
   MeetingProvider,
   deleteInternalMeeting,
-} from "@/services/meetings-integration.service";
+} from "@/services/common/meetings-integration.service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";

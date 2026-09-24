@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, MailCheck } from "lucide-react";
 import axios from "axios";
-import { API_URL } from "@/services/API/api";
+import { API_URL } from "@/services/api";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
 import Link from "next/link";
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
         error.code === "ERR_NETWORK" || !error.response
           ? "Unable to connect to the server. Please check your internet connection and try again."
           : error.response?.data?.message ||
-            "Something went wrong. Please try again.";
+          "Something went wrong. Please try again.";
       setErrorMessage(msg);
       toast.error(msg);
     } finally {
@@ -224,3 +224,4 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+

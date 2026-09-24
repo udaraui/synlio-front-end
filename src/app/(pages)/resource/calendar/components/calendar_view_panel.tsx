@@ -35,7 +35,7 @@ import {
 import {
   deleteHolidaysAndWorkingDays,
   getAllCalendarDays,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { toast } from "sonner";
 import HolidayWorkingDayDrawer from "./formDrawers/holiday_workingDay";
@@ -892,10 +892,10 @@ const CalendarViewPanel: React.FC<CalendarViewPanelProps> = ({
                       <Skeleton className="h-4 w-4" />
                     </div>
                     <div className="grid grid-cols-7 gap-0 text-center">
-                      {Array.from({length: 7}).map((_, i) => <Skeleton key={i} className="h-4 w-8 mx-auto mt-2 mb-2" />)}
+                      {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-4 w-8 mx-auto mt-2 mb-2" />)}
                     </div>
                     <div className="grid grid-cols-7 gap-1 mt-1">
-                      {Array.from({length: 35}).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
+                      {Array.from({ length: 35 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
                     </div>
                   </div>
                 </div>

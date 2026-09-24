@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
-import { API_URL } from "@/services/API/api";
+import { API_URL } from "@/services/api";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
 import Link from "next/link";
@@ -331,16 +331,16 @@ function ResetPasswordForm() {
                   (errorMessage.includes("expired") ||
                     errorMessage.includes("invalid") ||
                     errorMessage.includes("Invalid")) && (
-                  <div className="text-center">
-                    <Link
-                      href="/forgot-password"
-                      className="text-sm font-medium hover:underline"
-                      style={{ color: "oklch(71.443% 0.12133 240.504)" }}
-                    >
-                      Request a new reset link
-                    </Link>
-                  </div>
-                )}
+                    <div className="text-center">
+                      <Link
+                        href="/forgot-password"
+                        className="text-sm font-medium hover:underline"
+                        style={{ color: "oklch(71.443% 0.12133 240.504)" }}
+                      >
+                        Request a new reset link
+                      </Link>
+                    </div>
+                  )}
 
                 <div className="text-center mt-1">
                   <Link
@@ -372,3 +372,4 @@ export default function ResetPasswordPage() {
     </Suspense>
   );
 }
+

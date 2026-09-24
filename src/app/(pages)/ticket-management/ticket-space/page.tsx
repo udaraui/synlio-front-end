@@ -29,7 +29,7 @@ import TicketSpaceGridView from './components/TicketSpaceGridView';
 import { TicketSpaceGridSkeleton, TicketSpaceTableSkeleton } from './components/TicketSpaceSkeletons';
 import { searchTicketSpaces, getBulkTicketSpaceStatusCounts } from '@/services/ticket-management/ticket-space.service';
 import DeleteModal from '@/components/DeleteModal';
-import { safeParse } from '@/services/auth-service';
+import { safeParse } from '@/services/auth/auth-service';
 
 function Page() {
   const { user } = useAuth();
@@ -68,9 +68,9 @@ function Page() {
   const currentData = useServerPagination
     ? data
     : data.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      );
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
 
   // Breadcrumb setup
   useBreadcrumbsEffect([
@@ -185,7 +185,7 @@ function Page() {
       setData([]);
       setTotalRecords(0);
       setStatusCountsBySpace({});
-    } finally{
+    } finally {
       setIsLoading(false);
       setHasDataFetched(true);
       isFetchingRef.current = false;
@@ -254,7 +254,7 @@ function Page() {
             [ticketSpace.id]: bulk[ticketSpace.id] ?? [],
           }));
         })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       // Edit: update existing space in the list
       setData((prevData) =>
@@ -301,11 +301,11 @@ function Page() {
             {/* View Toggle Buttons */}
             <div className="flex gap-1 bg-background border border-border rounded-sm shrink-0 items-center h-7">
               <Button
-                  size="sm"
-                  variant={changeView === 'card' ? 'default' : 'ghost'}
-                  className={`h-full text-xs shadow-none ${changeView === 'card' ? 'px-2.5 dark:text-black' : 'px-2'}`}
-                  onClick={() => setChangeView('card')}
-                  title="Switch to Grid View"
+                size="sm"
+                variant={changeView === 'card' ? 'default' : 'ghost'}
+                className={`h-full text-xs shadow-none ${changeView === 'card' ? 'px-2.5 dark:text-black' : 'px-2'}`}
+                onClick={() => setChangeView('card')}
+                title="Switch to Grid View"
               >
                 <LayoutGrid className={`w-3.5 h-3.5 ${changeView === 'card' ? 'mr-1' : ''}`} />
                 {changeView === 'card' && 'Grid'}

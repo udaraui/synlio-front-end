@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/interceptors/axiosInstance";
-import { API_ENDPOINTS } from "../API/api";
+import { API_ENDPOINTS } from "../api";
 
 export const patchTicketAttachment = async (
   file: File,
@@ -88,4 +88,5 @@ export const deleteTicketAttachment = async (id: number): Promise<any> => {
     throw error;
   }
 };
+
 

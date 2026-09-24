@@ -19,8 +19,8 @@ import { User } from "@/interfaces/user";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAllDivisionsByCompanyId } from "@/services/division-services";
-import { getAllRoleByCompany } from "@/services/role-services";
+import { getAllDivisionsByCompanyId } from "@/services/company-management/division-services";
+import { getAllRoleByCompany } from "@/services/user-management/role-services";
 import { toast } from "sonner";
 import {
   Form,
@@ -53,8 +53,8 @@ import {
   UserCheck
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createUser, searchUserByEmail } from "@/services/user-service";
-import { safeParse } from "@/services/auth-service";
+import { createUser, searchUserByEmail } from "@/services/user-management/user-service";
+import { safeParse } from "@/services/auth/auth-service";
 import { useDebounce } from "@/hooks/use-debounce";
 
 interface UserCreateDrawerProps {
@@ -128,7 +128,7 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
 
       if (systemMode) {
         try {
-          const { getAllCompany } = await import("@/services/company-services");
+          const { getAllCompany } = await import("@/services/company-management/company-services");
           const result = await getAllCompany();
           setAllCompanies(result.data || []);
         } catch (error) {
@@ -424,7 +424,7 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Company context / Active company */}
                 {isSystemUser ? (
                   <FormField
@@ -508,9 +508,8 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                                       }}
                                     >
                                       <Check
-                                        className={`mr-2 h-4 w-4 ${
-                                          field.value?.includes(division.id) ? "opacity-100" : "opacity-0"
-                                        }`}
+                                        className={`mr-2 h-4 w-4 ${field.value?.includes(division.id) ? "opacity-100" : "opacity-0"
+                                          }`}
                                       />
                                       {division.division}
                                     </CommandItem>
@@ -591,9 +590,8 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                                         }}
                                       >
                                         <Check
-                                          className={`mr-2 h-4 w-4 ${
-                                            isSelected ? "opacity-100" : "opacity-0"
-                                          }`}
+                                          className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100" : "opacity-0"
+                                            }`}
                                         />
                                         {role.role}
                                       </CommandItem>

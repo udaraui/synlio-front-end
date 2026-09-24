@@ -20,10 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, Search, Loader2, Check } from "lucide-react";
-import { load } from "@/services/user-service";
-import { getNoteShareList, shareNote, type SharedUser } from "@/services/notes.service";
+import { load } from "@/services/user-management/user-service";
+import { getNoteShareList, shareNote, type SharedUser } from "@/services/home/notes.service";
 import { useDebounce } from "@/hooks/use-debounce";
-import { API_URL } from "@/services/API/api";
+import { API_URL } from "@/services/api";
 import { useAuth } from "@/contexts/auth.context";
 
 interface ShareNoteDialogProps {
@@ -215,35 +215,35 @@ export default function ShareNoteDialog({
                   {results.map((u) => {
                     const isChecked = selected.some((s) => s.userId === u.id);
                     return (
-                    <CommandItem
-                      key={u.id}
-                      value={String(u.id)}
-                      onSelect={() => addUser(u)}
-                      className="flex items-center gap-3 px-3 py-2 cursor-pointer"
-                    >
-                      <Avatar className="h-8 w-8 shrink-0">
-                        {u.profile_picture && (
-                          <AvatarImage
-                            src={buildAvatarUrl(u.profile_picture)}
-                            alt={`${u.first_name} ${u.last_name}`}
-                          />
+                      <CommandItem
+                        key={u.id}
+                        value={String(u.id)}
+                        onSelect={() => addUser(u)}
+                        className="flex items-center gap-3 px-3 py-2 cursor-pointer"
+                      >
+                        <Avatar className="h-8 w-8 shrink-0">
+                          {u.profile_picture && (
+                            <AvatarImage
+                              src={buildAvatarUrl(u.profile_picture)}
+                              alt={`${u.first_name} ${u.last_name}`}
+                            />
+                          )}
+                          <AvatarFallback className="text-xs">
+                            {getInitials(u.first_name, u.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {u.first_name} {u.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {u.email}
+                          </p>
+                        </div>
+                        {isChecked && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
                         )}
-                        <AvatarFallback className="text-xs">
-                          {getInitials(u.first_name, u.last_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {u.first_name} {u.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {u.email}
-                        </p>
-                      </div>
-                      {isChecked && (
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                      )}
-                    </CommandItem>
+                      </CommandItem>
                     );
                   })}
                 </CommandGroup>
@@ -269,4 +269,5 @@ export default function ShareNoteDialog({
     </Dialog>
   );
 }
+
 

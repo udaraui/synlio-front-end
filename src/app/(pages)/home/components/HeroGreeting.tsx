@@ -13,7 +13,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { getUserConfig, FilterTemplate } from "@/services/user-config-service";
+import { getUserConfig, FilterTemplate } from "@/services/user-management/user-config-service";
 import { searchTaskSpaces } from "@/services/task-management/task-space.service";
 import { searchTicketSpaces } from "@/services/ticket-management/ticket-space.service";
 

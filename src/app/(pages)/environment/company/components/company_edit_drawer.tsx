@@ -36,7 +36,7 @@ import {
   Save,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { updateCompany } from "@/services/company-services";
+import { updateCompany } from "@/services/company-management/company-services";
 import { Company } from "@/interfaces/company";
 import { API_URL } from "@/lib/constants";
 import { ActiveStatus } from "@/interfaces/common/status.enum";
@@ -89,8 +89,8 @@ export function CompanyEditDrawer({
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      const payload = { 
-        id: company?.id, 
+      const payload = {
+        id: company?.id,
         ...data,
         isActive: data.active_status
       };

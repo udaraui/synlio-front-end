@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Loader2, Save, X, Pencil, Trash, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { format } from "date-fns";
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '@/services/API/api';
+import { API_ENDPOINTS } from '@/services/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -99,11 +99,11 @@ export function WorkLogTable({
 
   const isLogOutsideActiveWeek = (logStartDate: string | null | undefined, logEndDate: string | null | undefined) => {
     if (!activeWeekStart || !activeWeekEnd) return false;
-    
+
     // Check if the log falls entirely outside the active week boundaries
     if (logStartDate && new Date(logStartDate) > new Date(activeWeekEnd)) return true;
     if (logEndDate && new Date(logEndDate) < new Date(activeWeekStart)) return true;
-    
+
     return false;
   };
 
@@ -158,8 +158,8 @@ export function WorkLogTable({
                     {weeks.map(w => {
                       const isCurrentWeek = String(w.weekNumber) === currentWeekStr;
                       return (
-                        <SelectItem 
-                          key={w.weekNumber} 
+                        <SelectItem
+                          key={w.weekNumber}
                           value={String(w.weekNumber)}
                           ref={isCurrentWeek ? currentWeekRef : undefined}
                           className={`cursor-pointer hover:bg-muted focus:bg-muted ${isCurrentWeek ? "text-primary font-medium" : ""}`}
@@ -231,20 +231,20 @@ export function WorkLogTable({
               </TableCell>
               <TableCell className="text-right p-2">
                 <div className="flex items-center justify-end gap-1 pr-0">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6" 
-                    onClick={handleSaveLog} 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={handleSaveLog}
                     disabled={isAddingLog || !newLogEntry.startTimeDate || !newLogEntry.endTimeDate || !newLogEntry.effort}
                     title={!(isAddingLog || !newLogEntry.startTimeDate || !newLogEntry.endTimeDate || !newLogEntry.effort) ? "Log time" : undefined}
                   >
                     {isAddingLog ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 text-primary" />}
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 hover:bg-red-50 dark:hover:bg-red-950/30" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 hover:bg-red-50 dark:hover:bg-red-950/30"
                     onClick={() => setNewLogEntry({ startTimeDate: null, endTimeDate: null, effort: '', note: '' })}
                     disabled={!newLogEntry.startTimeDate && !newLogEntry.endTimeDate && !newLogEntry.effort}
                     title={(newLogEntry.startTimeDate || newLogEntry.endTimeDate || newLogEntry.effort) ? "Clear" : undefined}
@@ -284,8 +284,8 @@ export function WorkLogTable({
                         {weeks.map(w => {
                           const isCurrentWeek = String(w.weekNumber) === currentWeekStr;
                           return (
-                            <SelectItem 
-                              key={w.weekNumber} 
+                            <SelectItem
+                              key={w.weekNumber}
                               value={String(w.weekNumber)}
                               ref={isCurrentWeek ? currentWeekRef : undefined}
                               className={`cursor-pointer hover:bg-muted focus:bg-muted ${isCurrentWeek ? "text-primary font-semibold" : ""}`}
@@ -385,11 +385,11 @@ export function WorkLogTable({
                     {canEditLogs && (
                       <TableCell className="p-2 text-right">
                         <div className="flex items-center justify-end gap-1 h-full pr-0">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6" 
-                            title="Edit" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            title="Edit"
                             disabled={isOutside}
                             onClick={() => {
                               setEditingLogId(log.id);
@@ -403,11 +403,11 @@ export function WorkLogTable({
                           >
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive text-destructive" 
-                            title="Delete" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive text-destructive"
+                            title="Delete"
                             disabled={isOutside}
                             onClick={() => handleDeleteLog(log.id)}
                           >
@@ -420,10 +420,10 @@ export function WorkLogTable({
                 );
 
                 const rowElement = (
-                  <TableRow 
-                    key={log.id} 
+                  <TableRow
+                    key={log.id}
                     className={cn(
-                      "text-xs font-medium text-muted-foreground", 
+                      "text-xs font-medium text-muted-foreground",
                       isOutside ? "opacity-50 hover:bg-transparent cursor-not-allowed" : ""
                     )}
                   >
@@ -502,3 +502,4 @@ export function WorkLogTable({
     </>
   );
 }
+

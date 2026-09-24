@@ -10,8 +10,8 @@ import { toast } from 'sonner';
 import { Resource } from '@/interfaces/resource';
 import { ResourcePool } from '@/interfaces/resource-pool';
 // Adjust your imports based on your actual service file paths:
-import { loadResource, getResourceSkills, searchResourcesWithSkills } from '@/services/resource-service';
-import { loadResourcePools } from '@/services/resource-pool-service';
+import { loadResource, getResourceSkills, searchResourcesWithSkills } from '@/services/resource-management/resource-service';
+import { loadResourcePools } from '@/services/resource-management/resource-pool-service';
 
 interface ResourceSelectorProps {
   projectGroupId?: number;
@@ -152,7 +152,7 @@ export default function ResourceSelector({
   const [projectResources, setProjectResources] = useState<Resource[]>([]);
   const [allResources, setAllResources] = useState<Resource[]>([]);
   const [resourcePools, setResourcePools] = useState<ResourcePool[]>([]);
-  
+
   // ── Backend Skill Search States ──
   const [searchedResources, setSearchedResources] = useState<Resource[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -323,7 +323,7 @@ export default function ResourceSelector({
         );
       }
     }
-    
+
     return result.sort((a, b) => {
       const aName = a.first_name || '';
       const bName = b.first_name || '';

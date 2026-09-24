@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Info, Trash } from 'lucide-react';
-import { checkDeleteUser, deleteUser } from '@/services/user-service';
+import { checkDeleteUser, deleteUser } from '@/services/user-management/user-service';
 import { toast } from 'sonner';
 
 interface DeleteUserModalProps {
@@ -227,8 +227,8 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
                 </>
               ) : (
                 <>
-                <Trash className='h-4 w-4 mr-2' />
-                Remove
+                  <Trash className='h-4 w-4 mr-2' />
+                  Remove
                 </>
               )}
             </Button>

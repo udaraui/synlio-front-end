@@ -6,7 +6,7 @@ import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import {
   deleteHolidaysAndWorkingDays,
   loadCalendardates,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { Calendar, CalendarDays } from "@/interfaces/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,34 +97,34 @@ const CalendarDatesCompact: React.FC<CalendarDatesCompactProps> = ({
           : []),
         ...(type
           ? [
-              {
-                field: type === "holidays" ? "isHoliday" : "isSpecialWorkingDay",
-                value: true,
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: type === "holidays" ? "isHoliday" : "isSpecialWorkingDay",
+              value: true,
+              matchMode: "equals",
+            },
+          ]
           : []),
         // A calendar year is week aligned and spills into the next one, so the
         // range of the selected year is what scopes the list.
         ...(dateRange
           ? [
-              {
-                field: "date",
-                value: [toIsoDate(dateRange.from), toIsoDate(dateRange.to)],
-                matchMode: "dateBetween",
-              },
-            ]
+            {
+              field: "date",
+              value: [toIsoDate(dateRange.from), toIsoDate(dateRange.to)],
+              matchMode: "dateBetween",
+            },
+          ]
           : selectedYear
             ? [{ field: "year", value: selectedYear, matchMode: "equals" }]
             : []),
         ...(debouncedSearchTerm
           ? [
-              {
-                field: "date",
-                value: debouncedSearchTerm,
-                matchMode: "contains",
-              },
-            ]
+            {
+              field: "date",
+              value: debouncedSearchTerm,
+              matchMode: "contains",
+            },
+          ]
           : []),
       ];
 
@@ -214,137 +214,137 @@ const CalendarDatesCompact: React.FC<CalendarDatesCompactProps> = ({
           </div>
         </div>
 
-      {/* List */}
-      <div className="flex-1 px-3 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-      {isLoading ? (
-        <div className="space-y-1.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-2.5 bg-white dark:bg-slate-900/40">
-              <div className="flex items-start gap-2 min-w-0 flex-1">
-                <div className="flex flex-col items-center justify-center min-w-[3.5rem] bg-background border border-border rounded-md py-1.5 flex-shrink-0 relative overflow-hidden">
-                  <div className="absolute top-0 inset-x-0 h-1.5 bg-muted" />
-                  <Skeleton className="h-3 w-6 mt-1" />
-                  <Skeleton className="h-5 w-5 mt-1" />
-                </div>
-                <div className="min-w-0 flex-1 flex flex-col gap-2 justify-center py-1">
-                  <Skeleton className="h-4 w-3/4 max-w-[200px]" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-16 rounded-md" />
-                    <Skeleton className="h-5 w-16 rounded-md" />
+        {/* List */}
+        <div className="flex-1 px-3 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+          {isLoading ? (
+            <div className="space-y-1.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-2.5 bg-white dark:bg-slate-900/40">
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <div className="flex flex-col items-center justify-center min-w-[3.5rem] bg-background border border-border rounded-md py-1.5 flex-shrink-0 relative overflow-hidden">
+                      <div className="absolute top-0 inset-x-0 h-1.5 bg-muted" />
+                      <Skeleton className="h-3 w-6 mt-1" />
+                      <Skeleton className="h-5 w-5 mt-1" />
+                    </div>
+                    <div className="min-w-0 flex-1 flex flex-col gap-2 justify-center py-1">
+                      <Skeleton className="h-4 w-3/4 max-w-[200px]" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-5 w-16 rounded-md" />
+                        <Skeleton className="h-5 w-16 rounded-md" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Skeleton className="h-7 w-7 rounded-md" />
+                    <Skeleton className="h-7 w-7 rounded-md" />
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Skeleton className="h-7 w-7 rounded-md" />
-                <Skeleton className="h-7 w-7 rounded-md" />
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : calendarDates.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">
-          <Umbrella className="h-8 w-8 opacity-30 mx-auto mb-2" />
-          <p className="text-sm">
-            {type === "holidays" ? "No holidays found" : "No working days found"}
-          </p>
-          {/* <p className="text-xs mt-1">
+          ) : calendarDates.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Umbrella className="h-8 w-8 opacity-30 mx-auto mb-2" />
+              <p className="text-sm">
+                {type === "holidays" ? "No holidays found" : "No working days found"}
+              </p>
+              {/* <p className="text-xs mt-1">
             {debouncedSearchTerm
               ? "Try adjusting your search"
               : "No entries available"}
           </p> */}
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {calendarDates.map((item) => {
-            const state = resolveDayState(item);
-            const isPast = isPastDate(item.date);
-            const dotColor = state.key === "SPECIAL_WORKING" ? "#22c55e" : state.key === "HOLIDAY" ? "rgba(248, 113, 113, 0.8)" : state.key === "WEEKEND" ? "rgba(254, 202, 202, 0.7)" : "#22c55e";
-            return (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-2.5 bg-white dark:bg-slate-900/40 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-start gap-2 min-w-0 flex-1">
-                  <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                    <p className="text-sm font-medium truncate leading-none mt-1">
-                      {item.date ? new Date(item.date).toLocaleDateString() : "—"}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1">
-                      {item.date && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium">
-                          {new Date(item.date).toLocaleDateString(undefined, {
-                            weekday: "long",
-                          })}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} />
-                        {state.baseLabel}
-                      </span>
-                      {item.dayType && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
-                          {item.dayType.toUpperCase() === "HALF" ? (
-                            <CircleDashed className="h-3 w-3" color={dotColor} />
-                          ) : (
-                            <Circle className="h-3 w-3" color={dotColor} />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {calendarDates.map((item) => {
+                const state = resolveDayState(item);
+                const isPast = isPastDate(item.date);
+                const dotColor = state.key === "SPECIAL_WORKING" ? "#22c55e" : state.key === "HOLIDAY" ? "rgba(248, 113, 113, 0.8)" : state.key === "WEEKEND" ? "rgba(254, 202, 202, 0.7)" : "#22c55e";
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-2.5 bg-white dark:bg-slate-900/40 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+                        <p className="text-sm font-medium truncate leading-none mt-1">
+                          {item.date ? new Date(item.date).toLocaleDateString() : "—"}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {item.date && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium">
+                              {new Date(item.date).toLocaleDateString(undefined, {
+                                weekday: "long",
+                              })}
+                            </span>
                           )}
-                          {item.dayType.charAt(0).toUpperCase() + item.dayType.slice(1).toLowerCase()} Day
-                        </span>
+                          <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} />
+                            {state.baseLabel}
+                          </span>
+                          {item.dayType && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                              {item.dayType.toUpperCase() === "HALF" ? (
+                                <CircleDashed className="h-3 w-3" color={dotColor} />
+                              ) : (
+                                <Circle className="h-3 w-3" color={dotColor} />
+                              )}
+                              {item.dayType.charAt(0).toUpperCase() + item.dayType.slice(1).toLowerCase()} Day
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Info_button
+                        id={item.id}
+                        createdBy={item.createdBy || ""}
+                        createdAt={item.createdAt || ""}
+                        updatedBy={item.updatedBy || ""}
+                        updatedAt={item.updatedAt || ""}
+                      />
+                      {canCreate && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => {
+                            if (isPast) {
+                              toast.error("Past dates cannot be changed");
+                              return;
+                            }
+                            setEditingDate(item);
+                          }}
+                          disabled={isPast}
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => {
+                            if (isPast) {
+                              toast.error("Past dates cannot be changed");
+                              return;
+                            }
+                            setDeletingId(item.id);
+                            setIsDeleting(true);
+                          }}
+                          disabled={isPast}
+                        >
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Info_button
-                    id={item.id}
-                    createdBy={item.createdBy || ""}
-                    createdAt={item.createdAt || ""}
-                    updatedBy={item.updatedBy || ""}
-                    updatedAt={item.updatedAt || ""}
-                  />
-                  {canCreate && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 w-7 p-0" 
-                      onClick={() => {
-                        if (isPast) {
-                          toast.error("Past dates cannot be changed");
-                          return;
-                        }
-                        setEditingDate(item);
-                      }}
-                      disabled={isPast}
-                    >
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 w-7 p-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => {
-                        if (isPast) {
-                          toast.error("Past dates cannot be changed");
-                          return;
-                        }
-                        setDeletingId(item.id);
-                        setIsDeleting(true);
-                      }}
-                      disabled={isPast}
-                    >
-                      <Trash className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-      </div>
       </div>
 
       {/* Pagination footer */}
@@ -441,9 +441,8 @@ const CalendarDatesCompact: React.FC<CalendarDatesCompactProps> = ({
           }
           id={deletingId || 0}
           title={type === "holidays" ? "Delete Holiday" : "Delete Working Day"}
-          description={`Are you sure you want to delete this ${
-            type === "holidays" ? "holiday" : "working day"
-          }?`}
+          description={`Are you sure you want to delete this ${type === "holidays" ? "holiday" : "working day"
+            }?`}
           buttonText="Delete"
           buttonVariant="destructive"
           buttonIcon={<CalendarOff />}

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SkeletonLoadinWithoutImage } from "@/components/loading/GeneralSkeletons";
 import { Input } from "@/components/ui/input";
-import { loadCompanyById } from "@/services/company-services";
+import { loadCompanyById } from "@/services/company-management/company-services";
 import {
   Select,
   SelectContent,
@@ -29,7 +29,7 @@ import Info_button from "@/components/Info_button";
 import DivisionEditDrawer from "./division_edit_drawer";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { toast } from "sonner";
-import { deleteDivision, disableDivision } from "@/services/division-services";
+import { deleteDivision, disableDivision } from "@/services/company-management/division-services";
 import DeleteModal from "@/components/DeleteModal";
 import {
   Tooltip,
@@ -76,9 +76,9 @@ const CompanyView: React.FC<CompanyViewProps> = ({
   const currentCompany = useServerPagination
     ? company
     : company.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage,
-      );
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    );
 
   useEffect(() => {
     const checkMobile = () => {
@@ -95,21 +95,21 @@ const CompanyView: React.FC<CompanyViewProps> = ({
     const filters = [
       ...(companyId
         ? [
-            {
-              field: "companyId",
-              value: companyId,
-              matchMode: "equals",
-            },
-          ]
+          {
+            field: "companyId",
+            value: companyId,
+            matchMode: "equals",
+          },
+        ]
         : []),
       ...(debouncedDivisionTerm
         ? [
-            {
-              field: "division",
-              value: debouncedDivisionTerm,
-              matchMode: "contains",
-            },
-          ]
+          {
+            field: "division",
+            value: debouncedDivisionTerm,
+            matchMode: "contains",
+          },
+        ]
         : []),
     ];
 
@@ -165,7 +165,7 @@ const CompanyView: React.FC<CompanyViewProps> = ({
                   className="rounded-r-none"
                   size="sm"
                   variant="outline"
-                  // onClick={() => setShowFilters(!showFilters)}
+                // onClick={() => setShowFilters(!showFilters)}
                 >
                   <Filter className="h-4 w-4" />
                 </Button>
@@ -316,11 +316,10 @@ const CompanyView: React.FC<CompanyViewProps> = ({
                       </p>
                       <Badge
                         variant="outline"
-                        className={`text-xs self-center rounded-md sm:self-auto ${
-                          company.isActive
+                        className={`text-xs self-center rounded-md sm:self-auto ${company.isActive
                             ? "bg-green-100 text-green-700 border-green-300"
                             : "bg-red-100 text-red-700 border-red-300"
-                        }`}
+                          }`}
                       >
                         {company.isActive ? "Active" : "Inactive"}
                       </Badge>
@@ -385,9 +384,9 @@ const CompanyView: React.FC<CompanyViewProps> = ({
                                       if (result) {
                                         setSelectedDivision(null);
                                         await getCompany(companyId);
-                                          toast.success(
-                                            company.isActive ? "Division inactivated" : "Division activated",
-                                          );
+                                        toast.success(
+                                          company.isActive ? "Division inactivated" : "Division activated",
+                                        );
                                       }
                                     } catch (error) {
                                       console.error(

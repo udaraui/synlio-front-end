@@ -3,7 +3,7 @@ import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { Skill } from "@/interfaces/skill";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { deleteSkill, disableSkill, loadSkills } from "@/services/skill-services";
+import { deleteSkill, disableSkill, loadSkills } from "@/services/resource-management/skill-services";
 import {
   ArrowDown,
   ArrowUp,
@@ -98,13 +98,13 @@ const Skill_list: React.FC<SkillListProps> = ({ skillCategoryId }) => {
         filters,
         ...(sortOption
           ? {
-              multiSorts: [{
-                field: sortOption.startsWith("name") ? "name"
-                  : sortOption.startsWith("updatedAt") ? "updatedAt"
+            multiSorts: [{
+              field: sortOption.startsWith("name") ? "name"
+                : sortOption.startsWith("updatedAt") ? "updatedAt"
                   : "createdAt",
-                order: sortOption.endsWith("-desc") ? "-1" : "1",
-              }],
-            }
+              order: sortOption.endsWith("-desc") ? "-1" : "1",
+            }],
+          }
           : {}),
       };
 
@@ -221,108 +221,107 @@ const Skill_list: React.FC<SkillListProps> = ({ skillCategoryId }) => {
             </p>
           </div>
         ) : (
-        <div className="space-y-1.5">
-          {currentSkills.map((skill) => (
-            <div
-              key={skill.id}
-              className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-3 bg-white dark:bg-gray-800 hover:bg-muted/30 transition-colors"
-            >
-              {/* Info */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{skill.name}</p>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-foreground/70 flex-shrink-0">
-                  <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                    skill.isActive ? "bg-green-500 dark:bg-green-400" : "bg-red-400 dark:bg-red-500"
-                  }`} />
-                  {skill.isActive ? "Active" : "Inactive"}
-                </div>
-                {/* <Info_button
+          <div className="space-y-1.5">
+            {currentSkills.map((skill) => (
+              <div
+                key={skill.id}
+                className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-3 bg-white dark:bg-gray-800 hover:bg-muted/30 transition-colors"
+              >
+                {/* Info */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{skill.name}</p>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-foreground/70 flex-shrink-0">
+                    <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${skill.isActive ? "bg-green-500 dark:bg-green-400" : "bg-red-400 dark:bg-red-500"
+                      }`} />
+                    {skill.isActive ? "Active" : "Inactive"}
+                  </div>
+                  {/* <Info_button
                   id={skill.id}
                   createdBy={skill.createdBy || ""}
                   createdAt={skill.createdAt || ""}
                   updatedBy={skill.updatedBy || ""}
                   updatedAt={skill.updatedAt || ""}
                 /> */}
-              </div>
+                </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center h-7 cursor-pointer">
-                        <Switch
-                          checked={skill.isActive}
-                          onCheckedChange={async () => {
-                            if (!canEditSkill) {
-                              toast.error("Not authorized to change skill status");
-                              return;
-                            }
-                            try {
-                              await disableSkill(skill.id);
-                              fetchSkills();
-                              toast.success(skill.isActive ? "Skill inactivated" : "Skill activated");
-                            } catch {
-                              toast.error("Failed to update skill status");
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center h-7 cursor-pointer">
+                          <Switch
+                            checked={skill.isActive}
+                            onCheckedChange={async () => {
+                              if (!canEditSkill) {
+                                toast.error("Not authorized to change skill status");
+                                return;
+                              }
+                              try {
+                                await disableSkill(skill.id);
+                                fetchSkills();
+                                toast.success(skill.isActive ? "Skill inactivated" : "Skill activated");
+                              } catch {
+                                toast.error("Failed to update skill status");
+                              }
+                            }}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {skill.isActive ? "Deactivate Skill" : "Activate Skill"}
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canEditSkill) {
+                              onSkillEditClick(skill);
+                            } else {
+                              toast.error("Not authorized to edit skills");
                             }
                           }}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      {skill.isActive ? "Deactivate Skill" : "Activate Skill"}
-                    </TooltipContent>
-                  </Tooltip>
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Edit Skill</TooltipContent>
+                    </Tooltip>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canEditSkill) {
-                            onSkillEditClick(skill);
-                          } else {
-                            toast.error("Not authorized to edit skills");
-                          }
-                        }}
-                      >
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Edit Skill</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canDeleteSkill) {
-                            setDeletingSkill(skill.id);
-                            setIsDeletingSkill(true);
-                          } else {
-                            toast.error("Not authorized to delete skills");
-                          }
-                        }}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Delete Skill</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canDeleteSkill) {
+                              setDeletingSkill(skill.id);
+                              setIsDeletingSkill(true);
+                            } else {
+                              toast.error("Not authorized to delete skills");
+                            }
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Delete Skill</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
       </div>
 

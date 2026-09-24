@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { createOrUpdateUserConfig, getUserConfig } from '@/services/user-config-service';
+import { createOrUpdateUserConfig, getUserConfig } from '@/services/user-management/user-config-service';
 
 export function useViewPreference<T extends string>(
   pageKey: string,

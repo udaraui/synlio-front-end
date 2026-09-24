@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { toast } from "sonner";
-import { loadDivisions } from "@/services/division-services";
-import { getCompanyById } from "@/services/company-services";
+import { loadDivisions } from "@/services/company-management/division-services";
+import { getCompanyById } from "@/services/company-management/company-services";
 import { Division } from "@/interfaces/division";
 import DivisionList from "./components/division-list";
 import DivisionCreateDrawer from "../../components/division_create_drawer";
 import DivisionEditDrawer from "../../components/division_edit_drawer";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 
 function Page() {
   const params = useParams<{ id: string }>();
@@ -106,12 +106,12 @@ function Page() {
           : []),
         ...(debouncedStatusTerm
           ? [
-              {
-                field: "isActive",
-                value: debouncedStatusTerm === "true",
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: "isActive",
+              value: debouncedStatusTerm === "true",
+              matchMode: "equals",
+            },
+          ]
           : []),
       ];
 
@@ -124,8 +124,8 @@ function Page() {
             field: (sortOption || "name-asc").startsWith("name")
               ? "division"
               : (sortOption || "name-asc").startsWith("updatedAt")
-              ? "updatedAt"
-              : "createdAt",
+                ? "updatedAt"
+                : "createdAt",
             order: (sortOption || "name-asc").endsWith("-desc") ? "-1" : "1",
           },
         ],

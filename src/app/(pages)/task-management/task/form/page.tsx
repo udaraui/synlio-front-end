@@ -135,16 +135,16 @@ import { CommentSection } from '@/components/common/CommentSection';
 import { TaskSpaceResourceDropdown } from '@/components/common/TaskSpaceResourceDropdown';
 import { createResourceLog, deleteResourceLog, getResourceTaskLogHistory, updateResourceLog } from '@/services/work-log/work-log.service';
 import { AssigneeType } from "@/enums/assignee-type.enum";
-import { setMeetingActionState } from '@/services/meetings-integration.service';
-import { linkTaskToActivity } from '@/services/activity.service';
+import { setMeetingActionState } from '@/services/common/meetings-integration.service';
+import { linkTaskToActivity } from '@/services/pulse/activity.service';
 import LinkWorkItemDialog from '@/components/link-management/LinkWorkItemDialog';
 import {
   getWorkItemLinks,
   deleteWorkItemLink,
   checkWorkItemAccess,
   type WorkItemLink,
-} from '@/services/link-management/work-item-link.service';
-import { getLinkTypes, type LinkType } from '@/services/link-management/link-type.service';
+} from '@/services/common/work-item-link.service';
+import { getLinkTypes, type LinkType } from '@/services/common/link-type.service';
 import { DatePickerItem } from "@/components/ui/date-picker-item";
 import { DetailsTable } from "@/components/common/details-table";
 import { WorkLogTable } from "@/components/common/work-log-table";
@@ -2840,45 +2840,45 @@ export default function TaskFormPage() {
                                 type="button"
                                 className="flex items-center gap-2.5 w-full text-left rounded-md hover:bg-muted/50 transition-colors p-1 -m-1 focus:outline-none group"
                               >
-                          {selectedAssignee ? (
-                            <>
-                              <Avatar className="h-8 w-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-primary/50 transition-shadow">
-                                <AvatarImage src={selectedAssignee.profile_pic} alt={`${selectedAssignee.first_name} ${selectedAssignee.last_name}`} />
-                                <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
-                                  {selectedAssignee.first_name?.charAt(0)}{selectedAssignee.last_name?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <div className="text-xs font-medium text-foreground truncate leading-tight">
-                                  {selectedAssignee.first_name} {selectedAssignee.last_name}
-                                </div>
-                                {selectedAssignee.email && (
-                                  <div className="text-xs text-muted-foreground truncate leading-tight mt-0.5">{selectedAssignee.email}</div>
+                                {selectedAssignee ? (
+                                  <>
+                                    <Avatar className="h-8 w-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-primary/50 transition-shadow">
+                                      <AvatarImage src={selectedAssignee.profile_pic} alt={`${selectedAssignee.first_name} ${selectedAssignee.last_name}`} />
+                                      <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
+                                        {selectedAssignee.first_name?.charAt(0)}{selectedAssignee.last_name?.charAt(0)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                      <div className="text-xs font-medium text-foreground truncate leading-tight">
+                                        {selectedAssignee.first_name} {selectedAssignee.last_name}
+                                      </div>
+                                      {selectedAssignee.email && (
+                                        <div className="text-xs text-muted-foreground truncate leading-tight mt-0.5">{selectedAssignee.email}</div>
+                                      )}
+                                      {formData.assigneeSkill && (
+                                        <Badge className="mt-1 text-xs rounded-md font-semibold py-2 px-2 h-4 bg-primary text-white dark:text-gray-900 hover:bg-primary/90">
+                                          {formData.assigneeSkill}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </>
+                                ) : isAssigneesLoading || isLoading ? (
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                      <AvatarFallback className="bg-white dark:bg-gray-800 border border-dashed border-border text-muted-foreground">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                      <AvatarFallback className="bg-white dark:bg-gray-800 border border-dashed border-border text-muted-foreground">
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </div>
                                 )}
-                                {formData.assigneeSkill && (
-                                  <Badge className="mt-1 text-xs rounded-md font-semibold py-2 px-2 h-4 bg-primary text-white dark:text-gray-900 hover:bg-primary/90">
-                                    {formData.assigneeSkill}
-                                  </Badge>
-                                )}
-                              </div>
-                            </>
-                          ) : isAssigneesLoading || isLoading ? (
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-8 w-8 flex-shrink-0">
-                                <AvatarFallback className="bg-white dark:bg-gray-800 border border-dashed border-border text-muted-foreground">
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                </AvatarFallback>
-                              </Avatar>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-8 w-8 flex-shrink-0">
-                                <AvatarFallback className="bg-white dark:bg-gray-800 border border-dashed border-border text-muted-foreground">
-                                  <Plus className="w-3.5 h-3.5" />
-                                </AvatarFallback>
-                              </Avatar>
-                            </div>
-                          )}
                               </button>
                             </TooltipTrigger>
                           </PopoverTrigger>
@@ -3042,12 +3042,12 @@ export default function TaskFormPage() {
                                     className="focus:outline-none -ml-2"
                                     style={{ zIndex: 20 - i, position: 'relative' }}
                                   >
-                              <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:ring-destructive/60 hover:opacity-80 transition-all">
-                                <AvatarImage src={r.profile_pic} alt={`${r.first_name} ${r.last_name}`} />
-                                <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
-                                  {r.first_name?.charAt(0)}{r.last_name?.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
+                                    <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:ring-destructive/60 hover:opacity-80 transition-all">
+                                      <AvatarImage src={r.profile_pic} alt={`${r.first_name} ${r.last_name}`} />
+                                      <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
+                                        {r.first_name?.charAt(0)}{r.last_name?.charAt(0)}
+                                      </AvatarFallback>
+                                    </Avatar>
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="text-xs">

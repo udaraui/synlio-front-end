@@ -138,8 +138,8 @@ import {
   deleteWorkItemLink,
   checkWorkItemAccess,
   type WorkItemLink,
-} from "@/services/link-management/work-item-link.service";
-import { getLinkTypes, type LinkType } from "@/services/link-management/link-type.service";
+} from "@/services/common/work-item-link.service";
+import { getLinkTypes, type LinkType } from "@/services/common/link-type.service";
 import { fetchTemplates, createTicketTemplate, deleteTicketTemplate } from "@/services/ticket-management/ticket-template.service";
 import { createTicketChecklist } from "@/services/ticket-management/ticket-checklist.service";
 import type { TicketTemplate } from "@/interfaces/ticket-template";
@@ -2641,7 +2641,7 @@ export default function CreateTicketPage() {
                                   <p className="text-sm font-semibold text-foreground">
                                     SLA Information
                                   </p>
-                                  
+
                                   {/* Response row */}
                                   <div className="flex flex-col gap-0.5">
                                     <div className="flex items-center gap-1.5 text-xs font-medium rounded-md border border-border px-2 py-1 w-fit text-foreground">
@@ -2656,9 +2656,9 @@ export default function CreateTicketPage() {
                                       Response due {formatDateTime(responseTime)}
                                     </p>
                                   </div>
-                                  
+
                                   <div className="border-t border-dashed border-border my-0.5" />
-                                  
+
                                   {/* Resolution row */}
                                   <div className="flex flex-col gap-0.5">
                                     <div className="flex items-center gap-1.5 text-xs font-medium rounded-md border border-border px-2 py-1 w-fit text-foreground">

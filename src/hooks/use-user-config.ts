@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUserConfig, createOrUpdateUserConfig, UserConfig } from '@/services/user-config-service';
+import { getUserConfig, createOrUpdateUserConfig, UserConfig } from '@/services/user-management/user-config-service';
 
 /**
  * Custom hook to manage user configuration with backend sync

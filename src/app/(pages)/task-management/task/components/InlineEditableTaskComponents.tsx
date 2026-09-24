@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Plus, Flag, Check, Loader2, X, Folder } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
-import { fetchResourceSkills } from '@/services/resource-service';
+import { fetchResourceSkills } from '@/services/resource-management/resource-service';
 import { getHierarchyLevelIcon } from '@/enums/space-configure-icon.enum';
 import {
   HoverCard,

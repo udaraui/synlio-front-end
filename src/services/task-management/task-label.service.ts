@@ -1,5 +1,5 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 
 const BASE = API_ENDPOINTS.TASK_MANAGEMENT_TASK_LABEL;
 
@@ -61,4 +61,5 @@ export const deleteTmTaskLabel = async (id: number): Promise<any> => {
   });
   return response.data;
 };
+
 

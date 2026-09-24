@@ -22,7 +22,7 @@ import {
   getAllCalendarDays,
   getCalendarWeekConfig,
   type CalendarWeekConfig,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { formatDay, parseIsoDate } from "./week_start_picker";
 import { toast } from "sonner";
 import { CalendarPlus } from "lucide-react";
@@ -191,11 +191,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <div className="flex gap-2 items-center">
                     <h1 className="text-lg tracking-tight">{calendar.name}</h1>
                     <span
-                      className={`inline-block px-2  py-0.5 rounded-sm text-xs h-fit ${
-                        calendar.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
+                      className={`inline-block px-2  py-0.5 rounded-sm text-xs h-fit ${calendar.isActive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                        }`}
                     >
                       {calendar.isActive ? "Active" : "Inactive"}
                     </span>
@@ -263,9 +262,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           : "the last day"}
                         , keeping the same week start day.
                         {weekConfig.repeatedHolidayCount > 0
-                          ? ` The repeated holiday pattern (${weekConfig.repeatedHolidayCount} day${
-                              weekConfig.repeatedHolidayCount > 1 ? "s" : ""
-                            } a week) is applied to the new year; one-off holidays are not copied.`
+                          ? ` The repeated holiday pattern (${weekConfig.repeatedHolidayCount} day${weekConfig.repeatedHolidayCount > 1 ? "s" : ""
+                          } a week) is applied to the new year; one-off holidays are not copied.`
                           : " No repeated holiday pattern is set, so every day starts as a working day"}
                       </p>
                       <Button

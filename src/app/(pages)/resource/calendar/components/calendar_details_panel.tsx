@@ -28,7 +28,7 @@ import {
   extendCalendar,
   getCalendarWeekConfig,
   type CalendarWeekConfig,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { addDays, formatDay, parseIsoDate } from "./week_start_picker";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import CalendarDatesCompact from "./tabs/calendar_dates_compact";
@@ -153,81 +153,80 @@ const CalendarDetailsPanel: React.FC<CalendarDetailsPanelProps> = ({
         </div> */}
         <div className="flex items-center gap-2 flex-nowrap">
           {canView && (
-          <Popover open={popoverOpen} onOpenChange={handleOpenPopover}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs flex items-center gap-1 flex-shrink-0">
-                <Scaling className="w-4 h-4 mr-1" />
-                Extend
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-4">
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm">Extend Calendar Year</h4>
-                {yearsLoading ? (
-                  <div className="text-sm text-muted-foreground animate-pulse">
-                    Loading…
-                  </div>
-                ) : weekConfig?.nextYearStartDate &&
-                  weekConfig?.nextYearEndDate ? (
-                  <div className="space-y-2">
-                    <div className="rounded-md border bg-muted/30 px-3 py-2 space-y-1">
-                      <p className="text-xs font-medium">
-                        Adds {weekConfig.nextYearWeeks} weeks
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {formatDay(parseIsoDate(weekConfig.nextYearStartDate))}
-                        {" – "}
-                        {formatDay(parseIsoDate(weekConfig.nextYearEndDate))}
-                      </p>
+            <Popover open={popoverOpen} onOpenChange={handleOpenPopover}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs flex items-center gap-1 flex-shrink-0">
+                  <Scaling className="w-4 h-4 mr-1" />
+                  Extend
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-4">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Extend Calendar Year</h4>
+                  {yearsLoading ? (
+                    <div className="text-sm text-muted-foreground animate-pulse">
+                      Loading…
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Weeks continue straight after{" "}
-                      {weekConfig.lastDate
-                        ? formatDay(parseIsoDate(weekConfig.lastDate))
-                        : "the last day"}
-                      , keeping the same week start day.
-                      {weekConfig.repeatedHolidayCount > 0
-                        ? ` The repeated holiday pattern (${weekConfig.repeatedHolidayCount} day${
-                            weekConfig.repeatedHolidayCount > 1 ? "s" : ""
+                  ) : weekConfig?.nextYearStartDate &&
+                    weekConfig?.nextYearEndDate ? (
+                    <div className="space-y-2">
+                      <div className="rounded-md border bg-muted/30 px-3 py-2 space-y-1">
+                        <p className="text-xs font-medium">
+                          Adds {weekConfig.nextYearWeeks} weeks
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatDay(parseIsoDate(weekConfig.nextYearStartDate))}
+                          {" – "}
+                          {formatDay(parseIsoDate(weekConfig.nextYearEndDate))}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Weeks continue straight after{" "}
+                        {weekConfig.lastDate
+                          ? formatDay(parseIsoDate(weekConfig.lastDate))
+                          : "the last day"}
+                        , keeping the same week start day.
+                        {weekConfig.repeatedHolidayCount > 0
+                          ? ` The repeated holiday pattern (${weekConfig.repeatedHolidayCount} day${weekConfig.repeatedHolidayCount > 1 ? "s" : ""
                           } a week) is applied to the new year; one-off holidays are not copied.`
-                        : " No repeated holiday pattern is set, so every day starts as a working day"}
+                          : " No repeated holiday pattern is set, so every day starts as a working day"}
+                      </p>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={isExtending}
+                        onClick={handleExtend}
+                      >
+                        {isExtending
+                          ? "Extending…"
+                          : `Extend to ${weekConfig.nextYear}`}
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      This calendar has no days yet, so there is nothing to
+                      continue from.
                     </p>
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      disabled={isExtending}
-                      onClick={handleExtend}
-                    >
-                      {isExtending
-                        ? "Extending…"
-                        : `Extend to ${weekConfig.nextYear}`}
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    This calendar has no days yet, so there is nothing to
-                    continue from.
-                  </p>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
-        {canView && !yearsLoading && fiscalYears.length > 0 && (
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="h-7 w-auto text-xs flex-shrink-0 shadow-none font-medium">
-              <SelectValue placeholder="Year">{activeYear?.label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent align="start">
-              {fiscalYears.map((year) => (
-                <SelectItem key={year.index} value={String(year.index)}>
-                  {year.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+          {canView && !yearsLoading && fiscalYears.length > 0 && (
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="h-7 w-auto text-xs flex-shrink-0 shadow-none font-medium">
+                <SelectValue placeholder="Year">{activeYear?.label}</SelectValue>
+              </SelectTrigger>
+              <SelectContent align="start">
+                {fiscalYears.map((year) => (
+                  <SelectItem key={year.index} value={String(year.index)}>
+                    {year.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
@@ -236,42 +235,42 @@ const CalendarDetailsPanel: React.FC<CalendarDetailsPanelProps> = ({
         <Tabs defaultValue="holidays" className="w-full flex-1 flex flex-col min-h-0 py-3">
           <div className="border-b border-border flex-none">
             <TabsList className="flex w-full shrink-0 bg-transparent p-0 rounded-none h-9 items-center justify-start gap-1">
-              <TabsTrigger 
-                value="holidays" 
+              <TabsTrigger
+                value="holidays"
                 className="relative flex-1 h-9 rounded-none border-b-2 border-transparent bg-transparent px-2 font-medium text-xs text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:shadow-none flex items-center justify-center gap-1.5 cursor-pointer -mb-px"
               >
                 <span>Holidays</span>
                 {holidayCount !== null && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="ml-1 px-1.5 py-0 h-4 text-[10px] font-medium rounded-full border-transparent bg-primary text-white dark:text-black"
                   >
                     {holidayCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger 
-                value="working_days" 
+              <TabsTrigger
+                value="working_days"
                 className="relative flex-1 h-9 rounded-none border-b-2 border-transparent bg-transparent px-2 font-medium text-xs text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:shadow-none flex items-center justify-center gap-1.5 cursor-pointer -mb-px"
               >
                 <span>Special Working Days</span>
                 {workingDayCount !== null && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="ml-1 px-1.5 py-0 h-4 text-[10px] font-medium rounded-full border-transparent bg-primary text-white dark:text-black"
                   >
                     {workingDayCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger 
-                value="repeated" 
+              <TabsTrigger
+                value="repeated"
                 className="relative flex-1 h-9 rounded-none border-b-2 border-transparent bg-transparent px-2 font-medium text-xs text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:!text-primary data-[state=active]:!bg-transparent data-[state=active]:shadow-none flex items-center justify-center gap-1.5 cursor-pointer -mb-px"
               >
                 <span>Repeated</span>
                 {repeatedCount !== null && (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="ml-1 px-1.5 py-0 h-4 text-[10px] font-medium rounded-full border-transparent bg-primary text-white dark:text-black"
                   >
                     {repeatedCount}

@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createSkillLevel, updateSkillLevel } from "@/services/skill-services";
+import { createSkillLevel, updateSkillLevel } from "@/services/resource-management/skill-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { Loader2, Star, X } from "lucide-react";
 import { Skill_level } from "@/interfaces/skill";
@@ -146,11 +146,10 @@ export function SkillLevelFormDrawer({
                                   className="focus:outline-none"
                                 >
                                   <Star
-                                    className={`h-6 w-6 transition-colors ${
-                                      i < field.value
+                                    className={`h-6 w-6 transition-colors ${i < field.value
                                         ? "fill-yellow-400 text-yellow-400"
                                         : "text-gray-300 dark:text-gray-600 hover:text-yellow-300"
-                                    }`}
+                                      }`}
                                   />
                                 </button>
                               ))}

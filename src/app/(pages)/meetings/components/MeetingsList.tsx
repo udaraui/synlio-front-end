@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useCallback } from "react";
-import { Meeting, MeetingProvider, getMeetings } from "@/services/meetings-integration.service";
+import { Meeting, MeetingProvider, getMeetings } from "@/services/common/meetings-integration.service";
 import { MeetingTableRow, hasMeetingAction } from "./MeetingTableRow";
 import { useAuth } from "@/contexts/auth.context";
 import { cn } from "@/lib/utils";

@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpRight, Folder } from "lucide-react";
 import TaskNamePopover from "./TaskNamePopover";
 import { Badge } from "@/components/ui/badge";
-import { getMyTasks } from "@/services/home-v2.service";
+import { getMyTasks } from "@/services/home/home.service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRange } from "react-day-picker";
 import { getHierarchyLevelIcon } from "@/enums/space-configure-icon.enum";

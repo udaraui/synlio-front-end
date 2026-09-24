@@ -28,7 +28,7 @@ import {
   createTaskAttachment,
   getTaskAttachmentsByTask,
   deleteTaskAttachment,
-} from '@/services/comment-service';
+} from '@/services/common/comment-service';
 import {
   AlertDialog,
   AlertDialogAction,

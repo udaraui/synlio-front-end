@@ -20,7 +20,7 @@ import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createRole } from "@/services/role-services";
+import { createRole } from "@/services/user-management/role-services";
 import { toast } from "sonner";
 import {
   Form,

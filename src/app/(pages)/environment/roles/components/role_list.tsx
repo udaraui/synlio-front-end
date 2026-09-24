@@ -41,7 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { deleteRole, disableRole } from '@/services/role-services';
+import { deleteRole, disableRole } from '@/services/user-management/role-services';
 import DeleteModal from '@/components/DeleteModal';
 import {
   Table,

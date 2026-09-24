@@ -106,7 +106,7 @@ import {
 } from "@/services/task-management/task-space.service";
 import { TaskSpaceResourceDropdown } from "@/components/common/TaskSpaceResourceDropdown";
 import { AlertsTabContent } from "@/components/common/AlertsTabContent";
-import { safeParse } from '@/services/auth-service';
+import { safeParse } from '@/services/auth/auth-service';
 
 // ─── Skills Display (3 visible + hover-popover for overflow) ─────────────────
 
@@ -498,7 +498,7 @@ function HierarchyTreePreview({
       <div className="flex flex-col items-center justify-center h-[calc(100vh-220px)] border-2 border-dashed rounded-lg">
         <InfoIcon className="h-8 w-8 text-muted-foreground mb-2" />
         <p className="text-sm text-muted-foreground">Cannot preview the hierarchy levels</p>
-       </div>
+      </div>
     );
   }
 
@@ -1665,7 +1665,7 @@ function OwnersTabContent({
       try {
         const active_company = safeParse(localStorage.getItem("active_company")) || [];
 
-        const { load } = await import("@/services/user-service");
+        const { load } = await import("@/services/user-management/user-service");
 
         const filters = userSearch.trim()
           ? [
@@ -1884,9 +1884,9 @@ function OwnersTabContent({
           </div>
         ) : owners.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-220px)] border-2 border-dashed rounded-lg">
-                <UserStar className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No owners configured</p>
-              </div>
+            <UserStar className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">No owners configured</p>
+          </div>
         ) : (
           <div className="rounded-lg border flex flex-col h-[calc(100vh-220px)] overflow-hidden">
             <div className="flex-1 overflow-auto relative">
@@ -1900,65 +1900,65 @@ function OwnersTabContent({
                         ACTIONS
                       </TableHead>
                     )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {owners.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((o) => (
-                  <TableRow key={o.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
-                    <TableCell className="py-1.75 px-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-7 w-7 flex-shrink-0">
-                          <AvatarImage
-                            src={
-                              o.profile_pic
-                                ? o.profile_pic.startsWith("http")
-                                  ? o.profile_pic
-                                  : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${o.profile_pic}`
-                                : undefined
-                            }
-                            alt={`${o.first_name} ${o.last_name}`}
-                          />
-                          <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                            {(o.first_name?.[0] || '').toUpperCase()}{(o.last_name?.[0] || '').toUpperCase() || (!o.first_name && !o.name ? '?' : '')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium">
-                          {o.first_name} {o.last_name}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-1.75 px-4 text-sm">
-                      {o.email}
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell className="py-1.75 px-4 text-right">
-                        <div className="flex justify-end">
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() =>
-                                    handleDelete(
-                                      o.id,
-                                      `${o.first_name} ${o.last_name}`,
-                                    )
-                                  }
-                                >
-                                  <Trash className="h-3.5 w-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">Remove Owner</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {owners.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((o) => (
+                    <TableRow key={o.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
+                      <TableCell className="py-1.75 px-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-7 w-7 flex-shrink-0">
+                            <AvatarImage
+                              src={
+                                o.profile_pic
+                                  ? o.profile_pic.startsWith("http")
+                                    ? o.profile_pic
+                                    : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${o.profile_pic}`
+                                  : undefined
+                              }
+                              alt={`${o.first_name} ${o.last_name}`}
+                            />
+                            <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                              {(o.first_name?.[0] || '').toUpperCase()}{(o.last_name?.[0] || '').toUpperCase() || (!o.first_name && !o.name ? '?' : '')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">
+                            {o.first_name} {o.last_name}
+                          </span>
                         </div>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
+                      <TableCell className="py-1.75 px-4 text-sm">
+                        {o.email}
+                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="py-1.75 px-4 text-right">
+                          <div className="flex justify-end">
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() =>
+                                      handleDelete(
+                                        o.id,
+                                        `${o.first_name} ${o.last_name}`,
+                                      )
+                                    }
+                                  >
+                                    <Trash className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Remove Owner</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
               </Table>
             </div>
             <div className="mt-auto border-border">
@@ -2114,70 +2114,70 @@ function ResourcesTabContent({
                           </TableHead>
                         )}
                       </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pageResources.map((r) => (
-                      <TableRow key={r.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
-                        <TableCell className="py-1.75 px-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-7 w-7 flex-shrink-0">
-                              <AvatarImage
-                                src={
-                                  r.profile_pic
-                                    ? r.profile_pic.startsWith("http")
-                                      ? r.profile_pic
-                                      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
-                                    : undefined
-                                }
-                                alt={`${r.first_name} ${r.last_name}`}
-                              />
-                              <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                {(r.first_name?.[0] || '').toUpperCase()}{(r.last_name?.[0] || '').toUpperCase() || '?'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">
-                              {r.first_name} {r.last_name}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.75 px-4 text-sm">
-                          {r.email || "—"}
-                        </TableCell>
-                        <TableCell className="py-1.75 px-4">
-                          <SkillsDisplay
-                            skills={r.skills ?? []}
-                            emptyText="No skills"
-                          />
-                        </TableCell>
-                        {canEdit && (
-                          <TableCell className="py-1.75 px-4 text-right">
-                            <div className="flex justify-end">
-                              <TooltipProvider delayDuration={0}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={() =>
-                                        handleDelete(
-                                          r.id,
-                                          `${r.first_name} ${r.last_name}`,
-                                        )
-                                      }
-                                    >
-                                      <Trash className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">Remove Member</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                    </TableHeader>
+                    <TableBody>
+                      {pageResources.map((r) => (
+                        <TableRow key={r.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
+                          <TableCell className="py-1.75 px-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-7 w-7 flex-shrink-0">
+                                <AvatarImage
+                                  src={
+                                    r.profile_pic
+                                      ? r.profile_pic.startsWith("http")
+                                        ? r.profile_pic
+                                        : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                                      : undefined
+                                  }
+                                  alt={`${r.first_name} ${r.last_name}`}
+                                />
+                                <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                                  {(r.first_name?.[0] || '').toUpperCase()}{(r.last_name?.[0] || '').toUpperCase() || '?'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">
+                                {r.first_name} {r.last_name}
+                              </span>
                             </div>
                           </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                          <TableCell className="py-1.75 px-4 text-sm">
+                            {r.email || "—"}
+                          </TableCell>
+                          <TableCell className="py-1.75 px-4">
+                            <SkillsDisplay
+                              skills={r.skills ?? []}
+                              emptyText="No skills"
+                            />
+                          </TableCell>
+                          {canEdit && (
+                            <TableCell className="py-1.75 px-4 text-right">
+                              <div className="flex justify-end">
+                                <TooltipProvider delayDuration={0}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() =>
+                                          handleDelete(
+                                            r.id,
+                                            `${r.first_name} ${r.last_name}`,
+                                          )
+                                        }
+                                      >
+                                        <Trash className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Remove Member</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
                   </Table>
                 </div>
 

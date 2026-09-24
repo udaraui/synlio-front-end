@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import {
   createPrivilege,
   getAllPrivilege,
-} from "@/services/privilege-services";
+} from "@/services/user-management/privilege-services";
 
 interface Privilege {
   id: number;
@@ -173,7 +173,7 @@ function page() {
                         size="sm"
                         className="text-xs h-6"
                         variant="destructive"
-                        // onClick={() => handleDelete(privilege.id)}
+                      // onClick={() => handleDelete(privilege.id)}
                       >
                         <X />
                       </Button>

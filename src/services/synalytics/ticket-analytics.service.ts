@@ -1,5 +1,5 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 
 export interface TicketAnalyticsQuery {
   companyId: number;

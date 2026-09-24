@@ -105,7 +105,7 @@ export function TaskSpaceForm({ open, onOpenChange, onUpdate, type, id }: TaskSp
 
   const loadDivisions = async (companyId: number) => {
     try {
-      const { getAllDivisionsByCompanyId } = await import('@/services/division-services');
+      const { getAllDivisionsByCompanyId } = await import('@/services/company-management/division-services');
       const response = await getAllDivisionsByCompanyId(companyId);
       const data = response.data || [];
       setDivisions(data);
@@ -122,10 +122,10 @@ export function TaskSpaceForm({ open, onOpenChange, onUpdate, type, id }: TaskSp
     setIsPrefixChecking(true);
     try {
       const { checkTaskSpacePrefixExists } = await import('@/services/task-management/task-space.service');
-      
+
       let currentPrefix = prefix.toUpperCase();
       let response = await checkTaskSpacePrefixExists(activeCompanyId, currentPrefix);
-      
+
       if (response.data.exists && !prefixManuallyEdited) {
         const nameVal = form.getValues('name');
         if (nameVal) {
@@ -234,10 +234,10 @@ export function TaskSpaceForm({ open, onOpenChange, onUpdate, type, id }: TaskSp
                         placeholder="e.g. ENG"
                         {...field}
                         disabled={type === 'edit'}
-                        onChange={(e) => { 
+                        onChange={(e) => {
                           const uppercase = e.target.value.substring(0, 4).toUpperCase();
-                          setPrefixManuallyEdited(true); 
-                          field.onChange(uppercase); 
+                          setPrefixManuallyEdited(true);
+                          field.onChange(uppercase);
                         }}
                         maxLength={4}
                         className={prefixError ? 'border-red-500' : ''}

@@ -1,6 +1,6 @@
 import axiosInstance from "@/lib/interceptors/axiosInstance";
-import { API_ENDPOINTS } from "../API/api";
-import { safeParse } from "../auth-service";
+import { API_ENDPOINTS } from "../api";
+import { safeParse } from "../auth/auth-service";
 
 /** Reads the active company id from localStorage (same source used by the axios interceptor). */
 const getActiveCompanyId = (): number | null => {
@@ -672,3 +672,4 @@ export const updateTicketSpaceType = async (
   );
   return response.data;
 };
+

@@ -2,8 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { BotMessageSquare, Loader2, ArrowRight } from "lucide-react";
-import axiosInstance from "@/lib/interceptors/axiosInstance";
-import { API_ENDPOINTS } from "@/services/API/api";
+import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 
@@ -48,29 +47,46 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // Connect to the Python FastAPI backend which runs LangGraph
-      const response = await axiosInstance.post(API_ENDPOINTS.CHAT, {
-        message: userMessage.content,
-      });
+      // Connect to the NestJS proxy backend which pipes the FastAPI stream via chatService
+      const response = await chatService.streamChat(userMessage.content);
+      
+      // Setup the initial AI message
+      const aiMessageId = (Date.now() + 1).toString();
+      setMessages((prev) => [
+        ...prev,
+        { id: aiMessageId, role: "ai", content: "" },
+      ]);
+      
+      setIsLoading(false); // Stop the "thinking" indicator, we are now streaming
 
-      const data = response.data;
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "ai",
-        content: data.response || "hello synlio", // fallback just in case
-      };
-      
-      setMessages((prev) => [...prev, aiMessage]);
+      // Read the stream
+      const reader = response.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done && reader) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          
+          setMessages((prev) => 
+            prev.map((msg) => 
+              msg.id === aiMessageId 
+                ? { ...msg, content: msg.content + chunk } 
+                : msg
+            )
+          );
+        }
+      }
     } catch (error) {
       console.error("Error communicating with backend:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "ai",
-        content: "Oops! Something went wrong communicating with the backend. Please ensure the python server is running on port 8000.",
+        content: "Oops! Something went wrong communicating with the backend. Please ensure the server is running.",
       };
       setMessages((prev) => [...prev, errorMessage]);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -114,12 +130,9 @@ export default function ChatPage() {
         
         {/* Loading Indicator */}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-3 rounded-2xl px-5 py-4 bg-muted text-foreground rounded-tl-sm">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-background flex items-center justify-center">
-                <BotMessageSquare className="w-5 h-5" />
-              </div>
-              <div className="flex items-center gap-1">
+          <div className="flex px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16 justify-start">
+            <div className="flex max-w-[80%] items-center gap-3 rounded-2xl px-5 py-1 bg-muted text-foreground rounded-tl-sm border">
+              <div className="flex items-center gap-3 pt-1 pb-1">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm text-muted-foreground">Synlio is thinking...</span>
               </div>
@@ -140,7 +153,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask something..."
-            className="w-full h-14 bg-transparent px-5 pr-12 text-sm focus:outline-none"
+            className="w-full h-14 bg-transparent dark:bg-gray-900 px-5 pr-12 text-sm focus:outline-none"
             autoComplete="off"
           />
           <Button

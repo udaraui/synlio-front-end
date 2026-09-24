@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/interceptors/axiosInstance";
-import { API_ENDPOINTS } from "../API/api";
+import { API_ENDPOINTS } from "../api";
 
 export const searchTickets = async (data: any): Promise<any> => {
   try {
@@ -425,4 +425,5 @@ export const deleteTicket = async (id: number): Promise<any> => {
     throw error;
   }
 };
+
 

@@ -4,13 +4,13 @@ import { Role } from "@/interfaces/role";
 import React, { useEffect, useState } from "react";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { toast } from "sonner";
-import { getRoleById, loadRoles } from "@/services/role-services";
+import { getRoleById, loadRoles } from "@/services/user-management/role-services";
 import RoleList from "./components/role_list";
 import RoleCreateDrawer from "./components/role_create_drawer";
 import RoleEditDrawer from "./components/role_edit_drawer";
 import RoleView from "./components/role_view";
-import { safeParse } from "@/services/auth-service";
-import { getAllCompany } from "@/services/company-services";
+import { safeParse } from "@/services/auth/auth-service";
+import { getAllCompany } from "@/services/company-management/company-services";
 
 function Page() {
   const { setBreadcrumbs } = useBreadcrumb();
@@ -195,12 +195,12 @@ function Page() {
     <div className="w-[580px] flex-shrink-0 pt-2 pr-2 flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-zinc-950 rounded-t-xl border-t border-x border-border/60 relative">
         <div className="px-5 pt-5 pb-6">
-        <RoleView
-          open={openViewDialog}
-          onOpenChange={(open) => { if (!open) handleCloseRoleView(); }}
-          roleId={selectedRole!}
-          roleName={selectedRoleName}
-        />
+          <RoleView
+            open={openViewDialog}
+            onOpenChange={(open) => { if (!open) handleCloseRoleView(); }}
+            roleId={selectedRole!}
+            roleName={selectedRoleName}
+          />
         </div>
       </div>
     </div>

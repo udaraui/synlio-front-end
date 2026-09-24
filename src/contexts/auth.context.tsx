@@ -12,7 +12,7 @@ import {
   setAuthToken,
   setTokenUpdater,
 } from '@/lib/interceptors/axiosInstance';
-import { getUserConfig, createOrUpdateUserConfig, UserConfig } from '@/services/user-config-service';
+import { getUserConfig, createOrUpdateUserConfig, UserConfig } from '@/services/user-management/user-config-service';
 import { clearResourceCache } from '@/lib/resource-cache';
 
 // Define cookie/storage keys as constants
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (Array.isArray(companies) && companies.length === 0) {
             return; // Don't fetch user config for system users
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 
@@ -228,7 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async (redirectUrl?: string) => {
     try {
       // Call backend logout endpoint to clear httpOnly cookies and invalidate refresh token
-      const { logout: logoutAPI } = await import('@/services/auth-service');
+      const { logout: logoutAPI } = await import('@/services/auth/auth-service');
       await logoutAPI();
     } catch (error) {
       console.error('Backend logout failed, but continuing with client-side cleanup:', error);

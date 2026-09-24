@@ -28,7 +28,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth.context";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
-import { API_URL } from "@/services/API/api";
+import { API_URL } from "@/services/api";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
 import * as React from "react";
@@ -263,3 +263,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

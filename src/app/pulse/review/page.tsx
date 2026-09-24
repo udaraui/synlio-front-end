@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getPulseWeekToApprove, approvePulseWeek, rejectPulseWeek } from '@/services/pulse.service';
+import { getPulseWeekToApprove, approvePulseWeek, rejectPulseWeek } from '@/services/pulse/pulse.service';
 import { useAuth } from '@/contexts/auth.context';
 import { PulseWeek } from '@/app/(pages)/pulse/components/PulseHistory';
 import { Loader2, XCircle, ArrowRight } from 'lucide-react';
@@ -43,7 +43,7 @@ const ReviewContent = () => {
     const [pulseWeek, setPulseWeek] = useState<PulseWeek | null>(null);
     const [payload, setPayload] = useState<{ weekId: number, companyId: number, submittedToEmail: string } | null>(null);
     const [actionSubmitting, setActionSubmitting] = useState(false);
-    
+
     // State for rejection modal
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState("");
@@ -53,7 +53,7 @@ const ReviewContent = () => {
             // Construct the path manually using searchParams to avoid hydration bugs with window.location.search
             const paramsString = searchParams.toString();
             const currentPath = window.location.pathname + (paramsString ? `?${paramsString}` : '');
-            
+
             sessionStorage.setItem('pending_pulse_review_url', currentPath);
             router.push('/login?redirect=' + encodeURIComponent(currentPath));
             return;
@@ -121,7 +121,7 @@ const ReviewContent = () => {
 
     const submitReject = async () => {
         if (!pulseWeek) return;
-        
+
         if (!rejectReason.trim()) {
             toast.error('A rejection reason is required');
             return;
@@ -334,9 +334,9 @@ const ReviewContent = () => {
                         <Label htmlFor="rejectReason" className="text-sm font-medium mb-2 block">
                             Reason for Rejection <span className="text-destructive">*</span>
                         </Label>
-                        <Textarea 
-                            id="rejectReason" 
-                            placeholder="Please explain why you are rejecting this snapshot..." 
+                        <Textarea
+                            id="rejectReason"
+                            placeholder="Please explain why you are rejecting this snapshot..."
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
                             className="min-h-[100px] resize-none"
@@ -344,15 +344,15 @@ const ReviewContent = () => {
                         />
                     </div>
                     <DialogFooter>
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={() => setIsRejectModalOpen(false)}
                             disabled={actionSubmitting}
                         >
                             Cancel
                         </Button>
-                        <Button 
-                            variant="destructive" 
+                        <Button
+                            variant="destructive"
                             onClick={submitReject}
                             disabled={actionSubmitting}
                         >

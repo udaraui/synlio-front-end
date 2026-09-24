@@ -5,7 +5,7 @@ import type {
   UpdateTicketTemplateDto,
 } from '@/interfaces/ticket-template';
 
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 
 const BASE = API_ENDPOINTS.TICKET_TEMPLATE;
 
@@ -52,3 +52,4 @@ export const deleteTicketTemplate = async (
 ): Promise<void> => {
   await axiosInstance.delete(`${BASE}/${id}`, { withCredentials: true });
 };
+

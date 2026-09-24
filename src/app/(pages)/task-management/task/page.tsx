@@ -58,7 +58,7 @@ import { FilterTemplateButton } from "@/components/common/FilterTemplateButton";
 import {
   createOrUpdateUserConfig,
   getUserConfig,
-} from "@/services/user-config-service";
+} from "@/services/user-management/user-config-service";
 import {
   Popover,
   PopoverContent,
@@ -1585,7 +1585,7 @@ function Page() {
         newStack.length > 0 ? newStack[newStack.length - 1].id : null;
       const newUrl = newParentId
         ? `/task-management/task?taskSpaceId=${spaceId}&parentTaskId=${newParentId}`
-        : `/task-management/task?taskSpaceId=${spaceId}`;  
+        : `/task-management/task?taskSpaceId=${spaceId}`;
       window.history.replaceState(null, "", newUrl);
     }
   }, []);
@@ -3691,7 +3691,7 @@ function Page() {
                       const prefs = savedPrefs ? JSON.parse(savedPrefs) : {};
                       prefs.taskPageSize = newSize;
                       localStorage.setItem("user_view_preferences", JSON.stringify(prefs));
-                      createOrUpdateUserConfig(user.id, { viewPreference: prefs }).catch(() => {});
+                      createOrUpdateUserConfig(user.id, { viewPreference: prefs }).catch(() => { });
                     }
                   }}
                 >

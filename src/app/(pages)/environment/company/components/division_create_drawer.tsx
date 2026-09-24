@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createDivision } from "@/services/division-services";
+import { createDivision } from "@/services/company-management/division-services";
 import { toast } from "sonner";
 import {
   Form,

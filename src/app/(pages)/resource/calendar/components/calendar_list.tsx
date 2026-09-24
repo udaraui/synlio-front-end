@@ -9,15 +9,15 @@ import {
   getCalendarWeekConfig,
   loadCalendars,
   type CalendarWeekConfig,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import {
   formatDay,
   parseIsoDate,
   weekDayLabel,
 } from "./week_start_picker";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
-import { safeParse } from "@/services/auth-service";
-import { getAllCompany } from "@/services/company-services";
+import { safeParse } from "@/services/auth/auth-service";
+import { getAllCompany } from "@/services/company-management/company-services";
 import CalendarFormDrawer from "./form_drawer";
 import DeleteModal from "@/components/DeleteModal";
 import { Button } from "@/components/ui/button";
@@ -340,8 +340,8 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
                   variant="outline"
                   title="Sort"
                   className={`h-7 w-7 p-0 ${sortOption
-                      ? "bg-primary/10 dark:bg-primary/20 border-primary text-black dark:text-white"
-                      : ""
+                    ? "bg-primary/10 dark:bg-primary/20 border-primary text-black dark:text-white"
+                    : ""
                     }`}
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
@@ -372,8 +372,8 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
                         setSortDropdownOpen(false);
                       }}
                       className={`w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent ${sortOption === value
-                          ? "bg-accent font-bold text-black dark:text-white"
-                          : ""
+                        ? "bg-accent font-bold text-black dark:text-white"
+                        : ""
                         }`}
                     >
                       <div className="flex items-center gap-2">
@@ -550,8 +550,8 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
                             <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-foreground/70">
                               <span
                                 className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${cal.isActive
-                                    ? "bg-green-500 dark:bg-green-400"
-                                    : "bg-red-400 dark:bg-red-500"
+                                  ? "bg-green-500 dark:bg-green-400"
+                                  : "bg-red-400 dark:bg-red-500"
                                   }`}
                               />
                               {cal.isActive ? "Active" : "Inactive"}

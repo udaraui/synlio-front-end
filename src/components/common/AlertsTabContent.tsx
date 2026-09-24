@@ -49,8 +49,8 @@ import {
   SpaceAlertRule,
   toggleAlertRule,
   updateAlertRule,
-} from "@/services/alert-rule.service";
-import { load as loadUsers } from "@/services/user-service";
+} from "@/services/common/alert-rule.service";
+import { load as loadUsers } from "@/services/user-management/user-service";
 
 // ─── Event catalogue ─────────────────────────────────────────────────────────
 
@@ -890,120 +890,120 @@ export function AlertsTabContent({
                     <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">TO</TableHead>
                     <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">CC</TableHead>
                     <TableHead className="h-10 px-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">ACTIONS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rules.map((rule) => {
-                  const toParts: string[] = [];
-                  if (rule.toAssignee) toParts.push("Assignee");
-                  if (!isTicket && rule.toCoAssignees)
-                    toParts.push("Co-Assignees");
-                  if (isTicket && rule.toParticipants)
-                    toParts.push("Participants");
-                  if (rule.toCreator) toParts.push("Creator");
-                  if (rule.toActor) toParts.push("Actor");
-                  if (rule.toAdditionalUserIds?.length)
-                    toParts.push(`+${rule.toAdditionalUserIds.length} user(s)`);
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rules.map((rule) => {
+                    const toParts: string[] = [];
+                    if (rule.toAssignee) toParts.push("Assignee");
+                    if (!isTicket && rule.toCoAssignees)
+                      toParts.push("Co-Assignees");
+                    if (isTicket && rule.toParticipants)
+                      toParts.push("Participants");
+                    if (rule.toCreator) toParts.push("Creator");
+                    if (rule.toActor) toParts.push("Actor");
+                    if (rule.toAdditionalUserIds?.length)
+                      toParts.push(`+${rule.toAdditionalUserIds.length} user(s)`);
 
-                  const ccParts: string[] = [];
-                  if (rule.ccAssignee) ccParts.push("Assignee");
-                  if (!isTicket && rule.ccCoAssignees)
-                    ccParts.push("Co-Assignees");
-                  if (isTicket && rule.ccParticipants)
-                    ccParts.push("Participants");
-                  if (rule.ccCreator) ccParts.push("Creator");
-                  if (rule.ccActor) ccParts.push("Actor");
-                  if (rule.ccAdditionalUserIds?.length)
-                    ccParts.push(`+${rule.ccAdditionalUserIds.length} user(s)`);
+                    const ccParts: string[] = [];
+                    if (rule.ccAssignee) ccParts.push("Assignee");
+                    if (!isTicket && rule.ccCoAssignees)
+                      ccParts.push("Co-Assignees");
+                    if (isTicket && rule.ccParticipants)
+                      ccParts.push("Participants");
+                    if (rule.ccCreator) ccParts.push("Creator");
+                    if (rule.ccActor) ccParts.push("Actor");
+                    if (rule.ccAdditionalUserIds?.length)
+                      ccParts.push(`+${rule.ccAdditionalUserIds.length} user(s)`);
 
-                  return (
-                    <TableRow
-                      key={rule.id}
-                      className={cn(
-                        "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border",
-                        !rule.isActive && "opacity-50"
-                      )}
-                    >
-                      <TableCell className="py-1.75 px-4 font-medium max-w-[200px] whitespace-normal break-words">
-                        {rule.name}
-                      </TableCell>
-                      <TableCell className="py-1.75 px-4">
-                        <div className="flex flex-wrap gap-1 w-full">
-                          {(rule.events as string[]).map((ev) => (
-                            <span
-                              key={ev}
-                              className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] sm:text-xs border border-border rounded-md bg-white dark:bg-gray-800 cursor-default select-none max-w-[140px]"
-                            >
-                              <span className="truncate max-w-[120px]">{eventLabel(ev)}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-1.75 px-4">
-                        <ChannelBadge channel={rule.channel} />
-                      </TableCell>
-                      <TableCell className="py-1.75 px-4 text-sm">
-                        {toParts.join(", ") || "—"}
-                      </TableCell>
-                      <TableCell className="py-1.75 px-4 text-sm">
-                        {ccParts.join(", ") || "—"}
-                      </TableCell>
-                      <TableCell className="py-1.75 px-4">
-                        <div className="flex items-center gap-1 justify-end">
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="cursor-pointer inline-flex items-center justify-center mr-2">
-                                  <Switch
-                                    checked={rule.isActive}
-                                    onCheckedChange={() => handleToggle(rule)}
-                                    className="cursor-pointer"
-                                  />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                {rule.isActive ? "Deactivate Rule" : "Activate Rule"}
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 cursor-pointer hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary"
-                                  onClick={() => {
-                                    setEditingRule(rule);
-                                    setDialogOpen(true);
-                                  }}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">Edit Rule</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => {
-                                    setDeletingRule(rule);
-                                    setDeleteOpen(true);
-                                  }}
-                                >
-                                  <Trash className="h-3.5 w-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">Delete Rule</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
+                    return (
+                      <TableRow
+                        key={rule.id}
+                        className={cn(
+                          "hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border",
+                          !rule.isActive && "opacity-50"
+                        )}
+                      >
+                        <TableCell className="py-1.75 px-4 font-medium max-w-[200px] whitespace-normal break-words">
+                          {rule.name}
+                        </TableCell>
+                        <TableCell className="py-1.75 px-4">
+                          <div className="flex flex-wrap gap-1 w-full">
+                            {(rule.events as string[]).map((ev) => (
+                              <span
+                                key={ev}
+                                className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] sm:text-xs border border-border rounded-md bg-white dark:bg-gray-800 cursor-default select-none max-w-[140px]"
+                              >
+                                <span className="truncate max-w-[120px]">{eventLabel(ev)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1.75 px-4">
+                          <ChannelBadge channel={rule.channel} />
+                        </TableCell>
+                        <TableCell className="py-1.75 px-4 text-sm">
+                          {toParts.join(", ") || "—"}
+                        </TableCell>
+                        <TableCell className="py-1.75 px-4 text-sm">
+                          {ccParts.join(", ") || "—"}
+                        </TableCell>
+                        <TableCell className="py-1.75 px-4">
+                          <div className="flex items-center gap-1 justify-end">
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-pointer inline-flex items-center justify-center mr-2">
+                                    <Switch
+                                      checked={rule.isActive}
+                                      onCheckedChange={() => handleToggle(rule)}
+                                      className="cursor-pointer"
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  {rule.isActive ? "Deactivate Rule" : "Activate Rule"}
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 cursor-pointer hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary"
+                                    onClick={() => {
+                                      setEditingRule(rule);
+                                      setDialogOpen(true);
+                                    }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Edit Rule</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => {
+                                      setDeletingRule(rule);
+                                      setDeleteOpen(true);
+                                    }}
+                                  >
+                                    <Trash className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Delete Rule</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
               </Table>
             </div>
           </div>

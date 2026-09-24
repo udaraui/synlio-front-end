@@ -5,7 +5,7 @@ import {
   ProviderConnectionStatus,
   getConnectionStatus,
   syncMeetings,
-} from "@/services/meetings-integration.service";
+} from "@/services/common/meetings-integration.service";
 import { ProviderConnectionCard } from "./components/ProviderConnectionCard";
 import { MeetingsList } from "./components/MeetingsList";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { subDays, addDays } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getCompanyMeetingProviders, updateCompanyMeetingProviders } from "@/services/company-services";
+import { getCompanyMeetingProviders, updateCompanyMeetingProviders } from "@/services/company-management/company-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import {
   Dialog,

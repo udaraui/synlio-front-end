@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, ArrowUpRight, Ticket, ChevronLeft, ChevronRight } from "lucide-react";
-import { getMyTickets } from "@/services/home-v2.service";
+import { getMyTickets } from "@/services/home/home.service";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRange } from "react-day-picker";

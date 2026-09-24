@@ -14,7 +14,7 @@ import {
   updateNote,
   deleteNote,
   type NoteItem,
-} from "@/services/notes.service";
+} from "@/services/home/notes.service";
 import NoteCard from "./NoteCard";
 import NoteInlineEditor from "./NoteInlineEditor";
 import ShareNoteDialog from "./ShareNoteDialog";

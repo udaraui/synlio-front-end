@@ -34,7 +34,7 @@ import {
   getCalendarWeekConfig,
   updateCalendar,
   type CalendarWeekConfig,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { cn } from "@/lib/utils";
 import {
@@ -100,8 +100,8 @@ export function CalendarFormDrawer({
         type === "update"
           ? calendar?.companyId || undefined
           : isSystemUser && defaultCompanyId
-          ? parseInt(defaultCompanyId)
-          : undefined,
+            ? parseInt(defaultCompanyId)
+            : undefined,
       isActive: type === "update" ? calendar?.isActive ?? true : true,
     },
   });
@@ -396,8 +396,8 @@ export function CalendarFormDrawer({
                                       {weekStartDay === undefined
                                         ? "Select a week start date first"
                                         : `Select the ${weekDayLabel(
-                                            weekStartDay,
-                                          )} that starts the year`}
+                                          weekStartDay,
+                                        )} that starts the year`}
                                     </span>
                                   )}
                                 </Button>

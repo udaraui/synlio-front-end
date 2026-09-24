@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { toast } from "sonner";
-import { assignPrivilegeToRole } from "@/services/role-services";
+import { assignPrivilegeToRole } from "@/services/user-management/role-services";
 import {
   getAllPrivilegeByUser,
   getAllPrivilegeByRole,
-} from "@/services/privilege-services";
+} from "@/services/user-management/privilege-services";
 import { RefreshCw, Search, XIcon, ChevronDown, ShieldUser } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 
 interface RoleViewProps {
   open: boolean;
@@ -98,7 +98,7 @@ const RoleView: React.FC<RoleViewProps> = ({ open, onOpenChange, roleId, roleNam
 
   const fetchRoleDetails = async () => {
     try {
-      const { getRoleById } = await import("@/services/role-services");
+      const { getRoleById } = await import("@/services/user-management/role-services");
       const result = await getRoleById(roleId);
       if (result && result.status === 200) {
         setRoleObject(result.data);
@@ -111,7 +111,7 @@ const RoleView: React.FC<RoleViewProps> = ({ open, onOpenChange, roleId, roleNam
   const fetchAllSystemPrivileges = async () => {
     setIsLoading(true);
     try {
-      const { getAllPrivilege } = await import("@/services/privilege-services");
+      const { getAllPrivilege } = await import("@/services/user-management/privilege-services");
       const result = await getAllPrivilege();
       if (result && Array.isArray(result.data)) {
         setUserPrivileges(result.data);
@@ -271,9 +271,8 @@ const RoleView: React.FC<RoleViewProps> = ({ open, onOpenChange, roleId, roleNam
                   </p>
                   {roleObject && (
                     <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-muted-foreground">
-                      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                        roleObject.isActive ? "bg-green-500" : "bg-red-500"
-                      }`} />
+                      <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${roleObject.isActive ? "bg-green-500" : "bg-red-500"
+                        }`} />
                       {roleObject.isActive ? "Active" : "Inactive"}
                     </div>
                   )}

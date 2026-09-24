@@ -5,12 +5,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Clock, ClockPlus } from "lucide-react";
 import { WorkLogTable } from "@/components/common/work-log-table";
-import { 
-  getResourceTaskLogHistory, 
-  getResourceTicketLogHistory, 
-  createResourceLog, 
-  updateResourceLog, 
-  deleteResourceLog 
+import {
+  getResourceTaskLogHistory,
+  getResourceTicketLogHistory,
+  createResourceLog,
+  updateResourceLog,
+  deleteResourceLog
 } from "@/services/work-log/work-log.service";
 import { toast } from "sonner";
 import { format, endOfWeek, addDays, startOfWeek } from "date-fns";
@@ -53,7 +53,7 @@ export function WorkLogPopover({
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // WorkLogTable specific states
   const [logPage, setLogPage] = useState(1);
   const [newLogEntry, setNewLogEntry] = useState<{ startTimeDate: Date | null, endTimeDate: Date | null, effort: string, note: string }>({
@@ -68,7 +68,7 @@ export function WorkLogPopover({
 
   const LOGS_PER_PAGE = 5;
   const totalLogPages = Math.ceil(logs.length / LOGS_PER_PAGE);
-  
+
   const paginatedLogs = useMemo(() => {
     return logs.slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE);
   }, [logs, logPage]);
@@ -128,13 +128,13 @@ export function WorkLogPopover({
   useEffect(() => {
     if (isOpen) {
       fetchLogs();
-      
+
       // Auto set current week selection
       const now = new Date();
-      
+
       const parsedStart = startDate ? new Date(startDate.split('T')[0] + 'T00:00:00') : startOfWeek(now, { weekStartsOn: 1 });
       const parsedEnd = endDate ? new Date(endDate.split('T')[0] + 'T00:00:00') : endOfWeek(now, { weekStartsOn: 1 });
-      
+
       setNewLogEntry({
         startTimeDate: parsedStart,
         endTimeDate: parsedEnd,
@@ -151,24 +151,24 @@ export function WorkLogPopover({
       if (onActionComplete) onActionComplete();
       return;
     }
-    
+
     // Sum logs within the start/end date range of the pulse
     let totalEffortInRange = 0;
     const weekStart = new Date(startDate);
     const weekEnd = new Date(endDate);
-    
+
     updatedLogs.forEach(log => {
       const logStart = new Date(log.startTimeDate);
       const logEnd = new Date(log.endTimeDate);
       // Overlap logic
       if ((logStart >= weekStart && logStart <= weekEnd) || (logEnd >= weekStart && logEnd <= weekEnd) || (logStart <= weekStart && logEnd >= weekEnd)) {
-         totalEffortInRange += Number(log.effort || 0);
+        totalEffortInRange += Number(log.effort || 0);
       }
     });
 
     if (isDraft && draftId) {
       try {
-        const { syncPulseRecord } = await import("@/services/pulse.service");
+        const { syncPulseRecord } = await import("@/services/pulse/pulse.service");
         const pulseSummary = JSON.stringify({
           event_type: postType === 'Task' ? 'TASK_UPDATED' : 'TICKET_UPDATED',
           payload: {
@@ -193,7 +193,7 @@ export function WorkLogPopover({
         console.error(err);
       }
     }
-    
+
     if (onActionComplete) {
       onActionComplete(totalEffortInRange, postId, postType);
     }
@@ -221,18 +221,18 @@ export function WorkLogPopover({
 
       const res = await createResourceLog(payload);
       toast.success('Work log added');
-      
+
       const newLogs = [res, ...logs];
       setLogs(newLogs);
-      
+
       const now = new Date();
-      setNewLogEntry({ 
-        startTimeDate: startOfWeek(now, { weekStartsOn: 1 }), 
-        endTimeDate: endOfWeek(now, { weekStartsOn: 1 }), 
-        effort: '', 
-        note: '' 
+      setNewLogEntry({
+        startTimeDate: startOfWeek(now, { weekStartsOn: 1 }),
+        endTimeDate: endOfWeek(now, { weekStartsOn: 1 }),
+        effort: '',
+        note: ''
       });
-      
+
       await recalculateAndSync(newLogs);
     } catch (error) {
       toast.error('Failed to add work log');
@@ -253,12 +253,12 @@ export function WorkLogPopover({
 
       const res = await updateResourceLog(editingLogId, payload);
       toast.success('Work log updated');
-      
+
       const newLogs = logs.map(l => l.id === editingLogId ? res : l);
       setLogs(newLogs);
       setEditingLogId(null);
       setEditingLogEntry(null);
-      
+
       await recalculateAndSync(newLogs);
     } catch (error) {
       toast.error('Failed to update work log');
@@ -294,30 +294,30 @@ export function WorkLogPopover({
       </PopoverTrigger>
       <PopoverContent className="w-[600px] p-0" align="end" onClick={(e) => e.stopPropagation()}>
         <div className="max-h-[600px] overflow-y-auto bg-muted/30 rounded-md">
-           <WorkLogTable
-              paginatedLogs={paginatedLogs}
-              canEditLogs={true}
-              newLogEntry={newLogEntry}
-              setNewLogEntry={setNewLogEntry as any}
-              handleSaveLog={handleSaveLog}
-              isAddingLog={isAddingLog}
-              editingLogId={editingLogId}
-              setEditingLogId={setEditingLogId}
-              editingLogEntry={editingLogEntry}
-              setEditingLogEntry={setEditingLogEntry as any}
-              handleUpdateLog={handleUpdateLog}
-              handleDeleteLog={handleDeleteLog}
-              logPage={logPage}
-              setLogPage={setLogPage}
-              totalLogPages={totalLogPages}
-              getNextWeekEndDay={getNextWeekEndDay as any}
-              postType={postType}
-              disableWeekSelection={true}
-              activeWeekStart={startDate}
-              activeWeekEnd={endDate}
-              showTopBorder={false}
-              hideNotice={true}
-            />
+          <WorkLogTable
+            paginatedLogs={paginatedLogs}
+            canEditLogs={true}
+            newLogEntry={newLogEntry}
+            setNewLogEntry={setNewLogEntry as any}
+            handleSaveLog={handleSaveLog}
+            isAddingLog={isAddingLog}
+            editingLogId={editingLogId}
+            setEditingLogId={setEditingLogId}
+            editingLogEntry={editingLogEntry}
+            setEditingLogEntry={setEditingLogEntry as any}
+            handleUpdateLog={handleUpdateLog}
+            handleDeleteLog={handleDeleteLog}
+            logPage={logPage}
+            setLogPage={setLogPage}
+            totalLogPages={totalLogPages}
+            getNextWeekEndDay={getNextWeekEndDay as any}
+            postType={postType}
+            disableWeekSelection={true}
+            activeWeekStart={startDate}
+            activeWeekEnd={endDate}
+            showTopBorder={false}
+            hideNotice={true}
+          />
         </div>
       </PopoverContent>
     </Popover>

@@ -18,7 +18,7 @@ import { API_URL } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth.context";
 import { Button } from "../ui/button";
 import { PasswordResetDialog } from '@/components/common/PasswordResetDialog';
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 
 export function NavUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -48,21 +48,21 @@ export function NavUser() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="h-9 w-9 cursor-pointer rounded-full p-0 hover:bg-accent/10 focus-visible:ring-0 focus-visible:ring-offset-0"
-          >
-            <Avatar className="h-8 w-8 !ring-0 !border-0">
-              <AvatarImage
-                src={profilePicUrl || undefined}
-                alt={`${user?.first_name || ''} ${user?.last_name || ''}`}
-                className="object-cover"
-              />
-              <AvatarFallback className="text-sm bg-primary font-semibold">
-                {`${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
+        <Button
+          variant="ghost"
+          className="h-9 w-9 cursor-pointer rounded-full p-0 hover:bg-accent/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+        >
+          <Avatar className="h-8 w-8 !ring-0 !border-0">
+            <AvatarImage
+              src={profilePicUrl || undefined}
+              alt={`${user?.first_name || ''} ${user?.last_name || ''}`}
+              className="object-cover"
+            />
+            <AvatarFallback className="text-sm bg-primary font-semibold">
+              {`${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-56"

@@ -7,7 +7,7 @@ import {
   deleteSkillCategory,
   disableSkillCategory,
   loadSkillCategories,
-} from "@/services/skill-services";
+} from "@/services/resource-management/skill-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import SkillCategoryFormDrawer from "./form_drawer";
 import DeleteModal from "@/components/DeleteModal";

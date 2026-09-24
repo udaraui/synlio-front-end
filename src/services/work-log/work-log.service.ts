@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/interceptors/axiosInstance";
-import {API_ENDPOINTS} from "@/services/API/api";
+import { API_ENDPOINTS } from "@/services/api";
 
 export const getResourceTaskLogHistory = async (id: number): Promise<any> => {
     try {
@@ -50,3 +50,4 @@ export const deleteResourceLog = async (id: number): Promise<any> => {
         throw error;
     }
 };
+

@@ -26,9 +26,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { getAllCalendarDays } from "@/services/calendar-services";
+import { getAllCalendarDays } from "@/services/resource-management/calendar-services";
 import { Button } from "@/components/ui/button";
-import { findOneResource } from "@/services/resource-service";
+import { findOneResource } from "@/services/resource-management/resource-service";
 import { toast } from "sonner";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -392,7 +392,7 @@ const ViewResourceModal: React.FC<ResourceModalProps> = ({
                         </CardHeader>
                         <CardContent>
                           {Array.isArray(resource?.skills) &&
-                          resource.skills.length > 0 ? (
+                            resource.skills.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {resource.skills.map((s: any, i: number) => (
                                 <div
@@ -415,11 +415,10 @@ const ViewResourceModal: React.FC<ResourceModalProps> = ({
                                       {Array.from({ length: 5 }, (_, index) => (
                                         <Star
                                           key={index}
-                                          className={`w-3 h-3 ${
-                                            index < (s.level?.star_count || 0)
-                                              ? "fill-primary text-primary"
-                                              : "fill-muted text-muted-foreground/30"
-                                          }`}
+                                          className={`w-3 h-3 ${index < (s.level?.star_count || 0)
+                                            ? "fill-primary text-primary"
+                                            : "fill-muted text-muted-foreground/30"
+                                            }`}
                                         />
                                       ))}
                                     </div>
@@ -533,7 +532,7 @@ const ViewResourceModal: React.FC<ResourceModalProps> = ({
                         </CardHeader>
                         <CardContent>
                           {resource?.resourceCost &&
-                          resource.resourceCost.cost ? (
+                            resource.resourceCost.cost ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="p-6 border rounded-lg bg-white dark:bg-gray-800 flex flex-col">
                                 <div className="flex items-center gap-2 text-muted-foreground mb-4">

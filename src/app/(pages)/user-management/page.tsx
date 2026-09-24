@@ -2,15 +2,15 @@
 import { useState, useEffect } from "react";
 import UserCreateDrawer from "./components/user-create-drawer";
 import UserList from "./components/user-list";
-import { getUserById, load } from "@/services/user-service";
+import { getUserById, load } from "@/services/user-management/user-service";
 import { toast } from "sonner";
 import { User } from "@/interfaces/user";
 import UserView from "./components/user-view";
 import UserEditDrawer from "./components/user-edit-drawer";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
-import { getAllCompany } from "@/services/company-services";
-import { safeParse } from "@/services/auth-service";
+import { getAllCompany } from "@/services/company-management/company-services";
+import { safeParse } from "@/services/auth/auth-service";
 
 const Page = () => {
   const { setBreadcrumbs } = useBreadcrumb();
@@ -228,16 +228,16 @@ const Page = () => {
     <div className="w-[460px] flex-shrink-0 pt-2 pr-2 flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-zinc-950 rounded-xl border border-border/60 relative">
         <div className="px-5 pt-5 pb-6">
-        <UserView
-          open={openViewDialog}
-          onOpenChange={(open) => {
-            if (!open) handleCloseUserView();
-          }}
-          user={selectedUser!}
-          isLoading={isLoading}
-          isSystemUser={isSystemUser}
-          filterCompanyId={filterCompanyId}
-        />
+          <UserView
+            open={openViewDialog}
+            onOpenChange={(open) => {
+              if (!open) handleCloseUserView();
+            }}
+            user={selectedUser!}
+            isLoading={isLoading}
+            isSystemUser={isSystemUser}
+            filterCompanyId={filterCompanyId}
+          />
         </div>
       </div>
     </div>

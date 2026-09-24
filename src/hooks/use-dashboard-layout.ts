@@ -6,7 +6,7 @@ import {
   getUserConfig,
   createOrUpdateUserConfig,
   invalidateUserConfigCache,
-} from '@/services/user-config-service';
+} from '@/services/user-management/user-config-service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -30,9 +30,9 @@ export type CardDefault = { id: string; label: string; width: CardWidth; visible
 // Tailwind col-span mapping — referenced by both the renderer and the customizer preview
 export const WIDTH_TO_COLSPAN: Record<CardWidth, string> = {
   'full': 'col-span-4',
-  '3/4':  'col-span-3',
-  '1/2':  'col-span-2',
-  '1/4':  'col-span-1',
+  '3/4': 'col-span-3',
+  '1/2': 'col-span-2',
+  '1/4': 'col-span-1',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

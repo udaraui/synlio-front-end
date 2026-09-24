@@ -16,7 +16,7 @@ import {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     NotificationItem,
-} from "@/services/notification.service";
+} from "@/services/common/notification.service";
 import { formatDistanceToNow, isToday, isYesterday, differenceInHours } from "date-fns";
 import { useAuth } from "@/contexts/auth.context";
 
@@ -49,8 +49,8 @@ const getReferenceIcon = (
         isDeleted || isRead
             ? "text-muted-foreground"
             : type === "task"
-              ? "text-blue-500"
-              : "text-green-500";
+                ? "text-blue-500"
+                : "text-green-500";
 
     if (type === "task") {
         return <SquareCheckBig className={`h-4 w-4 shrink-0 mt-0.5 ${colorClass}`} />;
@@ -63,16 +63,16 @@ const getReferenceIcon = (
 
 const getNotificationGroup = (index: number, createdAt: string) => {
     if (index < 5) return "Recent";
-    
+
     const date = new Date(createdAt);
     const now = new Date();
-    
+
     const hours = differenceInHours(now, date);
     if (hours < 1) return "Less than an hour ago";
     if (hours < 2) return "1 hour ago";
     if (hours < 24 && isToday(date)) return "Earlier today";
     if (isYesterday(date)) return "Yesterday";
-    
+
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days} days ago`;
     if (days < 14) return "Last week";
@@ -239,9 +239,9 @@ function Notification() {
             <Tooltip>
                 <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             className="relative cursor-pointer"
                             onPointerDown={(e) => e.currentTarget.blur()}
                             onClick={(e) => e.currentTarget.blur()}
@@ -309,10 +309,10 @@ function Notification() {
                         <>
                             {notifications.map((notification, index) => {
                                 const navigable = isNavigable(notification);
-                                
+
                                 const currentGroup = getNotificationGroup(index, notification.createdAt);
                                 const prevGroup = index > 0 ? getNotificationGroup(index - 1, notifications[index - 1].createdAt) : null;
-                                
+
                                 const header = currentGroup !== prevGroup ? (
                                     <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-muted/30 sticky top-0 backdrop-blur-sm z-10 border-b">
                                         {currentGroup}
@@ -322,9 +322,8 @@ function Notification() {
                                 const inner = (
                                     <div className="flex items-start gap-2">
                                         <span
-                                            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                                                !notification.isRead ? "bg-blue-500" : "bg-transparent"
-                                            }`}
+                                            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!notification.isRead ? "bg-blue-500" : "bg-transparent"
+                                                }`}
                                         />
                                         {/*{getReferenceIcon(notification.referenceType, notification.title, notification.isRead, !navigable)}*/}
                                         <div className="min-w-0 flex-1">

@@ -10,8 +10,8 @@ import StatCards from './components/StatCards';
 import ThisWeekInsight from './components/ThisWeekInsight';
 import type { DateRange } from "react-day-picker";
 import { addDays, format, nextFriday, subDays, formatDistanceToNow } from 'date-fns';
-import { createSnapShot, getLoggedUserWorkingHoursPerWeek, getNeedsAttentionData, getSynlioActivityData, searchPulseWeeks, submitPulseWeek, getPulseMyStatus } from '@/services/pulse.service';
-import { getMeetingStats, getMeetings, MeetingStats, Meeting } from '@/services/meetings-integration.service';
+import { createSnapShot, getLoggedUserWorkingHoursPerWeek, getNeedsAttentionData, getSynlioActivityData, searchPulseWeeks, submitPulseWeek, getPulseMyStatus } from '@/services/pulse/pulse.service';
+import { getMeetingStats, getMeetings, MeetingStats, Meeting } from '@/services/common/meetings-integration.service';
 
 import { Button } from "@/components/ui/button";
 import { PulseType } from "@/enums/pulse-type.enum";

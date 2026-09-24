@@ -1,5 +1,5 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 
 export const createTask = async (data: any): Promise<any> => {
   try {
@@ -89,11 +89,11 @@ export const getTaskEvents = async (id: number): Promise<{ taskEvents: any[] }> 
 export const searchTasks = async (data: any): Promise<any> => {
   try {
     const response = await axiosInstance.post(`${API_ENDPOINTS.TASK_MANAGEMENT_TASK}/search`, data, { withCredentials: true });
-    
+
     // Custom alphanumeric sorting for 'code' column on the frontend
     const multiSorts = data?.multiSorts || [];
     const codeSort = multiSorts.find((s: any) => s.field === 'code');
-    
+
     if (codeSort && response.data?.data && Array.isArray(response.data.data)) {
       const isAsc = codeSort.order === '1' || codeSort.order === 1;
       response.data.data.sort((a: any, b: any) => {
@@ -436,4 +436,5 @@ export const patchTaskMembers = async (id: number, memberIds: number[], updatedB
     throw error;
   }
 };
+
 

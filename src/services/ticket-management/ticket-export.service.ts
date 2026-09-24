@@ -1,5 +1,5 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 import type { QueryParam } from '@/interfaces/query';
 
 /**
@@ -38,3 +38,4 @@ export const exportTicketsToExcel = async (queryParam: QueryParam): Promise<void
     throw error;
   }
 };
+

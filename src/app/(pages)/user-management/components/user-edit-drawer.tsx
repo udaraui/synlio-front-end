@@ -32,8 +32,8 @@ import { User as UserType } from "@/interfaces/user";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAllDivisionsByCompanyId } from "@/services/division-services";
-import { getAllRoleByCompany } from "@/services/role-services";
+import { getAllDivisionsByCompanyId } from "@/services/company-management/division-services";
+import { getAllRoleByCompany } from "@/services/user-management/role-services";
 import { toast } from "sonner";
 import {
   Form,
@@ -56,11 +56,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { updateUser } from "@/services/user-service";
+import { updateUser } from "@/services/user-management/user-service";
 import { Switch } from "@/components/ui/switch";
 import { API_URL } from "@/lib/constants";
-import { getAllCompany } from "@/services/company-services";
-import { safeParse } from "@/services/auth-service";
+import { getAllCompany } from "@/services/company-management/company-services";
+import { safeParse } from "@/services/auth/auth-service";
 
 interface UserEditDrawerProps {
   open: boolean;
@@ -176,14 +176,14 @@ export function UserEditDrawer({
 
       const filteredRoles = activeCompanyId
         ? user.userCompanyRoles?.filter((ucr) => {
-            const cid = Number(
-              ucr.company?.id ??
-              (ucr as any).companyId ??
-              (ucr as any).company_id ??
-              0
-            );
-            return cid === Number(activeCompanyId);
-          })
+          const cid = Number(
+            ucr.company?.id ??
+            (ucr as any).companyId ??
+            (ucr as any).company_id ??
+            0
+          );
+          return cid === Number(activeCompanyId);
+        })
         : user.userCompanyRoles;
 
       form.reset({
@@ -400,7 +400,7 @@ export function UserEditDrawer({
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Company context / Active company */}
                 {isSystemUser ? (
                   <FormField
@@ -495,11 +495,10 @@ export function UserEditDrawer({
                                         }}
                                       >
                                         <Check
-                                          className={`mr-2 h-4 w-4 ${
-                                            field.value?.includes(division.id)
-                                              ? "opacity-100"
-                                              : "opacity-0"
-                                          }`}
+                                          className={`mr-2 h-4 w-4 ${field.value?.includes(division.id)
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                            }`}
                                         />
                                         {division.division}
                                       </CommandItem>
@@ -584,19 +583,18 @@ export function UserEditDrawer({
                                             field.onChange(
                                               isSelected
                                                 ? current.filter(
-                                                    (item: any) => item.roleId !== role.id
-                                                  )
+                                                  (item: any) => item.roleId !== role.id
+                                                )
                                                 : [
-                                                    ...current,
-                                                    { companyId: targetId, roleId: role.id },
-                                                  ]
+                                                  ...current,
+                                                  { companyId: targetId, roleId: role.id },
+                                                ]
                                             );
                                           }}
                                         >
                                           <Check
-                                            className={`mr-2 h-4 w-4 ${
-                                              isSelected ? "opacity-100" : "opacity-0"
-                                            }`}
+                                            className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100" : "opacity-0"
+                                              }`}
                                           />
                                           {role.role}
                                         </CommandItem>
@@ -632,7 +630,7 @@ export function UserEditDrawer({
                     </FormControl>
                   </FormItem>
                 )}
-                />
+              />
             </div>
 
             {/* Footer */}

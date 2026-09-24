@@ -35,8 +35,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { disableUser } from '@/services/user-service';
-import { disableResource } from '@/services/resource-service';
+import { disableUser } from '@/services/user-management/user-service';
+import { disableResource } from '@/services/resource-management/resource-service';
 import DeleteUserModal from './delete-user-modal';
 import { ProfileImage } from '@/components/common/ProfileImage';
 import {

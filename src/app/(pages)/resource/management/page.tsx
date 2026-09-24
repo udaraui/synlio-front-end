@@ -42,10 +42,10 @@ import { useSearchParams } from "next/navigation";
 import ViewResourceModal from "./view_model";
 import GridView from "./components/gridView";
 import ListView from "./components/listView";
-import { loadResource, getResourceSkills, getResourceActiveCounts, syncResourceWithUser } from "@/services/resource-service";
+import { loadResource, getResourceSkills, getResourceActiveCounts, syncResourceWithUser } from "@/services/resource-management/resource-service";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { ResourceMultiStepForm } from "@/app/(pages)/resource/management/components/resource-multistep-form";
-import { loadResourcePools } from "@/services/resource-pool-service";
+import { loadResourcePools } from "@/services/resource-management/resource-pool-service";
 import TableView from "@/app/(pages)/resource/management/components/tableView";
 import { ResourceGridSkeleton, ResourceTableSkeleton, SkeletonLoadinResourceList } from "./components/ResourceSkeletons";
 
@@ -84,11 +84,11 @@ function page() {
   const [debouncedResourcePoolTerms, setDebouncedResourcePoolTerms] = useState<string[]>(
     resourceGroupId ? [String(resourceGroupId)] : []
   );
-  
+
   // -- Filter Pinning and Session State --
   const RESOURCE_FILTERS_SESSION_KEY = "resourcePageFilters";
   type FilterType = "group" | "status" | "type" | "reportingPerson" | "assignment" | "skills" | "name" | "email";
-  
+
   const [pinnedFilters, setPinnedFilters] = useState<FilterType[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("pinnedResourceFilters");
@@ -494,7 +494,7 @@ function page() {
         toast.error("Not authorized to view resources");
         setResources([]);
         setTotalRecords(0);
-          setIsLoading(false);
+        setIsLoading(false);
       }
     } catch (error) {
       toast.error("Failed to fetch resources");
@@ -692,7 +692,7 @@ function page() {
       }
       setCurrentPage(1);
     };
-    
+
     switch (filterType) {
       case "group":
         return (
@@ -821,21 +821,21 @@ function page() {
                   <span className="text-xs text-muted-foreground italic">No Skills</span>
                 </label>
                 {uniqueSkills.map((skill) => (
-                <label key={skill} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={debouncedSkillTerms.includes(skill)}
-                    onChange={(e) => {
-                      setDebouncedSkillTerms((prev) =>
-                        e.target.checked ? [...prev, skill] : prev.filter((t) => t !== skill)
-                      );
-                    }}
-                    className="w-3.5 h-3.5"
-                  />
-                  <span className="text-xs truncate">{skill}</span>
-                </label>
-              ))
-              }
+                  <label key={skill} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={debouncedSkillTerms.includes(skill)}
+                      onChange={(e) => {
+                        setDebouncedSkillTerms((prev) =>
+                          e.target.checked ? [...prev, skill] : prev.filter((t) => t !== skill)
+                        );
+                      }}
+                      className="w-3.5 h-3.5"
+                    />
+                    <span className="text-xs truncate">{skill}</span>
+                  </label>
+                ))
+                }
               </>
             )}
           </div>
@@ -901,7 +901,7 @@ function page() {
       name: { label: "Name", badgeCount: debouncedResourceTerm ? 1 : 0, isActive: !!debouncedResourceTerm, onClear: () => { setDebouncedResourceTerm(""); setCurrentPage(1); } },
       email: { label: "Email", badgeCount: debouncedResourceEmailTerm ? 1 : 0, isActive: !!debouncedResourceEmailTerm, onClear: () => { setDebouncedResourceEmailTerm(""); setCurrentPage(1); } },
     }[filterType];
-    
+
     if (!config) return null;
 
     if (filterType === "assignment") {
@@ -972,11 +972,10 @@ function page() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className={`p-2 ${
-          filterType === 'type' ? 'w-[140px]' : 
-          filterType === 'skills' ? 'w-[280px]' : 
-          'w-[200px]'
-        }`}>
+        <PopoverContent align="start" className={`p-2 ${filterType === 'type' ? 'w-[140px]' :
+          filterType === 'skills' ? 'w-[280px]' :
+            'w-[200px]'
+          }`}>
           {renderFilterOptions(filterType, true)}
         </PopoverContent>
       </Popover>
@@ -1071,19 +1070,19 @@ function page() {
                       debouncedUnassignedTerm,
                       debouncedSkillTerms.length > 0
                     ].filter(Boolean).length > 0) && (
-                      <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
-                        {[
-                          debouncedResourceTerm,
-                          debouncedResourceEmailTerm,
-                          debouncedResourcePoolTerms.length > 0,
-                          debouncedResourceStatusTerms.length > 0,
-                          debouncedResourceTypeTerms.length > 0,
-                          debouncedReportingPersonTerms.length > 0,
-                          debouncedUnassignedTerm,
-                          debouncedSkillTerms.length > 0
-                        ].filter(Boolean).length}
-                      </span>
-                    )}
+                        <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                          {[
+                            debouncedResourceTerm,
+                            debouncedResourceEmailTerm,
+                            debouncedResourcePoolTerms.length > 0,
+                            debouncedResourceStatusTerms.length > 0,
+                            debouncedResourceTypeTerms.length > 0,
+                            debouncedReportingPersonTerms.length > 0,
+                            debouncedUnassignedTerm,
+                            debouncedSkillTerms.length > 0
+                          ].filter(Boolean).length}
+                        </span>
+                      )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[320px]">
@@ -1099,15 +1098,15 @@ function page() {
                       debouncedUnassignedTerm,
                       debouncedSkillTerms.length > 0
                     ].filter(Boolean).length > 0) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 px-2 text-xs text-red-500 hover:text-red-600"
-                        onClick={clearAllFilters}
-                      >
-                        Clear All
-                      </Button>
-                    )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-2 text-xs text-red-500 hover:text-red-600"
+                          onClick={clearAllFilters}
+                        >
+                          Clear All
+                        </Button>
+                      )}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <div className="p-2 space-y-3 max-h-[60vh] overflow-y-auto">

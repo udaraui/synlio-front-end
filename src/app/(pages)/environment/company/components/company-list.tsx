@@ -44,7 +44,7 @@ import {
   deleteCompany,
   getCompanyNotificationEmailConfig,
   updateCompanyNotificationEmail,
-} from '@/services/company-services';
+} from '@/services/company-management/company-services';
 import DeleteModal from '@/components/DeleteModal';
 import {
   Table,

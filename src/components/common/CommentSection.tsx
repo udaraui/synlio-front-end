@@ -38,7 +38,7 @@ import {
   deleteComment,
   updateComment,
   uploadFile,
-} from '@/services/comment-service';
+} from '@/services/common/comment-service';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -661,37 +661,37 @@ export function CommentSection({ postId, postType, onCommentCountChange, readOnl
       {/* ── Compose box (top) ── */}
       {!readOnly && (
         <div className="bg-white dark:bg-gray-900 rounded-md">
-        <ComposeBox
-          placeholder="Write a comment..."
-          inputId="comment-file-input"
-          value={replyingTo ? '' : formData.text}
-          files={replyingTo ? [] : formData.files}
-          submitting={submitting && !replyingTo}
-          onTextChange={(v) => !replyingTo && setFormData((p) => ({ ...p, text: v }))}
-          onFilesAdd={(newFiles) => !replyingTo && setFormData((p) => ({ ...p, files: [...p.files, ...newFiles] }))}
-          onFileRemove={(i) => !replyingTo && setFormData((p) => ({ ...p, files: p.files.filter((_, idx) => idx !== i) }))}
-          onSubmit={(e) => { if (!replyingTo) handleSubmit(e); }}
-        />
+          <ComposeBox
+            placeholder="Write a comment..."
+            inputId="comment-file-input"
+            value={replyingTo ? '' : formData.text}
+            files={replyingTo ? [] : formData.files}
+            submitting={submitting && !replyingTo}
+            onTextChange={(v) => !replyingTo && setFormData((p) => ({ ...p, text: v }))}
+            onFilesAdd={(newFiles) => !replyingTo && setFormData((p) => ({ ...p, files: [...p.files, ...newFiles] }))}
+            onFileRemove={(i) => !replyingTo && setFormData((p) => ({ ...p, files: p.files.filter((_, idx) => idx !== i) }))}
+            onSubmit={(e) => { if (!replyingTo) handleSubmit(e); }}
+          />
         </div>
       )}
 
       {/* ── Comment list (below) ── */}
       <div className="rounded-md">
-      {loading ? (
-        <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
-          <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-muted border-t-foreground" />
-          Loading...
-        </div>
-      ) : topLevel.length === 0 ? (
-        <div className="flex flex-col items-center gap-1.5 py-6 text-muted-foreground">
-          <MessageSquare className="h-7 w-7 opacity-25" />
-          <p className="text-xs">No comments yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {topLevel.map((c) => renderComment(c))}
-        </div>
-      )}
+        {loading ? (
+          <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+            <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-muted border-t-foreground" />
+            Loading...
+          </div>
+        ) : topLevel.length === 0 ? (
+          <div className="flex flex-col items-center gap-1.5 py-6 text-muted-foreground">
+            <MessageSquare className="h-7 w-7 opacity-25" />
+            <p className="text-xs">No comments yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {topLevel.map((c) => renderComment(c))}
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation */}

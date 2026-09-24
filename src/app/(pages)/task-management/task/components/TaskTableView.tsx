@@ -15,8 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CommentSection } from '@/components/common/CommentSection';
 import { toast } from 'sonner';
-import { setMeetingActionState } from '@/services/meetings-integration.service';
-import { linkTaskToActivity } from '@/services/activity.service';
+import { setMeetingActionState } from '@/services/common/meetings-integration.service';
+import { linkTaskToActivity } from '@/services/pulse/activity.service';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -733,8 +733,8 @@ function TaskTableView({
             newMapUpdated[Number(key)] = children.map((c) => {
               if (c.id === parentId) {
                 parentUpdatedInMap = true;
-                return { 
-                  ...c, 
+                return {
+                  ...c,
                   statusId: targetStatus.id,
                   statusName: targetStatus.name,
                   statusColor: targetStatus.color,
@@ -751,7 +751,7 @@ function TaskTableView({
           }
 
           // ── KEY: propagate to page-level `tasks` (root-level parents live here)
-          onUpdateTask?.(parentId, { 
+          onUpdateTask?.(parentId, {
             statusId: targetStatus.id,
             statusName: targetStatus.name,
             statusColor: targetStatus.color,
@@ -999,8 +999,8 @@ function TaskTableView({
           mapForStatus = {
             ...mapForStatus,
             [gParentId]: (mapForStatus[gParentId] ?? []).map((c: any) =>
-              c.id === currentId ? { 
-                ...c, 
+              c.id === currentId ? {
+                ...c,
                 statusId: targetStatus.id,
                 statusName: targetStatus.name,
                 statusColor: targetStatus.color,
@@ -1090,7 +1090,7 @@ function TaskTableView({
         color: task.statusColor,
         base: task.statusBase,
       } : (configData?.statuses?.find((s) => s.id === task.statusId) ?? task.status ?? null);
-      
+
       const severity = task.severityName ? {
         id: task.severityId,
         name: task.severityName,
@@ -1099,12 +1099,12 @@ function TaskTableView({
 
       const fallbackAssignee = task.assigneeId
         ? {
-            id: task.assigneeId,
-            first_name: task.assigneeName?.split(" ")[0] ?? "",
-            last_name: task.assigneeName?.split(" ").slice(1).join(" ") ?? "",
-            profile_pic: task.assigneeProfilePicUrl,
-            email: task.assigneeEmail,
-          }
+          id: task.assigneeId,
+          first_name: task.assigneeName?.split(" ")[0] ?? "",
+          last_name: task.assigneeName?.split(" ").slice(1).join(" ") ?? "",
+          profile_pic: task.assigneeProfilePicUrl,
+          email: task.assigneeEmail,
+        }
         : null;
       const assignee = task.assigneeName ? fallbackAssignee :
         (configData?.resources?.find((r) => r.id === task.assigneeId) ?? task.assignee ?? fallbackAssignee);
@@ -1280,13 +1280,13 @@ function TaskTableView({
                     }}
                   />
                 ) : ( */}
-                  <button
-                    className="flex items-center rounded px-0.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 cursor-default"
-                    onClick={(e) => e.stopPropagation()}
-                    title={resolvedHL?.name ?? 'No level'}
-                  >
-                    <HierarchyIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: hlColor }} />
-                  </button>
+                <button
+                  className="flex items-center rounded px-0.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 cursor-default"
+                  onClick={(e) => e.stopPropagation()}
+                  title={resolvedHL?.name ?? 'No level'}
+                >
+                  <HierarchyIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: hlColor }} />
+                </button>
                 {/* )} */}
 
                 {/* Code */}

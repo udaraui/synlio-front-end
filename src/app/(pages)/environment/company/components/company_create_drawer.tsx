@@ -51,8 +51,8 @@ import {
   Save,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createCompany } from "@/services/company-services";
-import { load } from "@/services/user-service";
+import { createCompany } from "@/services/company-management/company-services";
+import { load } from "@/services/user-management/user-service";
 import { ActiveStatus } from "@/interfaces/common/status.enum";
 
 interface CompanyCreateDrawerProps {

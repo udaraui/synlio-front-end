@@ -27,8 +27,8 @@ import {
   MeetingProvider,
   ProviderConnectionStatus,
   syncMeetings,
-} from "@/services/meetings-integration.service";
-import { syncPulseRecord } from "@/services/pulse.service";
+} from "@/services/common/meetings-integration.service";
+import { syncPulseRecord } from "@/services/pulse/pulse.service";
 import { NewInternalMeetingDialog } from "../../meetings/components/NewInternalMeetingDialog";
 import { useAuth } from "@/contexts/auth.context";
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { getPostHierarchy } from "@/services/pulse.service";
+import { getPostHierarchy } from "@/services/pulse/pulse.service";
 import { Loader2, AlertCircle, Ticket } from "lucide-react";
 import { getHierarchyLevelIcon } from "@/enums/space-configure-icon.enum";
 import { cn } from "@/lib/utils";

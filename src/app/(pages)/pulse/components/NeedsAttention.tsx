@@ -172,7 +172,7 @@ const ConditionStatusBadge = ({ status, item }: { status: string, item: Attentio
     );
 }
 
-import { getItemStatusConfig, getItemProgress, getItemDates, syncPulseRecord } from "@/services/pulse.service";
+import { getItemStatusConfig, getItemProgress, getItemDates, syncPulseRecord } from "@/services/pulse/pulse.service";
 
 interface StatusChangeDropdownProps {
     item: AttentionItem;
@@ -273,7 +273,7 @@ const NeedsAttention: React.FC<NeedsAttentionProps> = ({ data, loading, error, o
         setIsUpdatingProgress(true);
         try {
             await patchTaskProgress(Number(selectedItem.id), tempProgress);
-            
+
             if (isDraft && draftId) {
                 const metadata = {
                     ...selectedItem,
@@ -287,7 +287,7 @@ const NeedsAttention: React.FC<NeedsAttentionProps> = ({ data, loading, error, o
                     pulseSummary: pulseSummary
                 }).catch(console.error);
             }
-            
+
             setProgressPopoverOpen(false);
             if (onActionComplete) onActionComplete();
         } finally {
@@ -663,7 +663,7 @@ const NeedsAttention: React.FC<NeedsAttentionProps> = ({ data, loading, error, o
                                         if (condition?.isOverdue) actionCount++;
                                         if ((condition?.isOverdue || condition?.isDueToday) && item.postType === 'Task') actionCount++;
                                         if (item.conditionStatus?.includes('lagging') && item.postType === 'Task') actionCount++;
-                                        
+
                                         if (actionCount < 2) {
                                             return (
                                                 <a href={link} target="_blank" rel="noopener noreferrer">

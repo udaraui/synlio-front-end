@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
-import { getAllRepeatedHoliday, deleteRepeatedHoliday } from "@/services/calendar-services";
+import { getAllRepeatedHoliday, deleteRepeatedHoliday } from "@/services/resource-management/calendar-services";
 import { Calendar } from "@/interfaces/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,99 +115,99 @@ const RepeatedHolidaysCompact: React.FC<RepeatedHolidaysCompactProps> = ({
           </div>
         </div>
 
-      {/* List */}
-      <div className="flex-1 px-3 pt-2 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-      {!canView ? (
-        <div className="text-center py-10 text-muted-foreground">
-          <p className="text-sm">You are not authorized to view repeated holidays</p>
-        </div>
-      ) : isLoading ? (
-        <div className="space-y-1.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-2.5 py-2.5 bg-white dark:bg-slate-900/40">
-              <div className="flex items-start gap-3 min-w-0 flex-1">
-                <div className="min-w-0 flex-1 flex flex-col gap-2 justify-center py-1">
-                  <Skeleton className="h-4 w-1/3" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-16 rounded-md" />
-                    <Skeleton className="h-5 w-16 rounded-md" />
+        {/* List */}
+        <div className="flex-1 px-3 pt-2 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+          {!canView ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <p className="text-sm">You are not authorized to view repeated holidays</p>
+            </div>
+          ) : isLoading ? (
+            <div className="space-y-1.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-2.5 py-2.5 bg-white dark:bg-slate-900/40">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 flex flex-col gap-2 justify-center py-1">
+                      <Skeleton className="h-4 w-1/3" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-5 w-16 rounded-md" />
+                        <Skeleton className="h-5 w-16 rounded-md" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Skeleton className="h-7 w-7 rounded-md" />
+                    <Skeleton className="h-7 w-7 rounded-md" />
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Skeleton className="h-7 w-7 rounded-md" />
-                <Skeleton className="h-7 w-7 rounded-md" />
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">
-          <Repeat className="h-8 w-8 opacity-30 mx-auto mb-2" />
-          <p className="text-sm">No repeated holidays found</p>
-          {/* <p className="text-xs mt-1">
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Repeat className="h-8 w-8 opacity-30 mx-auto mb-2" />
+              <p className="text-sm">No repeated holidays found</p>
+              {/* <p className="text-xs mt-1">
             {searchTerm ? "Try adjusting your search" : "No entries available"}
           </p> */}
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {filtered.map((h, idx) => {
-            const dayName = dayNames[h.day] || `Day ${h.day}`;
-            return (
-              <div
-                key={h.id ?? idx}
-                className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-2.5 py-2.5 bg-white dark:bg-slate-900/40 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                    <p className="text-sm font-medium truncate leading-none mt-1">{dayName}</p>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(248, 113, 113, 0.8)" }} />
-                        Holiday
-                      </span>
-                      {h.type && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
-                          {h.type.toUpperCase() === "HALF" ? (
-                            <CircleDashed className="h-3 w-3" color="rgba(248, 113, 113, 0.8)" />
-                          ) : (
-                            <Circle className="h-3 w-3" color="rgba(248, 113, 113, 0.8)" />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {filtered.map((h, idx) => {
+                const dayName = dayNames[h.day] || `Day ${h.day}`;
+                return (
+                  <div
+                    key={h.id ?? idx}
+                    className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-2.5 py-2.5 bg-white dark:bg-slate-900/40 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+                        <p className="text-sm font-medium truncate leading-none mt-1">{dayName}</p>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(248, 113, 113, 0.8)" }} />
+                            Holiday
+                          </span>
+                          {h.type && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                              {h.type.toUpperCase() === "HALF" ? (
+                                <CircleDashed className="h-3 w-3" color="rgba(248, 113, 113, 0.8)" />
+                              ) : (
+                                <Circle className="h-3 w-3" color="rgba(248, 113, 113, 0.8)" />
+                              )}
+                              {h.type.charAt(0).toUpperCase() + h.type.slice(1).toLowerCase()} Day
+                            </span>
                           )}
-                          {h.type.charAt(0).toUpperCase() + h.type.slice(1).toLowerCase()} Day
-                        </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Info_button
+                        id={h.id || 0}
+                        createdBy={h.createdBy || ""}
+                        createdAt={h.createdAt || ""}
+                        updatedBy={h.updatedBy || ""}
+                        updatedAt={h.updatedAt || ""}
+                      />
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => {
+                            setDeletingId(h.day);
+                            setIsDeleting(true);
+                          }}
+                        >
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Info_button
-                    id={h.id || 0}
-                    createdBy={h.createdBy || ""}
-                    createdAt={h.createdAt || ""}
-                    updatedBy={h.updatedBy || ""}
-                    updatedAt={h.updatedAt || ""}
-                  />
-                  {canDelete && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 w-7 p-0 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => {
-                        setDeletingId(h.day);
-                        setIsDeleting(true);
-                      }}
-                    >
-                      <Trash className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-      </div>
       </div>
 
       <div className="h-11 px-4 flex-none flex items-center justify-between border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-background">

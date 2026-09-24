@@ -32,7 +32,7 @@ import {
   createSpecialHoliday,
   createSpecialWorkingDay,
   getAllCalendarDays,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { Calendar } from "@/components/ui/calendar";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import {
@@ -423,7 +423,7 @@ export function HolidayWorkingDayDrawer({
                       <FormItem>
                         <FormControl>
                           <div className="flex items-center space-x-2 pt-1">
-                            <Switch 
+                            <Switch
                               checked={field.value === "Full"}
                               onCheckedChange={(checked) => field.onChange(checked ? "Full" : "Half")}
                               disabled={dayTypeOptions.length < 2}

@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { FilterTemplate } from '@/services/user-config-service';
+import { FilterTemplate } from '@/services/user-management/user-config-service';
 
 interface FilterTemplateButtonProps {
   /** List of saved filter templates */
@@ -218,7 +218,7 @@ export function FilterTemplateButton({
                 </>
               ) : (
                 <>
-                  <Save className='h-3.5 w-3.5'/>
+                  <Save className='h-3.5 w-3.5' />
                   Save
                 </>
               )}

@@ -17,9 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Share2, Check, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { load } from "@/services/user-service";
-import { getNoteShareList, shareNote } from "@/services/notes.service";
-import { API_URL } from "@/services/API/api";
+import { load } from "@/services/user-management/user-service";
+import { getNoteShareList, shareNote } from "@/services/home/notes.service";
+import { API_URL } from "@/services/api";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth.context";
 
@@ -289,3 +289,4 @@ export default function ShareNotePopover({ noteId, onShared }: ShareNotePopoverP
     </Popover>
   );
 }
+

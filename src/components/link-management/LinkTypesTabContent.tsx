@@ -34,7 +34,7 @@ import {
   deleteLinkType,
   type LinkType,
   type LinkTypePostType,
-} from '@/services/link-management/link-type.service';
+} from '@/services/common/link-type.service';
 
 /**
  * Creating new link types is disabled for now (product decision) — this may

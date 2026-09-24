@@ -31,8 +31,8 @@ import {
   addResourceToTaskSpace,
   removeResourceFromTaskSpace,
 } from '@/services/task-management/task-space.service';
-import { searchResourcesWithSkills } from '@/services/resource-service';
-import { loadResourcePools } from '@/services/resource-pool-service';
+import { searchResourcesWithSkills } from '@/services/resource-management/resource-service';
+import { loadResourcePools } from '@/services/resource-management/resource-pool-service';
 
 // ─── SkillsHoverPopover: show skills in a popover on hover ──────────────────
 
@@ -364,32 +364,29 @@ export function TaskSpaceResourceDropdown({
           {preloadedResources && (
             <button
               onClick={() => setDropdownTab('space')}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                dropdownTab === 'space'
-                  ? 'border-b-2 border-primary text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${dropdownTab === 'space'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               Space Members
             </button>
           )}
           <button
             onClick={() => setDropdownTab('search')}
-            className={`flex-1 py-2 text-xs font-medium transition-colors ${
-              dropdownTab === 'search'
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex-1 py-2 text-xs font-medium transition-colors ${dropdownTab === 'search'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Resource
           </button>
           <button
             onClick={() => setDropdownTab('groups')}
-            className={`flex-1 py-2 text-xs font-medium transition-colors ${
-              dropdownTab === 'groups'
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`flex-1 py-2 text-xs font-medium transition-colors ${dropdownTab === 'groups'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Resource Groups
           </button>
@@ -418,86 +415,86 @@ export function TaskSpaceResourceDropdown({
                 const q = resourceSearch.trim().toLowerCase();
                 const filtered = q
                   ? resourceResults.filter((r) =>
-                      `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
-                      r.email?.toLowerCase().includes(q) ||
-                      (r.skills ?? []).some((s: string) => s.toLowerCase().includes(q)),
-                    )
+                    `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
+                    r.email?.toLowerCase().includes(q) ||
+                    (r.skills ?? []).some((s: string) => s.toLowerCase().includes(q)),
+                  )
                   : resourceResults;
                 return (
-                <CommandGroup
-                  heading={resourceSearch.trim() ? 'Search results' : 'Resources'}
-                >
-                  {filtered.length === 0 && (
-                    <div className="py-4 text-center text-xs text-muted-foreground italic">No resources match &ldquo;{resourceSearch}&rdquo;</div>
-                  )}
-                  {[...filtered]
-                    .sort((a, b) => {
-                      const selA = selectedResourceIds.has(a.id) ? 1 : 0;
-                      const selB = selectedResourceIds.has(b.id) ? 1 : 0;
-                      if (selA !== selB) return selB - selA;
-                      const aName = a.first_name || '';
-                      const bName = b.first_name || '';
-                      return aName.localeCompare(bName);
-                    })
-                    .flatMap((r, index, arr) => {
-                    const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
-                    const isDisabled = disabledResourceIds.has(r.id);
-                    const isToggling = togglingId === r.id;
-                    const prevR = arr[index - 1];
-                    const showDivider = index > 0 && selectedResourceIds.has(prevR?.id) && !isAdded;
-                    const items: React.ReactNode[] = [];
-                    if (showDivider) {
-                      items.push(
-                        <div key={`divider-${r.id}`} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-900/50 border-t border-b border-gray-200 dark:border-gray-700">
-                          <span className="text-xs tracking-wider text-gray-400 dark:text-gray-500">
-                            Others
-                          </span>
-                        </div>
-                      );
-                    }
-                    items.push(
-                      <CommandItem
-                        key={r.id}
-                        value={String(r.id)}
-                        onSelect={() => { if (!isToggling && !isDisabled) handleToggleResource(r); }}
-                        className={cn("gap-2", isDisabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer")}
-                        disabled={isDisabled}
-                      >
-                        <Avatar className="h-7 w-7 flex-shrink-0">
-                          <AvatarImage
-                            src={
-                              r.profile_pic
-                                ? r.profile_pic.startsWith('http')
-                                  ? r.profile_pic
-                                  : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
-                                : undefined
-                            }
-                            alt={`${r.first_name} ${r.last_name}`}
-                          />
-                          <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                            {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || ''}
-                          </AvatarFallback>
-                        </Avatar>
-                        <SkillsHoverPopover skills={r.skills ?? []} emptyText="No skills">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium truncate leading-tight">
-                              {r.first_name} {r.last_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate leading-tight">
-                              {r.email}
-                            </p>
-                          </div>
-                        </SkillsHoverPopover>
-                        {isToggling ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary flex-shrink-0" />
-                        ) : isAdded ? (
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                        ) : null}
-                      </CommandItem>
-                    );
-                    return items;
-                  })}
-                </CommandGroup>
+                  <CommandGroup
+                    heading={resourceSearch.trim() ? 'Search results' : 'Resources'}
+                  >
+                    {filtered.length === 0 && (
+                      <div className="py-4 text-center text-xs text-muted-foreground italic">No resources match &ldquo;{resourceSearch}&rdquo;</div>
+                    )}
+                    {[...filtered]
+                      .sort((a, b) => {
+                        const selA = selectedResourceIds.has(a.id) ? 1 : 0;
+                        const selB = selectedResourceIds.has(b.id) ? 1 : 0;
+                        if (selA !== selB) return selB - selA;
+                        const aName = a.first_name || '';
+                        const bName = b.first_name || '';
+                        return aName.localeCompare(bName);
+                      })
+                      .flatMap((r, index, arr) => {
+                        const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
+                        const isDisabled = disabledResourceIds.has(r.id);
+                        const isToggling = togglingId === r.id;
+                        const prevR = arr[index - 1];
+                        const showDivider = index > 0 && selectedResourceIds.has(prevR?.id) && !isAdded;
+                        const items: React.ReactNode[] = [];
+                        if (showDivider) {
+                          items.push(
+                            <div key={`divider-${r.id}`} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-900/50 border-t border-b border-gray-200 dark:border-gray-700">
+                              <span className="text-xs tracking-wider text-gray-400 dark:text-gray-500">
+                                Others
+                              </span>
+                            </div>
+                          );
+                        }
+                        items.push(
+                          <CommandItem
+                            key={r.id}
+                            value={String(r.id)}
+                            onSelect={() => { if (!isToggling && !isDisabled) handleToggleResource(r); }}
+                            className={cn("gap-2", isDisabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer")}
+                            disabled={isDisabled}
+                          >
+                            <Avatar className="h-7 w-7 flex-shrink-0">
+                              <AvatarImage
+                                src={
+                                  r.profile_pic
+                                    ? r.profile_pic.startsWith('http')
+                                      ? r.profile_pic
+                                      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                                    : undefined
+                                }
+                                alt={`${r.first_name} ${r.last_name}`}
+                              />
+                              <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                                {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || ''}
+                              </AvatarFallback>
+                            </Avatar>
+                            <SkillsHoverPopover skills={r.skills ?? []} emptyText="No skills">
+                              <div className="space-y-0.5">
+                                <p className="text-sm font-medium truncate leading-tight">
+                                  {r.first_name} {r.last_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate leading-tight">
+                                  {r.email}
+                                </p>
+                              </div>
+                            </SkillsHoverPopover>
+                            {isToggling ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary flex-shrink-0" />
+                            ) : isAdded ? (
+                              <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                            ) : null}
+                          </CommandItem>
+                        );
+                        return items;
+                      })}
+                  </CommandGroup>
                 );
               })()}
             </CommandList>
@@ -568,145 +565,143 @@ export function TaskSpaceResourceDropdown({
                   return (
                     <div className="overflow-y-auto flex-1">
                       {displayPools.map((pool) => {
-                            const addedInPool = (pool.resources as any[]).filter((r) =>
-                              selectedResourceIds.has(r.id),
-                            );
-                            const allAdded =
-                              pool.resources.length > 0 &&
-                              addedInPool.length === pool.resources.length;
-                            const someAdded = addedInPool.length > 0 && !allAdded;
-                            const isProcessingPool = processingPoolId === pool.id;
+                        const addedInPool = (pool.resources as any[]).filter((r) =>
+                          selectedResourceIds.has(r.id),
+                        );
+                        const allAdded =
+                          pool.resources.length > 0 &&
+                          addedInPool.length === pool.resources.length;
+                        const someAdded = addedInPool.length > 0 && !allAdded;
+                        const isProcessingPool = processingPoolId === pool.id;
 
-                            return (
-                              <div
-                                key={pool.id}
-                                className="border-b border-gray-100 dark:border-gray-800 last:border-0"
-                              >
-                                {/* Pool header */}
-                                <div className="flex items-center gap-2 px-3 py-2 bg-muted sticky top-0 z-10">
-                                  {isProcessingPool ? (
-                                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-primary flex-shrink-0" />
-                                  ) : (
+                        return (
+                          <div
+                            key={pool.id}
+                            className="border-b border-gray-100 dark:border-gray-800 last:border-0"
+                          >
+                            {/* Pool header */}
+                            <div className="flex items-center gap-2 px-3 py-2 bg-muted sticky top-0 z-10">
+                              {isProcessingPool ? (
+                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-primary flex-shrink-0" />
+                              ) : (
+                                <input
+                                  type="checkbox"
+                                  checked={allAdded}
+                                  ref={(el) => {
+                                    if (el) el.indeterminate = someAdded;
+                                  }}
+                                  disabled={pool.resources.length === 0}
+                                  onChange={() => handleToggleAllInPool(pool)}
+                                  className="h-3.5 w-3.5 rounded cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+                                  title={
+                                    allAdded || someAdded
+                                      ? 'Uncheck all in group'
+                                      : 'Add all in group'
+                                  }
+                                />
+                              )}
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="text-xs font-semibold truncate">{pool.name}</span>
+                                <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                                  ({(pool.resources as any[]).length})
+                                </span>
+                                {/*{addedInPool.length > 0 && (*/}
+                                {/*  <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full flex-shrink-0">*/}
+                                {/*    {addedInPool.length} added*/}
+                                {/*  </span>*/}
+                                {/*)}*/}
+                              </div>
+                            </div>
+
+                            {/* Resources in this pool */}
+                            {pool.resources.length === 0 ? (
+                              <p className="px-3 py-2 text-xs text-muted-foreground italic">
+                                No resources in this group
+                              </p>
+                            ) : (() => {
+                              const rq = groupResourceFilter.trim().toLowerCase();
+                              const visibleResources = (rq
+                                ? (pool.resources as any[]).filter((r) =>
+                                  `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(rq) ||
+                                  r.email?.toLowerCase().includes(rq) ||
+                                  (r.skills ?? []).some((s: string) => s.toLowerCase().includes(rq)),
+                                )
+                                : [...(pool.resources as any[])]
+                              ).sort((a, b) => {
+                                const aName = a.first_name || '';
+                                const bName = b.first_name || '';
+                                return aName.localeCompare(bName);
+                              });
+                              if (visibleResources.length === 0) {
+                                return (
+                                  <p className="px-3 py-2 text-xs text-muted-foreground italic">
+                                    No resources match &ldquo;{groupResourceFilter}&rdquo;
+                                  </p>
+                                );
+                              }
+                              return visibleResources.map((r) => {
+                                const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
+                                const isDisabled = disabledResourceIds.has(r.id);
+                                const isToggling = togglingId === r.id;
+                                return (
+                                  <div
+                                    key={r.id}
+                                    onClick={() =>
+                                      !isToggling && !isProcessingPool && !isDisabled && handleToggleResource(r)
+                                    }
+                                    className={`flex items-center gap-2 px-3 py-2 transition-colors ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-accent/50'
+                                      } ${isAdded ? 'bg-primary/5' : ''
+                                      } ${isToggling || isProcessingPool || isDisabled ? 'pointer-events-none opacity-60' : ''}`}
+                                  >
                                     <input
                                       type="checkbox"
-                                      checked={allAdded}
-                                      ref={(el) => {
-                                        if (el) el.indeterminate = someAdded;
+                                      checked={isAdded}
+                                      disabled={isToggling || isProcessingPool || isDisabled}
+                                      onChange={() => { }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!isToggling && !isProcessingPool && !isDisabled)
+                                          handleToggleResource(r);
                                       }}
-                                      disabled={pool.resources.length === 0}
-                                      onChange={() => handleToggleAllInPool(pool)}
                                       className="h-3.5 w-3.5 rounded cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
-                                      title={
-                                        allAdded || someAdded
-                                          ? 'Uncheck all in group'
-                                          : 'Add all in group'
-                                      }
                                     />
-                                  )}
-                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                    <span className="text-xs font-semibold truncate">{pool.name}</span>
-                                    <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                                      ({(pool.resources as any[]).length})
-                                    </span>
-                                    {/*{addedInPool.length > 0 && (*/}
-                                    {/*  <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full flex-shrink-0">*/}
-                                    {/*    {addedInPool.length} added*/}
-                                    {/*  </span>*/}
-                                    {/*)}*/}
-                                  </div>
-                                </div>
-
-                                {/* Resources in this pool */}
-                                {pool.resources.length === 0 ? (
-                                  <p className="px-3 py-2 text-xs text-muted-foreground italic">
-                                    No resources in this group
-                                  </p>
-                                ) : (() => {
-                                  const rq = groupResourceFilter.trim().toLowerCase();
-                                  const visibleResources = (rq
-                                    ? (pool.resources as any[]).filter((r) =>
-                                        `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(rq) ||
-                                        r.email?.toLowerCase().includes(rq) ||
-                                        (r.skills ?? []).some((s: string) => s.toLowerCase().includes(rq)),
-                                      )
-                                    : [...(pool.resources as any[])]
-                                  ).sort((a, b) => {
-                                    const aName = a.first_name || '';
-                                    const bName = b.first_name || '';
-                                    return aName.localeCompare(bName);
-                                  });
-                                  if (visibleResources.length === 0) {
-                                    return (
-                                      <p className="px-3 py-2 text-xs text-muted-foreground italic">
-                                        No resources match &ldquo;{groupResourceFilter}&rdquo;
-                                      </p>
-                                    );
-                                  }
-                                  return visibleResources.map((r) => {
-                                    const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
-                                    const isDisabled = disabledResourceIds.has(r.id);
-                                    const isToggling = togglingId === r.id;
-                                    return (
-                                      <div
-                                        key={r.id}
-                                        onClick={() =>
-                                          !isToggling && !isProcessingPool && !isDisabled && handleToggleResource(r)
+                                    <Avatar className="h-7 w-7 flex-shrink-0">
+                                      <AvatarImage
+                                        src={
+                                          r.profile_pic
+                                            ? r.profile_pic.startsWith('http')
+                                              ? r.profile_pic
+                                              : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                                            : undefined
                                         }
-                                        className={`flex items-center gap-2 px-3 py-2 transition-colors ${
-                                          isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-accent/50'
-                                        } ${
-                                          isAdded ? 'bg-primary/5' : ''
-                                        } ${isToggling || isProcessingPool || isDisabled ? 'pointer-events-none opacity-60' : ''}`}
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={isAdded}
-                                          disabled={isToggling || isProcessingPool || isDisabled}
-                                          onChange={() => {}}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (!isToggling && !isProcessingPool && !isDisabled)
-                                              handleToggleResource(r);
-                                          }}
-                                          className="h-3.5 w-3.5 rounded cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
-                                        />
-                                        <Avatar className="h-7 w-7 flex-shrink-0">
-                                          <AvatarImage
-                                            src={
-                                              r.profile_pic
-                                                ? r.profile_pic.startsWith('http')
-                                                  ? r.profile_pic
-                                                  : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
-                                                : undefined
-                                            }
-                                            alt={`${r.first_name} ${r.last_name}`}
-                                          />
-                                          <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                            {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || '?'}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                         <SkillsHoverPopover skills={r.skills ?? []}>
-                                          <div className="space-y-0.5">
-                                            <p className="text-xs font-medium truncate">
-                                              {r.first_name} {r.last_name}
-                                            </p>
-                                            <p className="text-[11px] text-muted-foreground truncate">
-                                              {r.email}
-                                            </p>
-                                          </div>
-                                         </SkillsHoverPopover>
-                                        <div className="flex-shrink-0 w-4">
-                                          {isToggling && (
-                                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-primary" />
-                                          )}
-                                        </div>
+                                        alt={`${r.first_name} ${r.last_name}`}
+                                      />
+                                      <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                                        {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || '?'}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <SkillsHoverPopover skills={r.skills ?? []}>
+                                      <div className="space-y-0.5">
+                                        <p className="text-xs font-medium truncate">
+                                          {r.first_name} {r.last_name}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground truncate">
+                                          {r.email}
+                                        </p>
                                       </div>
-                                    );
-                                  });
-                                })()}
-                              </div>
-                            );
-                          })}
+                                    </SkillsHoverPopover>
+                                    <div className="flex-shrink-0 w-4">
+                                      {isToggling && (
+                                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-primary" />
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        );
+                      })}
                       {/* Footer hint when showing initial results */}
                       {!isSearchMode && (
                         <p className="px-3 py-2 text-center text-[11px] text-muted-foreground border-t border-gray-100 dark:border-gray-800">

@@ -35,7 +35,7 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
-import { deletePool, disable } from "@/services/resource-pool-service";
+import { deletePool, disable } from "@/services/resource-management/resource-pool-service";
 import DeleteModal from "@/components/DeleteModal";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { useRouter } from "next/navigation";
@@ -140,22 +140,22 @@ const ResourceGroupTableView: React.FC<TableViewProps> = ({
 
         return (
           <>
-          <div className="flex items-center gap-1.5">
-            <div>
-              <Avatar className="w-8 h-8 text-xs relative">
-                <AvatarFallback className="text-xs font-semibold bg-primary text-white">
-                  {((first?.charAt(0) || "") + (last?.charAt(0) || "")).toUpperCase() || "?"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">
-                {name}
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 truncate">
-                {email || "No email"}
-              </span>
-            </div>
+            <div className="flex items-center gap-1.5">
+              <div>
+                <Avatar className="w-8 h-8 text-xs relative">
+                  <AvatarFallback className="text-xs font-semibold bg-primary text-white">
+                    {((first?.charAt(0) || "") + (last?.charAt(0) || "")).toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-50 truncate">
+                  {name}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 truncate">
+                  {email || "No email"}
+                </span>
+              </div>
             </div>
           </>
         );
@@ -240,8 +240,8 @@ const ResourceGroupTableView: React.FC<TableViewProps> = ({
         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium">
           <span
             className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${row.original.isActive
-                ? "bg-green-500 dark:bg-green-400"
-                : "bg-red-400 dark:bg-red-500"
+              ? "bg-green-500 dark:bg-green-400"
+              : "bg-red-400 dark:bg-red-500"
               }`}
           />
           {row.original.isActive ? "Active" : "Inactive"}

@@ -7,7 +7,7 @@ import {
   getAuthUrl,
   disconnectProvider,
   syncMeetings,
-} from "@/services/meetings-integration.service";
+} from "@/services/common/meetings-integration.service";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,

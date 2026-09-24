@@ -1,7 +1,7 @@
 // /lib/axios.ts
 
-import { API_URL } from "@/services/API/api";
-import { safeParse } from "@/services/auth-service";
+import { API_URL } from "@/services/api";
+import { safeParse } from "@/services/auth/auth-service";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 const axiosInstance = axios.create({
@@ -44,6 +44,8 @@ const processQueue = (
 export const setAuthToken = (token: string | null) => {
   authToken = token;
 };
+
+export const getAuthToken = () => authToken;
 
 /**
  * This is the other side of the bridge.
@@ -211,3 +213,4 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+

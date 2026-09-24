@@ -4,7 +4,7 @@
  * than once per session.  A pending-promise map also deduplicates concurrent
  * in-flight requests (e.g. React StrictMode double-invocation).
  */
-import { loadResource } from '@/services/resource-service';
+import { loadResource } from '@/services/resource-management/resource-service';
 
 type CacheEntry = { key: string; data: any | null };
 

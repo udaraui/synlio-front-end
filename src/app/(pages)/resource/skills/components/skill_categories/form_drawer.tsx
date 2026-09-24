@@ -24,7 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createSkillCategory, updateSkillCategory } from "@/services/skill-services";
+import { createSkillCategory, updateSkillCategory } from "@/services/resource-management/skill-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { Loader2, X, Save } from "lucide-react";
 

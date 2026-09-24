@@ -30,8 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { getAllResourcesByCompanyOnly, getMyDirectReports } from '@/services/resource-service';
-import { approvePulseWeek, forwardPulseWeek, rejectPulseWeek, submitPulseWeek, searchPulseWeeks, getPulseWeekPulses, logTimeOnPulseRecord, syncPulseRecord } from '@/services/pulse.service';
+import { getAllResourcesByCompanyOnly, getMyDirectReports } from '@/services/resource-management/resource-service';
+import { approvePulseWeek, forwardPulseWeek, rejectPulseWeek, submitPulseWeek, searchPulseWeeks, getPulseWeekPulses, logTimeOnPulseRecord, syncPulseRecord } from '@/services/pulse/pulse.service';
 import { WorkLogPopover } from './WorkLogPopover';
 
 const TruncatedTooltip = ({ children, tooltipContent }: { children: React.ReactNode, tooltipContent?: React.ReactNode }) => {
@@ -723,7 +723,7 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
         const actorDisplay = isNotMe
             ? <span className={displayClass}>{actor_id}</span>
             : <span className={displayClass}>You</span>;
-            
+
         const formatName = (uName: string, uEmail?: string) => {
             if (uEmail && currentUserEmail && uEmail.toLowerCase() === currentUserEmail.toLowerCase()) {
                 return !isNotMe ? "yourself" : "you";
@@ -731,7 +731,7 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
             if (currentUserName && uName === currentUserName) {
                 return !isNotMe ? "yourself" : "you";
             }
-            
+
             return uName;
         };
 

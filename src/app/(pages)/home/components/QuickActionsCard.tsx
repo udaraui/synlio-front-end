@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowRight, ChevronDown, Info, LayoutDashboard, Loader2, Ticket } from "lucide-react";
-import { getUserConfig, FilterTemplate } from "@/services/user-config-service";
+import { getUserConfig, FilterTemplate } from "@/services/user-management/user-config-service";
 import { searchTaskSpaces } from "@/services/task-management/task-space.service";
 import { searchTicketSpaces } from "@/services/ticket-management/ticket-space.service";
 
@@ -21,30 +21,30 @@ import { searchTicketSpaces } from "@/services/ticket-management/ticket-space.se
 
 function getTaskTemplateTags(f: any): string[] {
   const tags: string[] = [];
-  if (f?.spaceId)                    tags.push("Space set");
-  if (f?.nameFilter)                 tags.push(`Name: "${f.nameFilter}"`);
-  if (f?.codeFilter)                 tags.push(`Code: "${f.codeFilter}"`);
-  if (f?.statusFilter?.length)       tags.push(`Status (${f.statusFilter.length})`);
-  if (f?.severityFilter?.length)     tags.push(`Severity (${f.severityFilter.length})`);
-  if (f?.assigneeFilter?.length)     tags.push(`Assignee (${f.assigneeFilter.length})`);
-  if (f?.coAssigneeFilter?.length)   tags.push(`Co-assignee (${f.coAssigneeFilter.length})`);
-  if (f?.dateRangeFrom)              tags.push("Date range");
-  if (f?.specialFilter)              tags.push("Special");
+  if (f?.spaceId) tags.push("Space set");
+  if (f?.nameFilter) tags.push(`Name: "${f.nameFilter}"`);
+  if (f?.codeFilter) tags.push(`Code: "${f.codeFilter}"`);
+  if (f?.statusFilter?.length) tags.push(`Status (${f.statusFilter.length})`);
+  if (f?.severityFilter?.length) tags.push(`Severity (${f.severityFilter.length})`);
+  if (f?.assigneeFilter?.length) tags.push(`Assignee (${f.assigneeFilter.length})`);
+  if (f?.coAssigneeFilter?.length) tags.push(`Co-assignee (${f.coAssigneeFilter.length})`);
+  if (f?.dateRangeFrom) tags.push("Date range");
+  if (f?.specialFilter) tags.push("Special");
   if (f?.sortOption && f.sortOption !== "createdAt-desc") tags.push("Custom sort");
   return tags;
 }
 
 function getTicketTemplateTags(f: any): string[] {
   const tags: string[] = [];
-  if (f?.selectedTicketSpaceFilter)  tags.push("Space set");
-  if (f?.nameFilter)                 tags.push(`Name: "${f.nameFilter}"`);
-  if (f?.codeFilter)                 tags.push(`Code: "${f.codeFilter}"`);
-  if (f?.statusFilter?.length)       tags.push(`Status (${f.statusFilter.length})`);
-  if (f?.severityFilter?.length)     tags.push(`Severity (${f.severityFilter.length})`);
-  if (f?.ticketTypeFilter?.length)   tags.push(`Type (${f.ticketTypeFilter.length})`);
-  if (f?.queueFilter?.length)        tags.push(`Queue (${f.queueFilter.length})`);
-  if (f?.assigneeFilter?.length)     tags.push(`Assignee (${f.assigneeFilter.length})`);
-  if (f?.participantFilter?.length)  tags.push(`Participants (${f.participantFilter.length})`);
+  if (f?.selectedTicketSpaceFilter) tags.push("Space set");
+  if (f?.nameFilter) tags.push(`Name: "${f.nameFilter}"`);
+  if (f?.codeFilter) tags.push(`Code: "${f.codeFilter}"`);
+  if (f?.statusFilter?.length) tags.push(`Status (${f.statusFilter.length})`);
+  if (f?.severityFilter?.length) tags.push(`Severity (${f.severityFilter.length})`);
+  if (f?.ticketTypeFilter?.length) tags.push(`Type (${f.ticketTypeFilter.length})`);
+  if (f?.queueFilter?.length) tags.push(`Queue (${f.queueFilter.length})`);
+  if (f?.assigneeFilter?.length) tags.push(`Assignee (${f.assigneeFilter.length})`);
+  if (f?.participantFilter?.length) tags.push(`Participants (${f.participantFilter.length})`);
   if (f?.sortOption && f.sortOption !== "createdAt-desc") tags.push("Custom sort");
   return tags;
 }
@@ -88,7 +88,7 @@ function QuickColumn<T>({
     if (defaultValue && selected === null) {
       setSelected(defaultValue);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultValue]);
 
   const handleOpenChange = (next: boolean) => {
@@ -217,11 +217,11 @@ interface QuickActionsCardProps {
 export default function QuickActionsCard({ canTasks = true, canTickets = true, initialTaskSpaces, initialTicketSpaces }: QuickActionsCardProps) {
   const { user } = useAuth();
 
-  const [boardsInfoOpen,      setBoardsInfoOpen]      = useState(false);
+  const [boardsInfoOpen, setBoardsInfoOpen] = useState(false);
   const [quickCreateInfoOpen, setQuickCreateInfoOpen] = useState(false);
-  const boardsOpenTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const boardsCloseTimer     = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const quickCreateOpenTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boardsOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boardsCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quickCreateOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const quickCreateCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const makeHoverHandlers = (
@@ -239,13 +239,13 @@ export default function QuickActionsCard({ canTasks = true, canTickets = true, i
     },
   });
 
-  const [taskTemplates,   setTaskTemplates]   = useState<FilterTemplate[]>([]);
+  const [taskTemplates, setTaskTemplates] = useState<FilterTemplate[]>([]);
   const [ticketTemplates, setTicketTemplates] = useState<FilterTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
 
-  const [taskSpaces,          setTaskSpaces]          = useState<any[]>(initialTaskSpaces ?? []);
-  const [ticketSpaces,        setTicketSpaces]         = useState<any[]>(initialTicketSpaces ?? []);
-  const [taskSpacesLoading,   setTaskSpacesLoading]   = useState(false);
+  const [taskSpaces, setTaskSpaces] = useState<any[]>(initialTaskSpaces ?? []);
+  const [ticketSpaces, setTicketSpaces] = useState<any[]>(initialTicketSpaces ?? []);
+  const [taskSpacesLoading, setTaskSpacesLoading] = useState(false);
   const [ticketSpacesLoading, setTicketSpacesLoading] = useState(false);
 
   // Header-level skeleton for Quick Create — mirrors templatesLoading for My Boards
@@ -253,8 +253,8 @@ export default function QuickActionsCard({ canTasks = true, canTickets = true, i
     (canTasks && initialTaskSpaces === undefined) || (canTickets && initialTicketSpaces === undefined)
   );
 
-  const templatesFetchedRef    = useRef(false);
-  const taskSpacesFetchedRef   = useRef(!!initialTaskSpaces);
+  const templatesFetchedRef = useRef(false);
+  const taskSpacesFetchedRef = useRef(!!initialTaskSpaces);
   const ticketSpacesFetchedRef = useRef(!!initialTicketSpaces);
 
   useEffect(() => {
@@ -277,10 +277,10 @@ export default function QuickActionsCard({ canTasks = true, canTickets = true, i
     templatesFetchedRef.current = true;
     getUserConfig(user.id)
       .then((config) => {
-        setTaskTemplates((config?.filterTemplates?.task   ?? []) as FilterTemplate[]);
+        setTaskTemplates((config?.filterTemplates?.task ?? []) as FilterTemplate[]);
         setTicketTemplates((config?.filterTemplates?.ticket ?? []) as FilterTemplate[]);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setTemplatesLoading(false));
   }, [user?.id]);
 
@@ -290,7 +290,7 @@ export default function QuickActionsCard({ canTasks = true, canTickets = true, i
     setTaskSpacesLoading(true);
     searchTaskSpaces({ first: 0, rows: 200, filters: [{ field: "userId", value: user.id, matchMode: "member" }] })
       .then((res) => setTaskSpaces(res?.data ?? []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setTaskSpacesLoading(false));
   };
 
@@ -300,22 +300,22 @@ export default function QuickActionsCard({ canTasks = true, canTickets = true, i
     setTicketSpacesLoading(true);
     searchTicketSpaces({ first: 0, rows: 200, filters: [{ field: "userId", value: user.id, matchMode: "member" }] })
       .then((res) => setTicketSpaces(res?.data ?? []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setTicketSpacesLoading(false));
   };
 
   const handleTaskBoard = (template: FilterTemplate) => {
-    try { sessionStorage.setItem("tmTaskPageFilters", JSON.stringify({ ...template.filters })); } catch {}
+    try { sessionStorage.setItem("tmTaskPageFilters", JSON.stringify({ ...template.filters })); } catch { }
     window.open(`/task-management/task?taskSpaceId=${template.filters.spaceId}`, "_blank");
   };
   const handleTicketBoard = (template: FilterTemplate) => {
-    try { sessionStorage.setItem("ticketPageFilters", JSON.stringify({ ...template.filters })); } catch {}
+    try { sessionStorage.setItem("ticketPageFilters", JSON.stringify({ ...template.filters })); } catch { }
     window.open(`/ticket-management/ticket?ticketSpaceId=${template.filters.selectedTicketSpaceFilter}`, "_blank");
   };
-  const handleTaskSpace   = (space: any) => window.open(`/task-management/task?taskSpaceId=${space.id}&fromSpace=1&autoCreate=1`, "_blank");
+  const handleTaskSpace = (space: any) => window.open(`/task-management/task?taskSpaceId=${space.id}&fromSpace=1&autoCreate=1`, "_blank");
   const handleTicketSpace = (space: any) => window.open(`/ticket-management/ticket/form?ticketSpaceId=${space.id}`, "_blank");
 
-  const colCount  = (canTasks ? 2 : 0) + (canTickets ? 2 : 0);
+  const colCount = (canTasks ? 2 : 0) + (canTickets ? 2 : 0);
   const gridClass = colCount >= 4 ? "grid-cols-2 lg:grid-cols-4" : colCount === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1";
   const divideClass = colCount >= 4 ? "divide-y divide-border lg:divide-y-0 lg:divide-x" : colCount === 2 ? "divide-y sm:divide-y-0 sm:divide-x divide-border" : "";
 
@@ -325,7 +325,7 @@ export default function QuickActionsCard({ canTasks = true, canTickets = true, i
       {/* ── Section titles row ── */}
       {canTasks && canTickets && (() => {
         const boards = makeHoverHandlers(setBoardsInfoOpen, boardsOpenTimer, boardsCloseTimer);
-        const qc     = makeHoverHandlers(setQuickCreateInfoOpen, quickCreateOpenTimer, quickCreateCloseTimer);
+        const qc = makeHoverHandlers(setQuickCreateInfoOpen, quickCreateOpenTimer, quickCreateCloseTimer);
         return (
           <>
             <div className="col-span-1 border-b lg:col-span-2 px-3 py-2 flex items-center gap-1.5">

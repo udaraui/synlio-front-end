@@ -16,9 +16,9 @@ import {
   createInternalMeeting,
   updateInternalMeeting,
   type Meeting,
-} from "@/services/meetings-integration.service";
-import { syncPulseRecord } from "@/services/pulse.service";
-import { getCompanyUsers } from "@/services/user-service";
+} from "@/services/common/meetings-integration.service";
+import { syncPulseRecord } from "@/services/pulse/pulse.service";
+import { getCompanyUsers } from "@/services/user-management/user-service";
 import { toast } from "sonner";
 import { format, addHours, startOfHour } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -97,15 +97,15 @@ const TimePickerInput = ({
           would fight its toggle — focus would open the popover and the toggle
           would immediately close it again on the same click. */}
       <PopoverTrigger asChild>
-         <div className={cn("relative", disabled && "pointer-events-none")}>
-            <Input
-              value={displayValue}
-              readOnly
-              disabled={disabled}
-              className="w-[100px] h-9 text-sm px-2 cursor-pointer shadow-none hover:bg-accent hover:text-accent-foreground"
-              placeholder={use24Hour ? "HH:mm" : "hh:mm AM"}
-            />
-         </div>
+        <div className={cn("relative", disabled && "pointer-events-none")}>
+          <Input
+            value={displayValue}
+            readOnly
+            disabled={disabled}
+            className="w-[100px] h-9 text-sm px-2 cursor-pointer shadow-none hover:bg-accent hover:text-accent-foreground"
+            placeholder={use24Hour ? "HH:mm" : "hh:mm AM"}
+          />
+        </div>
       </PopoverTrigger>
       <PopoverContent
         className="w-[100px] p-0"
@@ -226,12 +226,12 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
         const mapped: CompanyUser[] = (users ?? [])
           .filter((u: any) => u.id !== user?.id)
           .map((u: any) => ({
-          id: u.id,
-          first_name: u.first_name ?? "",
-          last_name: u.last_name ?? "",
-          email: u.email ?? "",
-          profile_picture: u.profile_picture ?? "",
-        }));
+            id: u.id,
+            first_name: u.first_name ?? "",
+            last_name: u.last_name ?? "",
+            email: u.email ?? "",
+            profile_picture: u.profile_picture ?? "",
+          }));
         setCompanyUsers(mapped);
       })
       .catch(() => toast.error("Failed to load company users"))
@@ -300,7 +300,7 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
     e.preventDefault();
     if (!title.trim()) { toast.error("Please enter a meeting title"); return; }
     if (!startDate || !startTimeStr) { toast.error("Please enter a start date and time"); return; }
-    
+
     // Construct ISO strings
     const startDateTime = new Date(startDate);
     const [sH, sM] = startTimeStr.split(':').map(Number);
@@ -356,7 +356,7 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
           allocatedHours: response.durationMinutes ? (response.durationMinutes / 60) : 0
         }).catch(console.error);
       }
-      
+
       toast.success("Internal meeting scheduled");
       resetForm();
       onOpenChange(false);
@@ -367,9 +367,9 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
       const apiMessage = err?.response?.data?.message;
       toast.error(
         (typeof apiMessage === "string" && apiMessage) ||
-          (isEditMode
-            ? "Failed to update the meeting. Please try again"
-            : "Failed to schedule the meeting. Please try again."),
+        (isEditMode
+          ? "Failed to update the meeting. Please try again"
+          : "Failed to schedule the meeting. Please try again."),
       );
     } finally {
       setSubmitting(false);
@@ -522,7 +522,7 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
                     </AvatarFallback>
                   </Avatar>
                 </button>
-                
+
                 {/* Selected Attendees Avatars */}
                 {Array.from(selectedIds).map((id, i) => {
                   const u = companyUsers.find(cu => cu.id === id);
@@ -543,10 +543,10 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
                     </div>
                   );
                 })}
-                
+
                 <PopoverContent className="p-0 w-[250px]" align="start">
                   <Command shouldFilter={false}>
-                    <CommandInput 
+                    <CommandInput
                       placeholder="Search colleagues..."
                       value={search}
                       onValueChange={setSearch}
@@ -568,7 +568,7 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
                                 onSelect={() => toggleUser(u.id)}
                                 className="flex items-center gap-2 cursor-pointer"
                               >
-                                <Checkbox 
+                                <Checkbox
                                   checked={selectedIds.has(u.id)}
                                   onCheckedChange={() => toggleUser(u.id)}
                                   className="shrink-0 pointer-events-none"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Video, AlertTriangle, Clock, MousePointerClick } from 'lucide-react';
-import { MeetingStats } from '@/services/meetings-integration.service';
+import { MeetingStats } from '@/services/common/meetings-integration.service';
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 

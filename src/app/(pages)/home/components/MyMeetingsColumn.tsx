@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-import { Meeting, syncMeetings, getConnectionStatus } from "@/services/meetings-integration.service";
+import { Meeting, syncMeetings, getConnectionStatus } from "@/services/common/meetings-integration.service";
 import { NewInternalMeetingDialog } from "../../meetings/components/NewInternalMeetingDialog";
 
 const providerInfo: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -175,47 +175,47 @@ export default function MyMeetingsColumn({ dates, meetingData, loading, error, o
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-2 pt-2 flex flex-col">
         <div className="flex flex-col gap-2">
           {(!loading && !error && filteredData.length > 0) && filteredData.map((meeting) => {
-              const time = meeting.effectiveStartTime ? formatMeetingTime(meeting.effectiveStartTime) : null;
-              const provider = providerInfo[meeting.provider] || { label: meeting.provider, color: '#888', icon: Video };
-              const Icon = provider.icon;
-              return (
-                <a
-                  key={meeting.id}
-                  href=""
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "group flex flex-col gap-1 px-3 py-2 rounded-md border transition-colors bg-muted/30",
-                    time?.danger
-                      ? "hover:bg-red-100 dark:hover:bg-red-500/30"
-                      : "hover:bg-gray-100 dark:hover:bg-muted"
+            const time = meeting.effectiveStartTime ? formatMeetingTime(meeting.effectiveStartTime) : null;
+            const provider = providerInfo[meeting.provider] || { label: meeting.provider, color: '#888', icon: Video };
+            const Icon = provider.icon;
+            return (
+              <a
+                key={meeting.id}
+                href=""
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "group flex flex-col gap-1 px-3 py-2 rounded-md border transition-colors bg-muted/30",
+                  time?.danger
+                    ? "hover:bg-red-100 dark:hover:bg-red-500/30"
+                    : "hover:bg-gray-100 dark:hover:bg-muted"
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <Icon className="h-4 w-4 flex-shrink-0" style={{ color: provider.color }} />
+                    <span className="text-sm font-medium line-clamp-1 leading-snug cursor-default">
+                      {meeting.title}
+                    </span>
+                  </div>
+                  <ProviderBadge provider={meeting.provider} />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {time && (
+                    <span className={cn("font-semibold", time.danger && "text-red-500 dark:text-red-400")}>
+                      {time.label}
+                    </span>
                   )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: provider.color }} />
-                      <span className="text-sm font-medium line-clamp-1 leading-snug cursor-default">
-                        {meeting.title}
-                      </span>
-                    </div>
-                    <ProviderBadge provider={meeting.provider} />
+                  <span>·</span>
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>{meeting.attendees?.length || 0}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {time && (
-                      <span className={cn("font-semibold", time.danger && "text-red-500 dark:text-red-400")}>
-                        {time.label}
-                      </span>
-                    )}
-                    <span>·</span>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      <span>{meeting.attendees?.length || 0}</span>
-                    </div>
-                    <ArrowUpRight className="h-3.5 w-3.s5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </div>
-                </a>
-              );
-            })}
+                  <ArrowUpRight className="h-3.5 w-3.s5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </div>
+              </a>
+            );
+          })}
         </div>
         {loading && (
           <div className="flex flex-col gap-2 p-3">

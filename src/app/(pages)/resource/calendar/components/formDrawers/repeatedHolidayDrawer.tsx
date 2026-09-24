@@ -40,7 +40,7 @@ import { ChevronDown, Loader2, Repeat, Save } from "lucide-react";
 import {
   createRepeatedHoliday,
   getAllCalendarDays,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 
 interface RepeatedHolidayDrawerProps {

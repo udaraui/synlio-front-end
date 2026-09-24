@@ -1,5 +1,5 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 
 export interface ProjectAnalyticsQuery {
   companyId: number;
@@ -28,3 +28,4 @@ export const getProjectTaskDetail = async (query: ProjectAnalyticsQuery): Promis
   );
   return response.data;
 };
+

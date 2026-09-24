@@ -1,6 +1,6 @@
 "use client";
 
-import { getAllCalendarDays } from "@/services/calendar-services";
+import { getAllCalendarDays } from "@/services/resource-management/calendar-services";
 import React, { useEffect, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -509,17 +509,17 @@ const View: React.FC<ViewProps> = ({ calendarId, selectedYear }) => {
                                             status.label === "Working Day"
                                               ? "success"
                                               : status.label === "Holiday"
-                                              ? "destructive"
-                                              : "outline"
+                                                ? "destructive"
+                                                : "outline"
                                           }
                                         >
                                           {status.label === "Working Day"
                                             ? "Working Day"
                                             : status.label === "Holiday"
-                                            ? "Holiday"
-                                            : status.label === "Weekend"
-                                            ? "Weekend"
-                                            : "Regular Working Day"}
+                                              ? "Holiday"
+                                              : status.label === "Weekend"
+                                                ? "Weekend"
+                                                : "Regular Working Day"}
                                         </Badge>
                                       </div>
                                       <p className="text-muted-foreground text-xs">
@@ -646,17 +646,17 @@ const View: React.FC<ViewProps> = ({ calendarId, selectedYear }) => {
                                             status.label === "Working Day"
                                               ? "success"
                                               : status.label === "Holiday"
-                                              ? "destructive"
-                                              : "outline"
+                                                ? "destructive"
+                                                : "outline"
                                           }
                                         >
                                           {status.label === "Working Day"
                                             ? "Working Day"
                                             : status.label === "Holiday"
-                                            ? "Holiday"
-                                            : status.label === "Weekend"
-                                            ? "Weekend"
-                                            : "Regular Working Day"}
+                                              ? "Holiday"
+                                              : status.label === "Weekend"
+                                                ? "Weekend"
+                                                : "Regular Working Day"}
                                         </Badge>
                                       </div>
                                       <p className="text-muted-foreground text-xs">

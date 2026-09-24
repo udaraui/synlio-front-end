@@ -1,5 +1,5 @@
 import axiosInstance from '@/lib/interceptors/axiosInstance';
-import { API_ENDPOINTS } from '../API/api';
+import { API_ENDPOINTS } from '../api';
 
 export interface ResourceAnalyticsQuery {
   companyId: number;
@@ -22,4 +22,5 @@ export const getResourceSkillGap = async (query: ResourceAnalyticsQuery): Promis
   );
   return response.data;
 };
+
 

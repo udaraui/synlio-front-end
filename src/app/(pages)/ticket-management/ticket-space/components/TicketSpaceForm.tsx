@@ -127,7 +127,7 @@ export function TicketSpaceForm({
           const { getTicketSpaceById } = await import('@/services/ticket-management/ticket-space.service');
           const response = await getTicketSpaceById(id);
           const ticketSpace = response.data;
-          
+
           // Populate form with existing data
           form.reset({
             name: ticketSpace.name,
@@ -155,7 +155,7 @@ export function TicketSpaceForm({
 
     setIsDivisionLoading(true);
     try {
-      const { getAllDivisionsByCompanyId } = await import('@/services/division-services');
+      const { getAllDivisionsByCompanyId } = await import('@/services/company-management/division-services');
       const response = await getAllDivisionsByCompanyId(companyId);
       const divisionsData = response.data || [];
 
@@ -188,7 +188,7 @@ export function TicketSpaceForm({
     setIsPrefixChecking(true);
     try {
       const { checkPrefixExists: checkPrefix } = await import('@/services/ticket-management/ticket-space.service');
-      
+
       let currentPrefix = prefix.toUpperCase();
       let response = await checkPrefix(activeCompanyId, currentPrefix);
 
@@ -576,8 +576,8 @@ export function TicketSpaceForm({
                   {isSubmitting
                     ? 'Saving...'
                     : type === 'create'
-                    ? 'Create'
-                    : 'Update'}
+                      ? 'Create'
+                      : 'Update'}
                 </Button>
               </>
             )}

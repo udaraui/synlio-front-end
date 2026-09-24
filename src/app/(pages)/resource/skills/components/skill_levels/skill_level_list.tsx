@@ -3,7 +3,7 @@ import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { Skill_level } from "@/interfaces/skill";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { loadSkill_level, deleteSkillLevel, disableSkillLevel } from "@/services/skill-services";
+import { loadSkill_level, deleteSkillLevel, disableSkillLevel } from "@/services/resource-management/skill-services";
 import {
   ArrowDown,
   ArrowUp,
@@ -101,13 +101,13 @@ const Skill_level_list: React.FC<Skill_level_listProps> = ({ skillCategoryId }) 
         filters,
         ...(sortOption
           ? {
-              multiSorts: [{
-                field: sortOption.startsWith("name") ? "name"
-                  : sortOption.startsWith("updatedAt") ? "updatedAt"
+            multiSorts: [{
+              field: sortOption.startsWith("name") ? "name"
+                : sortOption.startsWith("updatedAt") ? "updatedAt"
                   : "createdAt",
-                order: sortOption.endsWith("-desc") ? "-1" : "1",
-              }],
-            }
+              order: sortOption.endsWith("-desc") ? "-1" : "1",
+            }],
+          }
           : {}),
       };
 
@@ -225,119 +225,117 @@ const Skill_level_list: React.FC<Skill_level_listProps> = ({ skillCategoryId }) 
             </p>
           </div>
         ) : (
-        <div className="space-y-1.5">
-          {currentSkill_levels.map((sl) => (
-            <div
-              key={sl.id}
-              className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-2.5 bg-white dark:bg-gray-800 hover:bg-muted/30 transition-colors"
-            >
-              {/* Info */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{sl.name}</p>
-                  {/* Stars */}
-                  <div className="flex items-center gap-0.5 mt-0.5">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-3 w-3 ${
-                          i < sl.star_count
-                            ? "fill-current text-yellow-500"
-                            : "text-gray-300 dark:text-gray-600"
-                        }`}
-                      />
-                    ))}
+          <div className="space-y-1.5">
+            {currentSkill_levels.map((sl) => (
+              <div
+                key={sl.id}
+                className="flex items-center justify-between gap-3 border border-border/60 rounded-lg px-3 py-2.5 bg-white dark:bg-gray-800 hover:bg-muted/30 transition-colors"
+              >
+                {/* Info */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{sl.name}</p>
+                    {/* Stars */}
+                    <div className="flex items-center gap-0.5 mt-0.5">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-3 w-3 ${i < sl.star_count
+                              ? "fill-current text-yellow-500"
+                              : "text-gray-300 dark:text-gray-600"
+                            }`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-foreground/70 flex-shrink-0">
-                  <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                    sl.isActive ? "bg-green-500 dark:bg-green-400" : "bg-red-400 dark:bg-red-500"
-                  }`} />
-                  {sl.isActive ? "Active" : "Inactive"}
-                </div>
-                {/* <Info_button
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-foreground/70 flex-shrink-0">
+                    <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${sl.isActive ? "bg-green-500 dark:bg-green-400" : "bg-red-400 dark:bg-red-500"
+                      }`} />
+                    {sl.isActive ? "Active" : "Inactive"}
+                  </div>
+                  {/* <Info_button
                   id={sl.id}
                   createdBy={sl.createdBy || ""}
                   createdAt={sl.createdAt || ""}
                   updatedBy={sl.updatedBy || ""}
                   updatedAt={sl.updatedAt || ""}
                 /> */}
-              </div>
+                </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center h-7 cursor-pointer">
-                        <Switch
-                          checked={sl.isActive}
-                          onCheckedChange={async () => {
-                            if (!canEditSkill) {
-                              toast.error("Not authorized to change skill level status");
-                              return;
-                            }
-                            try {
-                              await disableSkillLevel(sl.id);
-                              fetchSkill_levels();
-                              toast.success(sl.isActive ? "Skill level inactivated" : "Skill level activated");
-                            } catch {
-                              toast.error("Failed to update skill level status");
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center h-7 cursor-pointer">
+                          <Switch
+                            checked={sl.isActive}
+                            onCheckedChange={async () => {
+                              if (!canEditSkill) {
+                                toast.error("Not authorized to change skill level status");
+                                return;
+                              }
+                              try {
+                                await disableSkillLevel(sl.id);
+                                fetchSkill_levels();
+                                toast.success(sl.isActive ? "Skill level inactivated" : "Skill level activated");
+                              } catch {
+                                toast.error("Failed to update skill level status");
+                              }
+                            }}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {sl.isActive ? "Deactivate Skill Level" : "Activate Skill Level"}
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 hover:bg-muted"
+                          onClick={() => {
+                            if (canEditSkill) {
+                              onSkillEditClick(sl);
+                            } else {
+                              toast.error("Not authorized to edit skill levels");
                             }
                           }}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      {sl.isActive ? "Deactivate Skill Level" : "Activate Skill Level"}
-                    </TooltipContent>
-                  </Tooltip>
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Edit Skill Level</TooltipContent>
+                    </Tooltip>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 hover:bg-muted"
-                        onClick={() => {
-                          if (canEditSkill) {
-                            onSkillEditClick(sl);
-                          } else {
-                            toast.error("Not authorized to edit skill levels");
-                          }
-                        }}
-                      >
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Edit Skill Level</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => {
-                          if (canDeleteSkill_level) {
-                            setDeletingSkill_level(sl.id);
-                            setIsDeletingSkill_level(true);
-                          } else {
-                            toast.error("Not authorized to delete skill levels");
-                          }
-                        }}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Delete Skill Level</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => {
+                            if (canDeleteSkill_level) {
+                              setDeletingSkill_level(sl.id);
+                              setIsDeletingSkill_level(true);
+                            } else {
+                              toast.error("Not authorized to delete skill levels");
+                            }
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Delete Skill Level</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
       </div>
 

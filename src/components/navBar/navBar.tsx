@@ -10,7 +10,7 @@ import { NAVBAR_HEIGHT, SIDEBAR_WIDTH } from "@/lib/constants";
 import SettingItem from "./setting-item";
 import { User } from "@/interfaces/user";
 import { EnhancedBreadcrumb } from '@/components/common/EnhancedBreadcrumb';
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 import { ArrowLeft } from "lucide-react";
 
 function NavBar() {
@@ -107,7 +107,7 @@ function NavBar() {
             )}
           </div>
           <div className="shrink-0">
-          <SettingItem />
+            <SettingItem />
           </div>
         </div>
       </div>

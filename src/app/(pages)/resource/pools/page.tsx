@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { useViewPreference } from "@/hooks/use-view-preference";
 import { useAuth } from "@/contexts/auth.context";
-import { loadResourcePools } from "@/services/resource-pool-service";
+import { loadResourcePools } from "@/services/resource-management/resource-pool-service";
 import GridView from "./components/gridView";
 import ResourcePoolMultiStepForm from "./components/form";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
@@ -69,9 +69,9 @@ function Page() {
   const currentResources = useServerPagination
     ? resourcePool
     : resourcePool.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage,
-      );
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    );
 
   // Set initial breadcrumbs
   useEffect(() => {
@@ -85,7 +85,7 @@ function Page() {
   }, [setBreadcrumbs]);
 
   const fetchResources = async () => {
-   let activeCompanyId = null;
+    let activeCompanyId = null;
     try {
       const activeCompanyStr = localStorage.getItem("active_company");
       if (activeCompanyStr) {
@@ -101,30 +101,30 @@ function Page() {
       const filters = [
         ...(activeCompanyId
           ? [
-              {
-                field: "company_id",
-                value: activeCompanyId,
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: "company_id",
+              value: activeCompanyId,
+              matchMode: "equals",
+            },
+          ]
           : []),
         ...(debouncedResourcePoolTerm
           ? [
-              {
-                field: "name",
-                value: debouncedResourcePoolTerm,
-                matchMode: "contains",
-              },
-            ]
+            {
+              field: "name",
+              value: debouncedResourcePoolTerm,
+              matchMode: "contains",
+            },
+          ]
           : []),
         ...(debouncedResourceStatusTerm && debouncedResourceStatusTerm !== "all"
           ? [
-              {
-                field: "isActive",
-                value: debouncedResourceStatusTerm,
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: "isActive",
+              value: debouncedResourceStatusTerm,
+              matchMode: "equals",
+            },
+          ]
           : []),
       ];
 
@@ -251,34 +251,34 @@ function Page() {
                 />
               </div>
               <div className="relative w-40">
-              <Select
-                value={debouncedResourceStatusTerm}
-                onValueChange={(value) => {
-                  setDebouncedResourceStatusTerm(value);
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 py-1 px-2.5 text-xs border border-border shadow-none flex gap-1">
-                  <SelectValue placeholder="Status" className="flex-1 text-left truncate" />
-                  {debouncedResourceStatusTerm && debouncedResourceStatusTerm !== "all" && (
-                    <div
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDebouncedResourceStatusTerm("");
-                        setCurrentPage(1);
-                      }}
-                      className="ml-auto hover:text-destructive cursor-pointer flex items-center justify-center shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </div>
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">Active</SelectItem>
-                  <SelectItem value="false">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select
+                  value={debouncedResourceStatusTerm}
+                  onValueChange={(value) => {
+                    setDebouncedResourceStatusTerm(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-7 py-1 px-2.5 text-xs border border-border shadow-none flex gap-1">
+                    <SelectValue placeholder="Status" className="flex-1 text-left truncate" />
+                    {debouncedResourceStatusTerm && debouncedResourceStatusTerm !== "all" && (
+                      <div
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDebouncedResourceStatusTerm("");
+                          setCurrentPage(1);
+                        }}
+                        className="ml-auto hover:text-destructive cursor-pointer flex items-center justify-center shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Active</SelectItem>
+                    <SelectItem value="false">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -334,17 +334,17 @@ function Page() {
                   onEditResourcePool={handleEditResourcePool}
                 />
               ) : */ (
-                <ResourceGroupTableView
-                  resourcePools={currentResources}
-                  isLoading={false}
-                  // onResourcePoolClick={(resourcePoolId) => {
-                  //   setSelectedResourcePool(resourcePoolId);
-                  //   setOpenViewMode(true);
-                  // }}
-                  onEditResourcePool={handleEditResourcePool}
-                  reloadPools={fetchResources}
-                />
-              )}
+                  <ResourceGroupTableView
+                    resourcePools={currentResources}
+                    isLoading={false}
+                    // onResourcePoolClick={(resourcePoolId) => {
+                    //   setSelectedResourcePool(resourcePoolId);
+                    //   setOpenViewMode(true);
+                    // }}
+                    onEditResourcePool={handleEditResourcePool}
+                    reloadPools={fetchResources}
+                  />
+                )}
             </div>
           )}
         </div>
@@ -378,50 +378,50 @@ function Page() {
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-1">
-              {[
-                {
-                  label: "«",
-                  onClick: () => setCurrentPage(1),
-                  disabled: currentPage === 1,
-                },
-                {
-                  label: "‹",
-                  onClick: () => setCurrentPage((p) => Math.max(1, p - 1)),
-                  disabled: currentPage === 1,
-                },
-                { label: null },
-                {
-                  label: "›",
-                  onClick: () =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1)),
-                  disabled: currentPage >= totalPages,
-                },
-                {
-                  label: "»",
-                  onClick: () => setCurrentPage(totalPages),
-                  disabled: currentPage >= totalPages,
-                },
-              ].map((item, i) =>
-                item.label === null ? (
-                  <span
-                    key={i}
-                    className="text-xs px-2 text-gray-600 dark:text-gray-400"
-                  >
-                    Page {currentPage} of {totalPages}
-                  </span>
-                ) : (
-                  <Button
-                    key={i}
-                    size="sm"
-                    variant="outline"
-                    className="h-7 w-7 p-0"
-                    disabled={item.disabled}
-                    onClick={item.onClick}
-                  >
-                    {item.label}
-                  </Button>
-                ),
-              )}
+                {[
+                  {
+                    label: "«",
+                    onClick: () => setCurrentPage(1),
+                    disabled: currentPage === 1,
+                  },
+                  {
+                    label: "‹",
+                    onClick: () => setCurrentPage((p) => Math.max(1, p - 1)),
+                    disabled: currentPage === 1,
+                  },
+                  { label: null },
+                  {
+                    label: "›",
+                    onClick: () =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1)),
+                    disabled: currentPage >= totalPages,
+                  },
+                  {
+                    label: "»",
+                    onClick: () => setCurrentPage(totalPages),
+                    disabled: currentPage >= totalPages,
+                  },
+                ].map((item, i) =>
+                  item.label === null ? (
+                    <span
+                      key={i}
+                      className="text-xs px-2 text-gray-600 dark:text-gray-400"
+                    >
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  ) : (
+                    <Button
+                      key={i}
+                      size="sm"
+                      variant="outline"
+                      className="h-7 w-7 p-0"
+                      disabled={item.disabled}
+                      onClick={item.onClick}
+                    >
+                      {item.label}
+                    </Button>
+                  ),
+                )}
               </div>
             </div>
           </div>

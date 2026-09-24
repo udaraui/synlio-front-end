@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import { passwordReset } from '@/services/user-service';
+import { passwordReset } from '@/services/user-management/user-service';
 
 // 1. Validation Schema (Unchanged)
 const passwordSchema = z
@@ -48,9 +48,9 @@ interface PasswordResetDialogProps {
 }
 
 export function PasswordResetDialog({
-                                      open,
-                                      onOpenChange,
-                                    }: PasswordResetDialogProps) {
+  open,
+  onOpenChange,
+}: PasswordResetDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
 

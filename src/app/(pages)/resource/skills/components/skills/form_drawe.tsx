@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { createSkill, updateSkill } from "@/services/skill-services";
+import { createSkill, updateSkill } from "@/services/resource-management/skill-services";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { BookOpen, Loader2, X } from "lucide-react";
 import { Skill } from "@/interfaces/skill";

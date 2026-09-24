@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import { format, add, getWeek, getQuarter } from 'date-fns';
-import { Meeting } from '@/services/meetings-integration.service';
+import { Meeting } from '@/services/common/meetings-integration.service';
 
 const providerInfo: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   teams: { label: 'Teams', color: '#6264A7', icon: Users },

@@ -37,19 +37,19 @@ import {
   Palette,
   CornerDownLeft,
 } from "lucide-react";
-import type { NoteItem } from "@/services/notes.service";
+import type { NoteItem } from "@/services/home/notes.service";
 import ShareNotePopover from "./ShareNotePopover";
 
 // ─── Sticky-note color palette ──────────────────────────────────────────────
 export const NOTE_COLORS = [
-  { id: "default", label: "Default",  bg: "",        border: "",        dot: "" },
-  { id: "yellow",  label: "Yellow",   bg: "#fef9c3", border: "#fde047", dot: "bg-yellow-300" },
-  { id: "green",   label: "Green",    bg: "#dcfce7", border: "#86efac", dot: "bg-green-300" },
-  { id: "blue",    label: "Blue",     bg: "#dbeafe", border: "#93c5fd", dot: "bg-blue-300" },
-  { id: "pink",    label: "Pink",     bg: "#fce7f3", border: "#f9a8d4", dot: "bg-pink-300" },
-  { id: "purple",  label: "Purple",   bg: "#f3e8ff", border: "#d8b4fe", dot: "bg-purple-300" },
-  { id: "orange",  label: "Orange",   bg: "#ffedd5", border: "#fdba74", dot: "bg-orange-300" },
-  { id: "red",     label: "Red",      bg: "#fee2e2", border: "#fca5a5", dot: "bg-red-300" },
+  { id: "default", label: "Default", bg: "", border: "", dot: "" },
+  { id: "yellow", label: "Yellow", bg: "#fef9c3", border: "#fde047", dot: "bg-yellow-300" },
+  { id: "green", label: "Green", bg: "#dcfce7", border: "#86efac", dot: "bg-green-300" },
+  { id: "blue", label: "Blue", bg: "#dbeafe", border: "#93c5fd", dot: "bg-blue-300" },
+  { id: "pink", label: "Pink", bg: "#fce7f3", border: "#f9a8d4", dot: "bg-pink-300" },
+  { id: "purple", label: "Purple", bg: "#f3e8ff", border: "#d8b4fe", dot: "bg-purple-300" },
+  { id: "orange", label: "Orange", bg: "#ffedd5", border: "#fdba74", dot: "bg-orange-300" },
+  { id: "red", label: "Red", bg: "#fee2e2", border: "#fca5a5", dot: "bg-red-300" },
 ] as const;
 
 export type NoteColorId = (typeof NOTE_COLORS)[number]["id"];
@@ -124,7 +124,7 @@ function NoteCardEditor({
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Ref so the keyboard handler always calls the latest save fn
-  const saveRef = React.useRef<() => void>(() => {});
+  const saveRef = React.useRef<() => void>(() => { });
 
   const editor = useEditor({
     extensions: [
@@ -347,16 +347,15 @@ function NoteCardEditor({
                         key={c.id}
                         title={c.label}
                         onClick={() => { onColorChange(c.id as NoteColorId); setPaletteOpen(false); }}
-                        className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none ${
-                          noteColor === c.id ? "ring-2 ring-offset-1 ring-foreground/40 scale-110" : ""
-                        } ${c.dot}`}
+                        className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none ${noteColor === c.id ? "ring-2 ring-offset-1 ring-foreground/40 scale-110" : ""
+                          } ${c.dot}`}
                         style={
                           c.bg
                             ? { backgroundColor: c.bg, borderColor: noteColor === c.id ? c.border : c.border }
                             : {
-                                background: "linear-gradient(135deg, #fff 50%, #e5e7eb 50%)",
-                                borderColor: noteColor === c.id ? "#6b7280" : "#d1d5db",
-                              }
+                              background: "linear-gradient(135deg, #fff 50%, #e5e7eb 50%)",
+                              borderColor: noteColor === c.id ? "#6b7280" : "#d1d5db",
+                            }
                         }
                         aria-label={c.label}
                       />
@@ -443,8 +442,8 @@ export default function NoteCard({
     ? { backgroundColor: colorCfg.bg, color: "#1a1a1a" }
     : {};
 
-  const cardClass = colorCfg.bg 
-    ? "transition-all" 
+  const cardClass = colorCfg.bg
+    ? "transition-all"
     : "transition-all bg-muted/30 hover:bg-gray-100 dark:hover:bg-muted/50";
 
   return (
@@ -508,7 +507,7 @@ export default function NoteCard({
           readOnly={readOnly}
           noteId={note.id}
           onSave={async (content) => { await onSaveEdit?.(content); }}
-          onCancel={() => {}}
+          onCancel={() => { }}
           onDelete={onDelete ? () => onDelete(note.id) : undefined}
           noteColor={noteColor}
           onColorChange={handleColorChange}

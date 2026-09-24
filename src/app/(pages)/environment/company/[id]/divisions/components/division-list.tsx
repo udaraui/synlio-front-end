@@ -41,7 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { deleteDivision, disableDivision } from '@/services/division-services';
+import { deleteDivision, disableDivision } from '@/services/company-management/division-services';
 import DeleteModal from '@/components/DeleteModal';
 import {
   Table,
@@ -307,8 +307,8 @@ const DivisionList: React.FC<DivisionListProps> = ({
                         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border text-xs font-medium text-foreground/70">
                           <span
                             className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${division.isActive
-                                ? 'bg-green-500 dark:bg-green-400'
-                                : 'bg-red-400 dark:bg-red-500'
+                              ? 'bg-green-500 dark:bg-green-400'
+                              : 'bg-red-400 dark:bg-red-500'
                               }`}
                           />
                           {division.isActive ? 'Active' : 'Inactive'}

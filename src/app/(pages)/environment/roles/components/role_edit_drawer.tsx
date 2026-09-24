@@ -20,7 +20,7 @@ import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateRole } from "@/services/role-services";
+import { updateRole } from "@/services/user-management/role-services";
 import { toast } from "sonner";
 import {
   Form,
@@ -87,7 +87,7 @@ export function RoleEditDrawer({
     if (isSystemUser && open) {
       const fetchCompanies = async () => {
         try {
-          const { getAllCompany } = await import("@/services/company-services");
+          const { getAllCompany } = await import("@/services/company-management/company-services");
           const result = await getAllCompany();
           setAllCompanies(result.data || []);
         } catch (error) {

@@ -20,7 +20,7 @@ import {
   getTaskAttachmentsByTask,
   deleteTaskAttachment,
   uploadTaskAttachment,
-} from '@/services/comment-service';
+} from '@/services/common/comment-service';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,9 +39,9 @@ interface TaskAttachmentsProps {
 }
 
 export function TaskAttachments({
-                                  taskId,
-                                  onAttachmentCountChange,
-                                }: TaskAttachmentsProps) {
+  taskId,
+  onAttachmentCountChange,
+}: TaskAttachmentsProps) {
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

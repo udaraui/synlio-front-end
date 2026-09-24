@@ -82,7 +82,7 @@ import {
 import {
   createOrUpdateUserConfig,
   getUserConfig,
-} from "@/services/user-config-service";
+} from "@/services/user-management/user-config-service";
 import { FilterTemplateButton } from "@/components/common/FilterTemplateButton";
 import CalendarRange from "@/components/common/CalendarRange";
 import {
@@ -1406,7 +1406,7 @@ function TicketPage() {
                     }),
                   );
                 })
-                .catch(() => {})
+                .catch(() => { })
                 .finally(() => setIsRelationsLoading(false));
             }
           }
@@ -3881,7 +3881,7 @@ function TicketPage() {
                       const prefs = savedPrefs ? JSON.parse(savedPrefs) : {};
                       prefs.ticketPageSize = newSize;
                       localStorage.setItem("user_view_preferences", JSON.stringify(prefs));
-                      createOrUpdateUserConfig(user.id, { viewPreference: prefs }).catch(() => {});
+                      createOrUpdateUserConfig(user.id, { viewPreference: prefs }).catch(() => { });
                     }
                   }}
                 >

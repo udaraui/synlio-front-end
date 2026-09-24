@@ -31,10 +31,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 // Services
-import { getAllDivisionsByCompanyId } from '@/services/division-services';
-import { findAllUsersByCompanyAndDivision } from '@/services/user-service';
-import { getAllResourceByCompany } from '@/services/resource-service';
-import { createResourcePool, editResourcePool, getById } from '@/services/resource-pool-service';
+import { getAllDivisionsByCompanyId } from '@/services/company-management/division-services';
+import { findAllUsersByCompanyAndDivision } from '@/services/user-management/user-service';
+import { getAllResourceByCompany } from '@/services/resource-management/resource-service';
+import { createResourcePool, editResourcePool, getById } from '@/services/resource-management/resource-pool-service';
 
 // Custom Components
 import ResourceSelector from '@/components/common/ResourceSelector';

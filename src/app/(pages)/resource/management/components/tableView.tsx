@@ -66,8 +66,8 @@ import {
   deleteResource,
   disableResource,
   quickUpdateResource,
-} from "@/services/resource-service";
-import { loadDivisions } from "@/services/division-services";
+} from "@/services/resource-management/resource-service";
+import { loadDivisions } from "@/services/company-management/division-services";
 import DeleteModal from "@/components/DeleteModal";
 import { ResourceTableSkeleton } from "./ResourceSkeletons";
 import ResponsiveBadgeRow from "@/components/common/ResponsiveBadgeRow";

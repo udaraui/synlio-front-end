@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import {CalendarDays, Folder, Loader2, Save, X} from 'lucide-react';
+import { CalendarDays, Folder, Loader2, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,8 +18,8 @@ import {
 } from './InlineEditableTaskComponents';
 import type { TaskCardConfigData } from './task-card.types';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { setMeetingActionState } from '@/services/meetings-integration.service';
-import { linkTaskToActivity } from '@/services/activity.service';
+import { setMeetingActionState } from '@/services/common/meetings-integration.service';
+import { linkTaskToActivity } from '@/services/pulse/activity.service';
 import { toast } from 'sonner';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -51,16 +51,16 @@ export default function InlineTaskCreateCard({
 }: InlineTaskCreateCardProps) {
   // ── form state ─────────────────────────────────────────────────────────────
   const [name, setName] = useState('');
-  const [statusId, setStatusId]         = useState<number | null>(configData.statuses?.[0]?.id ?? null);
-  const [severityId, setSeverityId]     = useState<number | null>(configData.severities?.[0]?.id ?? null);
-  const [assigneeId, setAssigneeId]     = useState<number | null>(null);
+  const [statusId, setStatusId] = useState<number | null>(configData.statuses?.[0]?.id ?? null);
+  const [severityId, setSeverityId] = useState<number | null>(configData.severities?.[0]?.id ?? null);
+  const [assigneeId, setAssigneeId] = useState<number | null>(null);
   const [assigneeSkill, setAssigneeSkill] = useState<string | null>(null);
   const [coAssigneeIds, setCoAssigneeIds] = useState<number[]>([]);
-  const [dateRange, setDateRange]       = useState<DateRange | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // ── meta ───────────────────────────────────────────────────────────────────
   const [hierarchyLevel, setHierarchyLevel] = useState<any>(null);
-  const [isSaving, setIsSaving]             = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -101,9 +101,9 @@ export default function InlineTaskCreateCard({
   })();
 
   // resolve objects from ids (used as prop values for the inline components)
-  const status      = (configData.statuses ?? []).find((s) => s.id === statusId)   ?? null;
-  const severity    = (configData.severities ?? []).find((s) => s.id === severityId) ?? null;
-  const assignee    = effectiveCardResources.find((r) => r.id === assigneeId)       ?? null;
+  const status = (configData.statuses ?? []).find((s) => s.id === statusId) ?? null;
+  const severity = (configData.severities ?? []).find((s) => s.id === severityId) ?? null;
+  const assignee = effectiveCardResources.find((r) => r.id === assigneeId) ?? null;
   const coAssignees = effectiveCardResources.filter((r) => coAssigneeIds.includes(r.id));
 
   // ── save ───────────────────────────────────────────────────────────────────
@@ -143,9 +143,9 @@ export default function InlineTaskCreateCard({
         payload.parentTask = parentTask;
       }
       if (dateRange?.from) payload.startDate = format(dateRange.from, 'yyyy-MM-dd');
-      if (dateRange?.to)   payload.dueDate   = format(dateRange.to,   'yyyy-MM-dd');
+      if (dateRange?.to) payload.dueDate = format(dateRange.to, 'yyyy-MM-dd');
       const savedTasks = await createTask(payload);
-      
+
       const newTask = savedTasks?.[0]; // inline create returns the list, or we assume it's created
       if (meetingId && newTask) {
         // Find the created task ID
@@ -176,14 +176,14 @@ export default function InlineTaskCreateCard({
   return (
     <div className={cn(
       "rounded-lg overflow-hidden transition-all",
-      hideBorders 
-        ? "bg-transparent border-none shadow-none" 
+      hideBorders
+        ? "bg-transparent border-none shadow-none"
         : "bg-white dark:bg-gray-800 border border-dashed border-primary/50 shadow-xs"
     )}>
 
       {/* ── Section 1: Icon + Code + Status ─────────────────────────── */}
       <div className={cn(
-        'flex items-center justify-between px-3 py-2', 
+        'flex items-center justify-between px-3 py-2',
         sectionCls,
         !hideBorders && "border-b border-dashed"
       )}>
@@ -256,7 +256,7 @@ export default function InlineTaskCreateCard({
 
       {/* ── Section 3: Severity + Date Range + Save/Cancel ──────────── */}
       <div className={cn(
-        'px-3 py-2 flex items-center justify-between gap-2', 
+        'px-3 py-2 flex items-center justify-between gap-2',
         sectionCls,
         !hideBorders && "border-t border-dashed"
       )}>

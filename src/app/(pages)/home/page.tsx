@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBreadcrumbsEffect } from "@/hooks/useBreadcrumbsEffect";
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 import { useMenuAccess } from "@/hooks/use-menu-access";
 import { useSidebar } from "@/components/ui/sidebar";
 import HeroGreeting from "./components/HeroGreeting";
@@ -11,9 +11,9 @@ import WeekCalendar, { DayCountsMap } from "./components/WeekCalendar";
 import NotesSection from "./components/notes/NotesSection";
 import TasksAndTicketsColumn from "./components/TasksAndTicketsColumn";
 import { DateRange } from "react-day-picker";
-import { getCalendarCounts } from "@/services/home-v2.service";
+import { getCalendarCounts } from "@/services/home/home.service";
 import { format } from "date-fns";
-import { getMeetings, Meeting } from "@/services/meetings-integration.service";
+import { getMeetings, Meeting } from "@/services/common/meetings-integration.service";
 
 export default function Page() {
   const router = useRouter();
@@ -26,8 +26,8 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [meetingsError, setMeetingsError] = useState(false);
 
-  const canTasks    = canAccess(["44"]);
-  const canTickets  = canAccess(["100"]);
+  const canTasks = canAccess(["44"]);
+  const canTickets = canAccess(["100"]);
   const canMeetings = true;
   const sb = !isMobile && sidebarOpen;
 
@@ -147,48 +147,48 @@ export default function Page() {
         <div className={outerGridClass}>
           {/* Left column: calendar card + task columns card stacked */}
           <div className={leftColClass}>
-          {/* ── 14-Day Calendar — its own card ── */}
-          <div className={calendarCardClass}>
-            <WeekCalendar
-              selectedDates={selectedDates}
-              onDatesSelect={setSelectedDates}
-              onRangeChange={handleCalendarRangeChange}
-              dayCountsMap={dayCountsMap}
-              loading={loading}
-              meetingsData={meetingsData}
-            />
+            {/* ── 14-Day Calendar — its own card ── */}
+            <div className={calendarCardClass}>
+              <WeekCalendar
+                selectedDates={selectedDates}
+                onDatesSelect={setSelectedDates}
+                onRangeChange={handleCalendarRangeChange}
+                dayCountsMap={dayCountsMap}
+                loading={loading}
+                meetingsData={meetingsData}
+              />
+            </div>
+
+            {/* ── Task / Ticket / Meeting columns — their own card ── */}
+            <div className={columnsCardClass}>
+              <div className={innerGridClass}>
+                {(canTasks || canTickets) && (
+                  <div className={`${colClass} col-span-2 border-r border-border`}>
+                    <TasksAndTicketsColumn
+                      dates={selectedDates}
+                      canFetchTasks={canTasks}
+                      canFetchTickets={canTickets}
+                      dateRange={dateRange}
+                    />
+                  </div>
+                )}
+                {canMeetings && (
+                  <div className={colClass}>
+                    <MyMeetingsColumn dates={selectedDates} meetingData={meetingsData} loading={loading} error={meetingsError} onSyncSuccess={fetchCounts} />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* ── Task / Ticket / Meeting columns — their own card ── */}
-          <div className={columnsCardClass}>
-            <div className={innerGridClass}>
-              {(canTasks || canTickets) && (
-                <div className={`${colClass} col-span-2 border-r border-border`}>
-                  <TasksAndTicketsColumn
-                    dates={selectedDates}
-                    canFetchTasks={canTasks}
-                    canFetchTickets={canTickets}
-                    dateRange={dateRange}
-                  />
-                </div>
-              )}
-              {canMeetings && (
-                <div className={colClass}>
-                  <MyMeetingsColumn dates={selectedDates} meetingData={meetingsData} loading={loading} error={meetingsError} onSyncSuccess={fetchCounts} />
-                </div>
-              )}
+          {/* Right column: Notes only */}
+          <div className={rightColClass}>
+            {/*<AIInsightsCard />*/}
+            <div className={`${notesPanelClass} flex-1`}>
+              <NotesSection />
             </div>
           </div>
         </div>
-
-        {/* Right column: Notes only */}
-        <div className={rightColClass}>
-          {/*<AIInsightsCard />*/}
-          <div className={`${notesPanelClass} flex-1`}>
-            <NotesSection />
-          </div>
-        </div>
-      </div>
       </div>
     </main>
   );

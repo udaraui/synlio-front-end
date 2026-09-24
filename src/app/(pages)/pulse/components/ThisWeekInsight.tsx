@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Activity } from 'lucide-react';
 
-import { MeetingStats } from '@/services/meetings-integration.service';
+import { MeetingStats } from '@/services/common/meetings-integration.service';
 
 interface ThisWeekInsightProps {
   synlioActivityData: any[];

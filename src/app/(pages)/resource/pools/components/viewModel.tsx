@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { getById } from '@/services/resource-pool-service';
+import { getById } from '@/services/resource-management/resource-pool-service';
 import ResourceCard from '@/components/common/ResourceCard';
 
 // --- Interfaces based on your Data ---
@@ -199,11 +199,10 @@ const ResourcePoolViewModal: React.FC<ResourcePoolModalProps> = ({ open, onClose
                         </h2>
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-foreground/70 flex-shrink-0">
                           <span
-                            className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                              data.isActive
+                            className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${data.isActive
                                 ? "bg-green-500 dark:bg-green-400"
                                 : "bg-red-400 dark:bg-red-500"
-                            }`}
+                              }`}
                           />
                           {data.isActive ? "Active" : "Inactive"}
                         </span>
@@ -251,8 +250,8 @@ const ResourcePoolViewModal: React.FC<ResourcePoolModalProps> = ({ open, onClose
                         <UserCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
                         <span className="text-gray-600 dark:text-gray-400">Owner:</span>
                         <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {data.pool_owner?.first_name} {data.pool_owner?.last_name}
-                         </span>
+                          {data.pool_owner?.first_name} {data.pool_owner?.last_name}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -292,11 +291,10 @@ const ResourcePoolViewModal: React.FC<ResourcePoolModalProps> = ({ open, onClose
                                 <p className="text-gray-500 font-medium">No resources in this pool</p>
                               </div>
                             ) : (
-                              <div className={`grid gap-4 ${
-                                isFullscreen
+                              <div className={`grid gap-4 ${isFullscreen
                                   ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                                   : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-                              }`}>
+                                }`}>
                                 {data.resources.map((resource, index) => (
                                   <ResourceCard
                                     key={resource.id}

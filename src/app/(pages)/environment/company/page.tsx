@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
-import { getCompanyById, load } from "@/services/company-services";
+import { getCompanyById, load } from "@/services/company-management/company-services";
 import { toast } from "sonner";
 import CompanyList from "./components/company-list";
 import CompanyCreateDrawer from "./components/company_create_drawer";
 import CompanyEditDrawer from "./components/company_edit_drawer";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 import { Company } from "@/interfaces/company";
 
 function Page() {

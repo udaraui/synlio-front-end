@@ -31,7 +31,7 @@ import {
   toggleTaskSpaceStatus,
 } from "@/services/task-management/task-space.service";
 import DeleteModal from "@/components/DeleteModal";
-import { safeParse } from "@/services/auth-service";
+import { safeParse } from "@/services/auth/auth-service";
 
 function Page() {
   const { user } = useAuth();
@@ -452,50 +452,50 @@ function Page() {
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-1">
-              {[
-                {
-                  label: "«",
-                  onClick: () => setCurrentPage(1),
-                  disabled: currentPage === 1,
-                },
-                {
-                  label: "‹",
-                  onClick: () => setCurrentPage((p) => Math.max(1, p - 1)),
-                  disabled: currentPage === 1,
-                },
-                { label: null },
-                {
-                  label: "›",
-                  onClick: () =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1)),
-                  disabled: currentPage >= totalPages,
-                },
-                {
-                  label: "»",
-                  onClick: () => setCurrentPage(totalPages),
-                  disabled: currentPage >= totalPages,
-                },
-              ].map((item, i) =>
-                item.label === null ? (
-                  <span
-                    key={i}
-                    className="text-xs px-2 text-gray-600 dark:text-gray-400"
-                  >
-                    Page {currentPage} of {totalPages}
-                  </span>
-                ) : (
-                  <Button
-                    key={i}
-                    size="sm"
-                    variant="outline"
-                    className="h-7 w-7 p-0"
-                    disabled={item.disabled}
-                    onClick={item.onClick}
-                  >
-                    {item.label}
-                  </Button>
-                ),
-              )}
+                {[
+                  {
+                    label: "«",
+                    onClick: () => setCurrentPage(1),
+                    disabled: currentPage === 1,
+                  },
+                  {
+                    label: "‹",
+                    onClick: () => setCurrentPage((p) => Math.max(1, p - 1)),
+                    disabled: currentPage === 1,
+                  },
+                  { label: null },
+                  {
+                    label: "›",
+                    onClick: () =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1)),
+                    disabled: currentPage >= totalPages,
+                  },
+                  {
+                    label: "»",
+                    onClick: () => setCurrentPage(totalPages),
+                    disabled: currentPage >= totalPages,
+                  },
+                ].map((item, i) =>
+                  item.label === null ? (
+                    <span
+                      key={i}
+                      className="text-xs px-2 text-gray-600 dark:text-gray-400"
+                    >
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  ) : (
+                    <Button
+                      key={i}
+                      size="sm"
+                      variant="outline"
+                      className="h-7 w-7 p-0"
+                      disabled={item.disabled}
+                      onClick={item.onClick}
+                    >
+                      {item.label}
+                    </Button>
+                  ),
+                )}
               </div>
             </div>
           </div>

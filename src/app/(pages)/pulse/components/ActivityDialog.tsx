@@ -12,8 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Activity, CalendarIcon } from "lucide-react";
-import { createActivity } from "@/services/activity.service";
-import { syncPulseRecord } from "@/services/pulse.service";
+import { createActivity } from "@/services/pulse/activity.service";
+import { syncPulseRecord } from "@/services/pulse/pulse.service";
 import { toast } from "sonner";
 import { format, startOfToday } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -203,13 +203,13 @@ export const ActivityDialog: React.FC<ActivityDialogProps> = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <CustomDatePicker 
-                    date={startDate} 
-                    setDate={(d) => { 
-                      setStartDate(d); 
+                  <CustomDatePicker
+                    date={startDate}
+                    setDate={(d) => {
+                      setStartDate(d);
                       if (d) setEndDate(d);
-                      setStartOpen(false); 
-                    }} 
+                      setStartOpen(false);
+                    }}
                   />
                 </PopoverContent>
               </Popover>
@@ -231,9 +231,9 @@ export const ActivityDialog: React.FC<ActivityDialogProps> = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <CustomDatePicker 
-                    date={endDate} 
-                    setDate={(d) => { setEndDate(d); setEndOpen(false); }} 
+                  <CustomDatePicker
+                    date={endDate}
+                    setDate={(d) => { setEndDate(d); setEndOpen(false); }}
                   />
                 </PopoverContent>
               </Popover>

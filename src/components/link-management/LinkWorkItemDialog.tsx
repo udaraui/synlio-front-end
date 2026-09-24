@@ -31,8 +31,8 @@ import { searchTicketSpaces } from '@/services/ticket-management/ticket-space.se
 import {
   createWorkItemLink,
   type WorkItemType,
-} from '@/services/link-management/work-item-link.service';
-import type { LinkType } from '@/services/link-management/link-type.service';
+} from '@/services/common/work-item-link.service';
+import type { LinkType } from '@/services/common/link-type.service';
 
 interface LinkWorkItemDialogProps {
   open: boolean;

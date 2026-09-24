@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   deleteHolidaysAndWorkingDays,
   loadCalendardates,
-} from "@/services/calendar-services";
+} from "@/services/resource-management/calendar-services";
 import {
   ChevronLeft,
   ChevronRight,
@@ -93,9 +93,9 @@ const CalendarDates: React.FC<CalendarDatesProps> = ({ calendar, type, isSystemU
   const currentHolidays = useServerPagination
     ? calendarDates
     : calendarDates.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage,
-      );
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    );
 
   useEffect(() => {
     const checkMobile = () => {
@@ -112,63 +112,63 @@ const CalendarDates: React.FC<CalendarDatesProps> = ({ calendar, type, isSystemU
       const filters = [
         ...(calendar.id
           ? [
-              {
-                field: "calendarId",
-                value: calendar.id,
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: "calendarId",
+              value: calendar.id,
+              matchMode: "equals",
+            },
+          ]
           : []),
         // Temporarily commented out to debug
         ...(type
           ? [
-              {
-                field:
-                  type === "holidays"
-                    ? "isHoliday"
-                    : type === "specialWorkingDay"
-                      ? "isSpecialWorkingDay"
-                      : "",
-                value: true,
-                matchMode: "equals",
-              },
-            ]
+            {
+              field:
+                type === "holidays"
+                  ? "isHoliday"
+                  : type === "specialWorkingDay"
+                    ? "isSpecialWorkingDay"
+                    : "",
+              value: true,
+              matchMode: "equals",
+            },
+          ]
           : []),
         ...(selectedYear
           ? [
-              {
-                field: "year",
-                value: selectedYear,
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: "year",
+              value: selectedYear,
+              matchMode: "equals",
+            },
+          ]
           : []),
         ...(selectedDate
           ? [
-              {
-                field: "date",
-                value: selectedDate.toLocaleDateString("en-CA"), // YYYY-MM-DD format
-                matchMode: "equals",
-              },
-            ]
+            {
+              field: "date",
+              value: selectedDate.toLocaleDateString("en-CA"), // YYYY-MM-DD format
+              matchMode: "equals",
+            },
+          ]
           : []),
         ...(dateRange?.from
           ? [
-              {
-                field: "date",
-                value: dateRange.from.toLocaleDateString("en-CA"),
-                matchMode: "dateAfter",
-              },
-            ]
+            {
+              field: "date",
+              value: dateRange.from.toLocaleDateString("en-CA"),
+              matchMode: "dateAfter",
+            },
+          ]
           : []),
         ...(dateRange?.to
           ? [
-              {
-                field: "date",
-                value: dateRange.to.toLocaleDateString("en-CA"),
-                matchMode: "dateBefore",
-              },
-            ]
+            {
+              field: "date",
+              value: dateRange.to.toLocaleDateString("en-CA"),
+              matchMode: "dateBefore",
+            },
+          ]
           : []),
       ];
 
@@ -521,25 +521,21 @@ const CalendarDates: React.FC<CalendarDatesProps> = ({ calendar, type, isSystemU
                   {
                     label:
                       type === "holidays"
-                        ? `Holiday - ${
-                            holiday.date
-                              ? new Date(holiday.date).toLocaleDateString()
-                              : "No Date"
-                          }`
-                        : `Special Working Day - ${
-                            holiday.date
-                              ? new Date(holiday.date).toLocaleDateString()
-                              : "No Date"
-                          }`,
+                        ? `Holiday - ${holiday.date
+                          ? new Date(holiday.date).toLocaleDateString()
+                          : "No Date"
+                        }`
+                        : `Special Working Day - ${holiday.date
+                          ? new Date(holiday.date).toLocaleDateString()
+                          : "No Date"
+                        }`,
                     isCurrentPage: true,
                   },
                 ]);
               }}
-              className={`w-full hover:shadow-md transition-all duration-200 group hover:scale-[1.001] border rounded-sm p-2 ${
-                holiday.id === selectedHoliday?.id ? "border-l-5 bg-muted" : ""
-              } cursor-pointer ${
-                isPastDate(holiday.date) ? "opacity-60" : ""
-              }`}
+              className={`w-full hover:shadow-md transition-all duration-200 group hover:scale-[1.001] border rounded-sm p-2 ${holiday.id === selectedHoliday?.id ? "border-l-5 bg-muted" : ""
+                } cursor-pointer ${isPastDate(holiday.date) ? "opacity-60" : ""
+                }`}
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 {/* Holiday Information */}
@@ -559,11 +555,10 @@ const CalendarDates: React.FC<CalendarDatesProps> = ({ calendar, type, isSystemU
                     <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                       <Badge
                         variant="outline"
-                        className={`text-xs h-6 whitespace-nowrap ${
-                          type === "holidays"
-                            ? "bg-red-100 text-red-700 border-red-300"
-                            : "bg-green-100 text-green-700 border-green-300"
-                        }`}
+                        className={`text-xs h-6 whitespace-nowrap ${type === "holidays"
+                          ? "bg-red-100 text-red-700 border-red-300"
+                          : "bg-green-100 text-green-700 border-green-300"
+                          }`}
                       >
                         {resolveDayState(holiday).baseLabel}
                       </Badge>

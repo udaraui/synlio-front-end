@@ -1792,173 +1792,173 @@ function SlaTabContent({
                         <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">RESOLUTION TIME</TableHead>
                         {showActionsColumn && (
                           <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right w-[100px]">
-                          ACTIONS
-                        </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {slas.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((sla: any) => {
-                      const severity = configuredSeverities.find((s: any) => s.id === sla.severityId);
-                      const inUseCount = severity?.ticketCount || severity?.taskCount || 0;
-                      const canDelete = canEdit && inUseCount === 0;
+                            ACTIONS
+                          </TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {slas.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((sla: any) => {
+                        const severity = configuredSeverities.find((s: any) => s.id === sla.severityId);
+                        const inUseCount = severity?.ticketCount || severity?.taskCount || 0;
+                        const canDelete = canEdit && inUseCount === 0;
 
-                      return (
-                        <TableRow key={sla.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
-                          {/* SLA Level */}
-                          <TableCell className="py-1.75 px-4">
-                            <div className="flex items-center gap-2">
-                              <Flag
-                                className="w-4 h-4 flex-shrink-0"
-                                style={{ color: severity?.color || '#gray' }}
-                                fill={severity?.color || '#gray'}
-                              />
-                              <span className="text-sm font-medium">{severity?.name || 'Unknown'}</span>
-                            </div>
-                          </TableCell>
+                        return (
+                          <TableRow key={sla.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
+                            {/* SLA Level */}
+                            <TableCell className="py-1.75 px-4">
+                              <div className="flex items-center gap-2">
+                                <Flag
+                                  className="w-4 h-4 flex-shrink-0"
+                                  style={{ color: severity?.color || '#gray' }}
+                                  fill={severity?.color || '#gray'}
+                                />
+                                <span className="text-sm font-medium">{severity?.name || 'Unknown'}</span>
+                              </div>
+                            </TableCell>
 
-                          {/* Response Time */}
-                          <TableCell className="text-sm py-1.75 px-4">
-                            {formatTime(sla.responseTime)}
-                          </TableCell>
+                            {/* Response Time */}
+                            <TableCell className="text-sm py-1.75 px-4">
+                              {formatTime(sla.responseTime)}
+                            </TableCell>
 
-                          {/* Resolution Time */}
-                          <TableCell className="text-sm py-1.75 px-4">
-                            {formatTime(sla.resolutionTime)}
-                          </TableCell>
+                            {/* Resolution Time */}
+                            <TableCell className="text-sm py-1.75 px-4">
+                              {formatTime(sla.resolutionTime)}
+                            </TableCell>
 
-                          {/* Actions */}
-                          {showActionsColumn && (
-                            <TableCell className="py-1.75 px-4 text-right">
-                              <div className="flex justify-end">
-                                <TooltipProvider delayDuration={0}>
-                                  {canDelete ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                                          onClick={() => handleDeleteSla(sla.id, severity?.name || 'Unknown')}
-                                        >
-                                          <Trash className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">Delete SLA Target</TooltipContent>
-                                    </Tooltip>
-                                  ) : (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span>
+                            {/* Actions */}
+                            {showActionsColumn && (
+                              <TableCell className="py-1.75 px-4 text-right">
+                                <div className="flex justify-end">
+                                  <TooltipProvider delayDuration={0}>
+                                    {canDelete ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
                                           <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="h-7 w-7 p-0 opacity-40 cursor-not-allowed"
-                                            disabled
+                                            className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={() => handleDeleteSla(sla.id, severity?.name || 'Unknown')}
                                           >
                                             <Trash className="h-3.5 w-3.5" />
                                           </Button>
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        Cannot delete because associated severity is already in use
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                </TooltipProvider>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">Delete SLA Target</TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-7 w-7 p-0 opacity-40 cursor-not-allowed"
+                                              disabled
+                                            >
+                                              <Trash className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                          Cannot delete because associated severity is already in use
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </TooltipProvider>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+
+                      {/* Add SLA Row */}
+                      {canEdit && getAvailableSeverities().length > 0 && (
+                        <TableRow className="">
+                          <TableCell className="py-1.75 px-4">
+                            <Select
+                              value={selectedSeverityId}
+                              onValueChange={setSelectedSeverityId}
+                              disabled={isAdding}
+                            >
+                              <SelectTrigger className="w-full max-w-[200px] h-9 text-sm border-input shadow-none focus:ring-2 focus:ring-ring disabled:opacity-50">
+                                {selectedSeverityId ? (
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{
+                                        backgroundColor: getAvailableSeverities().find(
+                                          (s: any) => s.id === parseInt(selectedSeverityId)
+                                        )?.color || '#gray',
+                                      }}
+                                    />
+                                    <span className="truncate">
+                                      {getAvailableSeverities().find(
+                                        (s: any) => s.id === parseInt(selectedSeverityId)
+                                      )?.name}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <SelectValue placeholder="SLA" />
+                                )}
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getAvailableSeverities().map((severity: any) => (
+                                  <SelectItem key={severity.id} value={String(severity.id)}>
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: severity.color }}
+                                      />
+                                      <span>{severity.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+
+                          <TableCell className="py-1.75 px-4">
+                            <input
+                              type="text"
+                              placeholder="e.g. 2 hours"
+                              value={responseTime}
+                              onChange={(e) => setResponseTime(e.target.value)}
+                              disabled={isAdding}
+                              className="w-full max-w-[150px] h-9 px-3 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                            />
+                          </TableCell>
+
+                          <TableCell className="py-1.75 px-4">
+                            <input
+                              type="text"
+                              placeholder="e.g. 12 hours"
+                              value={resolutionTime}
+                              onChange={(e) => setResolutionTime(e.target.value)}
+                              disabled={isAdding}
+                              className="w-full max-w-[150px] h-9 px-3 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                            />
+                          </TableCell>
+
+                          {showActionsColumn && (
+                            <TableCell className="py-1.75 px-4 text-right">
+                              <div className="flex justify-end">
+                                <Button
+                                  size="sm"
+                                  onClick={handleAddSla}
+                                  disabled={isAdding || !selectedSeverityId || !responseTime || !resolutionTime}
+                                  className="h-8 gap-1.5"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  {isAdding ? 'Adding' : 'Add'}
+                                </Button>
                               </div>
                             </TableCell>
                           )}
                         </TableRow>
-                      );
-                    })}
-
-                    {/* Add SLA Row */}
-                    {canEdit && getAvailableSeverities().length > 0 && (
-                      <TableRow className="">
-                        <TableCell className="py-1.75 px-4">
-                          <Select
-                            value={selectedSeverityId}
-                            onValueChange={setSelectedSeverityId}
-                            disabled={isAdding}
-                          >
-                            <SelectTrigger className="w-full max-w-[200px] h-9 text-sm border-input shadow-none focus:ring-2 focus:ring-ring disabled:opacity-50">
-                              {selectedSeverityId ? (
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{
-                                      backgroundColor: getAvailableSeverities().find(
-                                        (s: any) => s.id === parseInt(selectedSeverityId)
-                                      )?.color || '#gray',
-                                    }}
-                                  />
-                                  <span className="truncate">
-                                    {getAvailableSeverities().find(
-                                      (s: any) => s.id === parseInt(selectedSeverityId)
-                                    )?.name}
-                                  </span>
-                                </div>
-                              ) : (
-                                <SelectValue placeholder="SLA" />
-                              )}
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getAvailableSeverities().map((severity: any) => (
-                                <SelectItem key={severity.id} value={String(severity.id)}>
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-3 h-3 rounded-full"
-                                      style={{ backgroundColor: severity.color }}
-                                    />
-                                    <span>{severity.name}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-
-                        <TableCell className="py-1.75 px-4">
-                          <input
-                            type="text"
-                            placeholder="e.g. 2 hours"
-                            value={responseTime}
-                            onChange={(e) => setResponseTime(e.target.value)}
-                            disabled={isAdding}
-                            className="w-full max-w-[150px] h-9 px-3 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-                          />
-                        </TableCell>
-
-                        <TableCell className="py-1.75 px-4">
-                          <input
-                            type="text"
-                            placeholder="e.g. 12 hours"
-                            value={resolutionTime}
-                            onChange={(e) => setResolutionTime(e.target.value)}
-                            disabled={isAdding}
-                            className="w-full max-w-[150px] h-9 px-3 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-                          />
-                        </TableCell>
-
-                        {showActionsColumn && (
-                          <TableCell className="py-1.75 px-4 text-right">
-                            <div className="flex justify-end">
-                              <Button
-                                size="sm"
-                                onClick={handleAddSla}
-                                disabled={isAdding || !selectedSeverityId || !responseTime || !resolutionTime}
-                                className="h-8 gap-1.5"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                                {isAdding ? 'Adding' : 'Add'}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    )}
-                  </TableBody>
+                      )}
+                    </TableBody>
                   </Table>
                 </div>
                 {slas.length > itemsPerPage && (
@@ -2403,7 +2403,7 @@ function PermissionsTabContent({
   useEffect(() => {
     const loadAllUsers = async () => {
       try {
-        const { load } = await import('@/services/user-service');
+        const { load } = await import('@/services/user-management/user-service');
         const response = await load({
           first: 0,
           rows: 1000, // Load all users for email matching
@@ -2455,7 +2455,7 @@ function PermissionsTabContent({
       if (permissions.length === 0) return;
 
       try {
-        const { loadResource } = await import('@/services/resource-service');
+        const { loadResource } = await import('@/services/resource-management/resource-service');
 
         // Get emails from existing permissions
         const permissionEmails = permissions.map((p) =>
@@ -2672,157 +2672,157 @@ function PermissionsTabContent({
                     <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider w-[25%]">EMAIL</TableHead>
                     <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">QUEUES</TableHead>
                     <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right w-[100px]">ACTIONS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tempMembers.slice((tempMembersPage - 1) * membersPerPage, tempMembersPage * membersPerPage).map((member, index) => (
-                  <TableRow key={index} className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border ${member.error ? 'bg-destructive/5' : ''}`}>
-                    <TableCell className="py-1.75 px-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-7 w-7 flex-shrink-0">
-                          <AvatarImage
-                            src={member.resource.profile_pic ? (member.resource.profile_pic.startsWith('http') ? member.resource.profile_pic : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${member.resource.profile_pic}`) : undefined}
-                            alt={`${member.resource.first_name} ${member.resource.last_name}`}
-                          />
-                          <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                            {(member.resource.first_name?.[0] || '').toUpperCase()}{(member.resource.last_name?.[0] || '').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <span className="text-sm font-medium truncate block">
-                            {member.resource.first_name} {member.resource.last_name}
-                          </span>
-                          {member.error && (
-                            <p className="text-[10px] text-destructive mt-0.5">{member.error}</p>
-                          )}
-                          <p className="text-[10px] text-muted-foreground truncate md:hidden">
-                            {member.resource.email}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-1.75 px-4 text-sm">
-                      {member.resource.email}
-                    </TableCell>
-                    <TableCell className="py-1.75 px-4">
-                      {!member.error ? (
-                        <div className="flex flex-wrap gap-1 items-center">
-                          {member.selectedQueues.length === 0 && (
-                            <span className="text-xs text-muted-foreground italic">No queues</span>
-                          )}
-                          {[...member.selectedQueues]
-                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                            .map((queue) => (
-                              <span
-                                key={queue.id}
-                                className="group/lbl inline-flex items-center gap-0.5 px-2 py-0.5 text-xs border border-border rounded-md bg-white dark:bg-gray-800 cursor-pointer select-none max-w-[120px]"
-                              >
-                                <span className="truncate max-w-[100px]">{queue.name}</span>
-                                <span className="w-0 overflow-hidden group-hover/lbl:w-3 transition-all duration-150 flex items-center justify-center flex-shrink-0">
-                                  <button
-                                    type="button"
-                                    title="Remove queue"
-                                    className="text-gray-400 hover:text-red-500 flex-shrink-0"
-                                    onClick={() => {
-                                      const hasOtherQueues = member.selectedQueues.some(q => q.id !== queue.id);
-                                      if (queue.name === 'Default' && !hasOtherQueues) {
-                                        toast.error('The Default queue cannot be removed');
-                                        return;
-                                      }
-                                      const updatedMembers = [...tempMembers];
-                                      updatedMembers[index].selectedQueues = member.selectedQueues.filter(q => q.id !== queue.id);
-                                      setTempMembers(updatedMembers);
-                                    }}
-                                  >
-                                    <X className="w-2.5 h-2.5" />
-                                  </button>
-                                </span>
-                              </span>
-                            ))}
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                title="Add queue"
-                                className="text-xs border-dashed font-medium text-gray-400 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 gap-1 cursor-pointer select-none"
-                              >
-                                <Plus className="w-3 h-3" />
-                                Add Queue
-                              </Badge>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-52 p-0" align="start">
-                              <Command>
-                                <CommandInput placeholder="Search queues..." className="h-8 text-xs" />
-                                <CommandList>
-                                  <CommandEmpty className="text-xs py-2 pl-3">No queues found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {queues.map((queue) => {
-                                      const isSelected = member.selectedQueues.some(q => q.id === queue.id);
-                                      return (
-                                        <CommandItem
-                                          key={queue.id}
-                                          value={queue.name}
-                                          onSelect={() => {
-                                            const hasOtherQueues = queues.some(q => q.name !== 'Default');
-                                            if (queue.name === 'Default' && isSelected && !hasOtherQueues) {
-                                              toast.error('The Default queue cannot be removed');
-                                              return;
-                                            }
-                                            const updatedMembers = [...tempMembers];
-                                            if (isSelected) {
-                                              updatedMembers[index].selectedQueues = member.selectedQueues.filter(q => q.id !== queue.id);
-                                            } else {
-                                              updatedMembers[index].selectedQueues = [...member.selectedQueues, queue];
-                                            }
-                                            setTempMembers(updatedMembers);
-                                          }}
-                                          className="text-xs"
-                                        >
-                                          <Check className={`mr-2 h-3 w-3 flex-shrink-0 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
-                                          <span className="flex-1">{queue.name}</span>
-                                        </CommandItem>
-                                      );
-                                    })}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-1.75 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <TooltipProvider delayDuration={0}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => {
-                                  const updatedMembers = tempMembers.filter((_, i) => i !== index);
-                                  setTempMembers(updatedMembers);
-                                  const updatedResources = selectedResources.filter((_, i) => i !== index);
-                                  setSelectedResources(updatedResources);
-                                }}
-                              >
-                                <Trash className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Remove Member</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
+                </TableHeader>
+                <TableBody>
+                  {tempMembers.slice((tempMembersPage - 1) * membersPerPage, tempMembersPage * membersPerPage).map((member, index) => (
+                    <TableRow key={index} className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border ${member.error ? 'bg-destructive/5' : ''}`}>
+                      <TableCell className="py-1.75 px-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-7 w-7 flex-shrink-0">
+                            <AvatarImage
+                              src={member.resource.profile_pic ? (member.resource.profile_pic.startsWith('http') ? member.resource.profile_pic : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${member.resource.profile_pic}`) : undefined}
+                              alt={`${member.resource.first_name} ${member.resource.last_name}`}
+                            />
+                            <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                              {(member.resource.first_name?.[0] || '').toUpperCase()}{(member.resource.last_name?.[0] || '').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">
+                              {member.resource.first_name} {member.resource.last_name}
+                            </span>
+                            {member.error && (
+                              <p className="text-[10px] text-destructive mt-0.5">{member.error}</p>
+                            )}
+                            <p className="text-[10px] text-muted-foreground truncate md:hidden">
+                              {member.resource.email}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-1.75 px-4 text-sm">
+                        {member.resource.email}
+                      </TableCell>
+                      <TableCell className="py-1.75 px-4">
+                        {!member.error ? (
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {member.selectedQueues.length === 0 && (
+                              <span className="text-xs text-muted-foreground italic">No queues</span>
+                            )}
+                            {[...member.selectedQueues]
+                              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                              .map((queue) => (
+                                <span
+                                  key={queue.id}
+                                  className="group/lbl inline-flex items-center gap-0.5 px-2 py-0.5 text-xs border border-border rounded-md bg-white dark:bg-gray-800 cursor-pointer select-none max-w-[120px]"
+                                >
+                                  <span className="truncate max-w-[100px]">{queue.name}</span>
+                                  <span className="w-0 overflow-hidden group-hover/lbl:w-3 transition-all duration-150 flex items-center justify-center flex-shrink-0">
+                                    <button
+                                      type="button"
+                                      title="Remove queue"
+                                      className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                                      onClick={() => {
+                                        const hasOtherQueues = member.selectedQueues.some(q => q.id !== queue.id);
+                                        if (queue.name === 'Default' && !hasOtherQueues) {
+                                          toast.error('The Default queue cannot be removed');
+                                          return;
+                                        }
+                                        const updatedMembers = [...tempMembers];
+                                        updatedMembers[index].selectedQueues = member.selectedQueues.filter(q => q.id !== queue.id);
+                                        setTempMembers(updatedMembers);
+                                      }}
+                                    >
+                                      <X className="w-2.5 h-2.5" />
+                                    </button>
+                                  </span>
+                                </span>
+                              ))}
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  title="Add queue"
+                                  className="text-xs border-dashed font-medium text-gray-400 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 gap-1 cursor-pointer select-none"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  Add Queue
+                                </Badge>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-52 p-0" align="start">
+                                <Command>
+                                  <CommandInput placeholder="Search queues..." className="h-8 text-xs" />
+                                  <CommandList>
+                                    <CommandEmpty className="text-xs py-2 pl-3">No queues found.</CommandEmpty>
+                                    <CommandGroup>
+                                      {queues.map((queue) => {
+                                        const isSelected = member.selectedQueues.some(q => q.id === queue.id);
+                                        return (
+                                          <CommandItem
+                                            key={queue.id}
+                                            value={queue.name}
+                                            onSelect={() => {
+                                              const hasOtherQueues = queues.some(q => q.name !== 'Default');
+                                              if (queue.name === 'Default' && isSelected && !hasOtherQueues) {
+                                                toast.error('The Default queue cannot be removed');
+                                                return;
+                                              }
+                                              const updatedMembers = [...tempMembers];
+                                              if (isSelected) {
+                                                updatedMembers[index].selectedQueues = member.selectedQueues.filter(q => q.id !== queue.id);
+                                              } else {
+                                                updatedMembers[index].selectedQueues = [...member.selectedQueues, queue];
+                                              }
+                                              setTempMembers(updatedMembers);
+                                            }}
+                                            className="text-xs"
+                                          >
+                                            <Check className={`mr-2 h-3 w-3 flex-shrink-0 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+                                            <span className="flex-1">{queue.name}</span>
+                                          </CommandItem>
+                                        );
+                                      })}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1.75 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    const updatedMembers = tempMembers.filter((_, i) => i !== index);
+                                    setTempMembers(updatedMembers);
+                                    const updatedResources = selectedResources.filter((_, i) => i !== index);
+                                    setSelectedResources(updatedResources);
+                                  }}
+                                >
+                                  <Trash className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Remove Member</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
               </Table>
             </div>
-            
+
             <div className="mt-auto border-border">
               <PaginationControls
                 currentPage={tempMembersPage}
@@ -2831,7 +2831,7 @@ function PermissionsTabContent({
                 onPageChange={setTempMembersPage}
                 itemName="pending members"
               />
-              
+
               {/* Pending action row */}
               <div className="flex items-center justify-between px-2 py-1.5 bg-muted/40 border-t">
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground uppercase tracking-wide">
@@ -2840,42 +2840,42 @@ function PermissionsTabContent({
                 <div className="flex justify-end items-center gap-1">
                   <TooltipProvider delayDuration={0}>
                     <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-primary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
-                        onClick={handleAddPermission}
-                        disabled={isAdding || tempMembers.every((m) => m.error || m.selectedQueues.length === 0)}
-                      >
-                        {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      Save ({tempMembers.filter(m => !m.error && m.selectedQueues.length > 0).length})
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => { setTempMembers([]); setSelectedResources([]); }}
-                        disabled={isAdding}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      Cancel
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-primary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
+                          onClick={handleAddPermission}
+                          disabled={isAdding || tempMembers.every((m) => m.error || m.selectedQueues.length === 0)}
+                        >
+                          {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Save ({tempMembers.filter(m => !m.error && m.selectedQueues.length > 0).length})
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => { setTempMembers([]); setSelectedResources([]); }}
+                          disabled={isAdding}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Cancel
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Members List */}
@@ -2907,92 +2907,92 @@ function PermissionsTabContent({
                         <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">QUEUES</TableHead>
                         {canEdit && (
                           <TableHead className="h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right w-[100px]">
-                          ACTIONS
-                        </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagePermissions.map((permission) => (
-                      <TableRow key={permission.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
-                        <TableCell className="py-1.75 px-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-7 w-7 flex-shrink-0">
-                              <AvatarImage
-                                src={(permission.userProfilePicture || permission.user?.profile_picture)
-                                  ? ((permission.userProfilePicture || permission.user?.profile_picture).startsWith('http')
-                                    ? (permission.userProfilePicture || permission.user?.profile_picture)
-                                    : `${process.env.NEXT_PUBLIC_API_URL}/uploads/users/${permission.userProfilePicture || permission.user?.profile_picture}`)
-                                  : undefined}
-                                alt={`${permission.userFirstName || permission.user?.firstName || ''} ${permission.userLastName || permission.user?.lastName || ''}`}
-                              />
-                              <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                {((permission.userFirstName || permission.user?.firstName)?.[0] || '').toUpperCase()}{((permission.userLastName || permission.user?.lastName)?.[0] || '').toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">
-                              {permission.userFirstName || permission.user?.firstName || ''} {permission.userLastName || permission.user?.lastName || ''}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.75 px-4 text-sm">
-                          {permission.userEmail || permission.user?.email || '—'}
-                        </TableCell>
-                        <TableCell className="py-1.75 px-4">
-                          {permission.queues && permission.queues.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {[...permission.queues]
-                                .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
-                                .map((queue: any) => (
-                                  <span
-                                    key={queue.id}
-                                    className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs border border-border rounded-md bg-white dark:bg-gray-800 cursor-default select-none max-w-[120px]"
-                                  >
-                                    <span className="truncate max-w-[100px]">{queue.name}</span>
-                                  </span>
-                                ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">No queues</span>
-                          )}
-                        </TableCell>
-                        {canEdit && (
-                          <TableCell className="py-1.75 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <TooltipProvider delayDuration={0}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 w-7 p-0 cursor-pointer hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary"
-                                      onClick={() => handleEditQueues(permission)}
-                                    >
-                                      <FolderClosed className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">Edit Member Queues</TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={() => handleRemovePermission(permission.id, `${permission.userFirstName ?? ''} ${permission.userLastName ?? ''}`.trim() || permission.userEmail || 'this member')}
-                                    >
-                                      <Trash className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">Remove Member</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </TableCell>
+                            ACTIONS
+                          </TableHead>
                         )}
                       </TableRow>
-                    ))}
-                  </TableBody>
+                    </TableHeader>
+                    <TableBody>
+                      {pagePermissions.map((permission) => (
+                        <TableRow key={permission.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors border-b border-border">
+                          <TableCell className="py-1.75 px-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-7 w-7 flex-shrink-0">
+                                <AvatarImage
+                                  src={(permission.userProfilePicture || permission.user?.profile_picture)
+                                    ? ((permission.userProfilePicture || permission.user?.profile_picture).startsWith('http')
+                                      ? (permission.userProfilePicture || permission.user?.profile_picture)
+                                      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/users/${permission.userProfilePicture || permission.user?.profile_picture}`)
+                                    : undefined}
+                                  alt={`${permission.userFirstName || permission.user?.firstName || ''} ${permission.userLastName || permission.user?.lastName || ''}`}
+                                />
+                                <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                                  {((permission.userFirstName || permission.user?.firstName)?.[0] || '').toUpperCase()}{((permission.userLastName || permission.user?.lastName)?.[0] || '').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">
+                                {permission.userFirstName || permission.user?.firstName || ''} {permission.userLastName || permission.user?.lastName || ''}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-1.75 px-4 text-sm">
+                            {permission.userEmail || permission.user?.email || '—'}
+                          </TableCell>
+                          <TableCell className="py-1.75 px-4">
+                            {permission.queues && permission.queues.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {[...permission.queues]
+                                  .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
+                                  .map((queue: any) => (
+                                    <span
+                                      key={queue.id}
+                                      className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs border border-border rounded-md bg-white dark:bg-gray-800 cursor-default select-none max-w-[120px]"
+                                    >
+                                      <span className="truncate max-w-[100px]">{queue.name}</span>
+                                    </span>
+                                  ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">No queues</span>
+                            )}
+                          </TableCell>
+                          {canEdit && (
+                            <TableCell className="py-1.75 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <TooltipProvider delayDuration={0}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0 cursor-pointer hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 dark:hover:text-primary"
+                                        onClick={() => handleEditQueues(permission)}
+                                      >
+                                        <FolderClosed className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Edit Member Queues</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0 cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleRemovePermission(permission.id, `${permission.userFirstName ?? ''} ${permission.userLastName ?? ''}`.trim() || permission.userEmail || 'this member')}
+                                      >
+                                        <Trash className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Remove Member</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
                   </Table>
                 </div>
 

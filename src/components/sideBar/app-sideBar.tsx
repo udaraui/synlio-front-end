@@ -40,7 +40,7 @@ import {
   getUserCompanyIdByUserId,
   getLocalActiveCompany,
   safeParse,
-} from "@/services/auth-service";
+} from "@/services/auth/auth-service";
 import { usePrivilege } from "@/contexts/userPrivilege.context";
 import { useMenuAccess } from "@/hooks/use-menu-access";
 
@@ -141,8 +141,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [isSystemUser]);
 
   const aiData = React.useMemo(() => [
-    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [] },
-    { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [] },
+    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [], isUnderConstruction: true },
+    { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
   ], []);
 
   const resourceData = React.useMemo(() => [

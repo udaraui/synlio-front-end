@@ -23,7 +23,7 @@ import { cn, formatRelativeTime, getInitials } from "@/lib/utils";
 import { ParentLevelsHoverCard } from '@/components/common/ParentLevelsHoverCard';
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { unlinkTaskFromActivity, Activity } from '@/services/activity.service';
+import { unlinkTaskFromActivity, Activity } from '@/services/pulse/activity.service';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ActivityDialog } from './ActivityDialog';
@@ -163,12 +163,12 @@ const formatSingleChange = (item: ActivityItem, capitalizeFirst: boolean = false
   const isNotMe = Boolean(actor_id && currentUserEmail && actor_id !== currentUserEmail);
   const formatName = (uName: string, uEmail?: string) => {
     if (uEmail && currentUserEmail && uEmail.toLowerCase() === currentUserEmail.toLowerCase()) {
-                return !isNotMe ? "yourself" : "you";
-            }
-            if (currentUserName && uName === currentUserName) {
-                return !isNotMe ? "yourself" : "you";
-            }
-    
+      return !isNotMe ? "yourself" : "you";
+    }
+    if (currentUserName && uName === currentUserName) {
+      return !isNotMe ? "yourself" : "you";
+    }
+
     return uName;
   };
 
@@ -638,7 +638,7 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
               Completed work
             </Label>
           </div>
-          
+
           <div className="flex items-center gap-2 pl-2.5">
             <Checkbox
               id="show-inprogress"
@@ -749,8 +749,8 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <WorkLogPopover 
-                    postId={group.id} 
+                  <WorkLogPopover
+                    postId={group.id}
                     postType={group.postType}
                     postCode={group.code}
                     postName={group.name}
@@ -759,9 +759,9 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
                     statusBase={group.statusBase}
                     user={user}
                     currentEffort={group.totalEffortInRange}
-                    startDate={startDate} 
-                    endDate={endDate} 
-                    onActionComplete={onActionComplete} 
+                    startDate={startDate}
+                    endDate={endDate}
+                    onActionComplete={onActionComplete}
                   />
                   {link === '#' ? (
                     <TooltipProvider delayDuration={100}>
@@ -813,11 +813,11 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
                           <div className={cn("flex-1 min-w-0 pt-1", !isLast && "pb-2")}>
                             <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
                               {
-            (() => {
-                const currentUserName = user?.name || (user?.first_name ? `${user.first_name} ${user.last_name}` : undefined);
-                return formatSingleChange(changeItem, false, user?.email, true, currentUserName);
-            })()
-        }
+                                (() => {
+                                  const currentUserName = user?.name || (user?.first_name ? `${user.first_name} ${user.last_name}` : undefined);
+                                  return formatSingleChange(changeItem, false, user?.email, true, currentUserName);
+                                })()
+                              }
                             </div>
                             <div className="text-[11px] text-muted-foreground mt-0.5">
                               {timeStr}

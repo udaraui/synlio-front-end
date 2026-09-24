@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { deleteResource, disableResource } from "@/services/resource-service";
+import { deleteResource, disableResource } from "@/services/resource-management/resource-service";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import DeleteModal from "@/components/DeleteModal";
 import {

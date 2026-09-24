@@ -148,12 +148,12 @@ const RATE_TYPES = [
 import { toast } from 'sonner';
 
 // Services
-import { loadDivisions } from '@/services/division-services';
-import { loadCalendars, getAllCalendarDays } from '@/services/calendar-services';
-import { loadSkill_level, loadSkillCategories, loadSkills } from '@/services/skill-services';
-import { createResource, findOneResource, updateResource, getAllResourcesByCompanyOnly, checkResourceEmail } from '@/services/resource-service';
-import { searchUserByEmail } from '@/services/user-service';
-import { getAllCurrencies } from '@/services/common-services';
+import { loadDivisions } from '@/services/company-management/division-services';
+import { loadCalendars, getAllCalendarDays } from '@/services/resource-management/calendar-services';
+import { loadSkill_level, loadSkillCategories, loadSkills } from '@/services/resource-management/skill-services';
+import { createResource, findOneResource, updateResource, getAllResourcesByCompanyOnly, checkResourceEmail } from '@/services/resource-management/resource-service';
+import { searchUserByEmail } from '@/services/user-management/user-service';
+import { getAllCurrencies } from '@/services/resource-management/currency.service';
 
 const formSchema = z.object({
   first_name: z.string().min(1, 'First Name is required'),

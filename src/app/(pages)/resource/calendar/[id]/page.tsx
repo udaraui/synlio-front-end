@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
-import { loadCalendars } from "@/services/calendar-services";
+import { loadCalendars } from "@/services/resource-management/calendar-services";
 import { Calendar } from "@/interfaces/calendar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export default function CalendarDetailsPage() {
           >
             <ArrowLeft className="size-3.5" />
           </button>
-          <h1 
+          <h1
             className="text-sm font-semibold"
             title={calendar.name.length > 22 ? calendar.name : undefined}
           >

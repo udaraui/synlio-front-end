@@ -2,7 +2,7 @@
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getAllRepeatedHoliday } from "@/services/calendar-services";
+import { getAllRepeatedHoliday } from "@/services/resource-management/calendar-services";
 import { Pencil, Plus, RefreshCw, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Building2 } from "lucide-react";
