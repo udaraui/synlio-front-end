@@ -141,7 +141,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [isSystemUser]);
 
   const aiData = React.useMemo(() => [
-    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [], isUnderConstruction: true },
+    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [] },
     { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
   ], []);
 
@@ -180,8 +180,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent className="sidebar gap-3 pt-1">
         {visibleDashboardItems.length > 0 && <NavMain items={visibleDashboardItems} />}
-        {visibleSpacesItems.length > 0 && (<NavMain items={visibleSpacesItems} label="Spaces" />)}
         {visibleAiItems.length > 0 && (<NavMain items={visibleAiItems} label="AI" />)}
+        {visibleSpacesItems.length > 0 && (<NavMain items={visibleSpacesItems} label="Spaces" />)}
         {visibleResourceItems.length > 0 && <NavMain items={visibleResourceItems} label="Team" />}
         <NavMasters masters={visibleMastersItems} />
       </SidebarContent>
