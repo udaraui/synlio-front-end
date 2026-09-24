@@ -141,7 +141,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [isSystemUser]);
 
   const aiData = React.useMemo(() => [
-    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [] },
+    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [], isUnderConstruction: true },
     { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
   ], []);
 

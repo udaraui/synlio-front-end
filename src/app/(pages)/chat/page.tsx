@@ -5,7 +5,8 @@ import { BotMessageSquare, Loader2, ArrowRight } from "lucide-react";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
-
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 interface Message {
   id: string;
   role: "user" | "ai";
@@ -109,8 +110,8 @@ export default function ChatPage() {
               <div
                 className={`flex max-w-[80%] items-start gap-3 rounded-2xl px-5 py-1 border ${
                   msg.role === "user"
-                    ? "bg-primary text-primary-foreground flex-row-reverse rounded-tr-sm"
-                    : "bg-muted text-foreground rounded-tl-sm"
+                    ? "bg-primary text-primary-foreground flex-row-reverse rounded-tr-xs"
+                    : "bg-muted text-foreground rounded-tl-xs"
                 }`}
               >
                 {/* {msg.role !== "user" && (
@@ -121,7 +122,25 @@ export default function ChatPage() {
                   </div>
                 )} */}
                 <div className={`flex-1 overflow-hidden ${msg.role !== "user" ? "pt-1" : ""}`}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role === "user" ? (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  ) : (
+                    <div className="text-sm leading-relaxed max-w-none">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="w-full text-sm border border-border rounded-md overflow-hidden" {...props} /></div>,
+                          thead: ({node, ...props}) => <thead className="bg-muted/50 text-left" {...props} />,
+                          th: ({node, ...props}) => <th className="border border-border px-4 py-2 uppercase text-xs" {...props} />,
+                          td: ({node, ...props}) => <td className="border border-border px-4 py-2" {...props} />,
+                          p: ({node, ...props}) => <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -133,8 +152,11 @@ export default function ChatPage() {
           <div className="flex px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16 justify-start">
             <div className="flex max-w-[80%] items-center gap-3 rounded-2xl px-5 py-1 bg-muted text-foreground rounded-tl-sm border">
               <div className="flex items-center gap-3 pt-1 pb-1">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm text-muted-foreground">Synlio is thinking...</span>
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </div>
+                <span className="text-sm text-muted-foreground">Synlio is thinking</span>
               </div>
             </div>
           </div>
