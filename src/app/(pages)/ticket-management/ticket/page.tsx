@@ -83,6 +83,12 @@ import {
   createOrUpdateUserConfig,
   getUserConfig,
 } from "@/services/user-management/user-config-service";
+import {
+  CategorizedFilterTemplates,
+  createFilterTemplate,
+  deleteFilterTemplate,
+  getCategorizedFilterTemplates,
+} from "@/services/filter-template/filter-template-service";
 import { FilterTemplateButton } from "@/components/common/FilterTemplateButton";
 import CalendarRange from "@/components/common/CalendarRange";
 import {
@@ -458,9 +464,22 @@ function TicketPage() {
   }, [pinnedFilters]);
 
   // Filter template state
-  const [ticketFilterTemplates, setTicketFilterTemplates] = useState<any[]>([]);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [categorizedTicketTemplates, setCategorizedTicketTemplates] = useState<CategorizedFilterTemplates>({
+    private: [],
+    sharedWithMe: [],
+    public: [],
+  });
+  const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  const fetchTicketFilterTemplates = useCallback(async () => {
+    try {
+      const res = await getCategorizedFilterTemplates("TICKET");
+      setCategorizedTicketTemplates(res);
+    } catch (err) {
+      console.error("Failed to fetch ticket filter templates:", err);
+    }
+  }, []);
 
   // ── Helper to clear all filter states ───────────────────────────────────────
   const clearAllFilterStates = () => {
@@ -556,14 +575,7 @@ function TicketPage() {
             try { return JSON.parse(localStorage.getItem("active_company") || "null"); } catch { return null; }
           })();
           const activeCompanyId: number | undefined = activeCompany?.companyId;
-          if (userConfig?.filterTemplates?.ticket) {
-            const all = userConfig.filterTemplates.ticket;
-            // Strictly show only templates for the active company.
-            const filtered = activeCompanyId
-              ? all.filter((t: any) => t.companyId === activeCompanyId)
-              : all;
-            setTicketFilterTemplates(filtered);
-          }
+          await fetchTicketFilterTemplates();
           if (userConfig?.viewPreference?.ticketDefaultSort) {
             const fetchedDefault = userConfig.viewPreference.ticketDefaultSort as SortOption;
             setDefaultSortOption(fetchedDefault);
@@ -1593,18 +1605,9 @@ function TicketPage() {
           selectedTicketSpaceFilter,
           sortOption,
         },
-        createdAt: new Date().toISOString(),
       };
-      // Fetch the full unfiltered list so we don't drop other companies' templates
-      const freshConfig = await getUserConfig(user.id);
-      const allExisting: any[] = freshConfig?.filterTemplates?.ticket ?? [];
-      const allUpdated = [...allExisting, newTemplate];
-      await createOrUpdateUserConfig(user.id, {
-        filterTemplates: { ticket: allUpdated },
-      });
-      // State only tracks current-company templates
-      setTicketFilterTemplates((prev) => [...prev, newTemplate]);
-      toast.success(`Filter template "${newTemplate.name}" saved`);
+      await fetchTicketFilterTemplates();
+      toast.success(`Filter template "${name}" saved`);
     } catch (error) {
       console.error("Error saving filter template:", error);
       toast.error("Failed to save filter template");
@@ -1614,7 +1617,7 @@ function TicketPage() {
   };
 
   const applyTicketFilterTemplate = (template: any) => {
-    if (activeTemplateId === template.id) {
+    if (String(activeTemplateId) === String(template.id)) {
       sessionStorage.removeItem(TICKET_FILTERS_SESSION_KEY);
       setSelectedTicketSpaceFilter(ticketSpaceId || "");
       setNameFilter("");
@@ -1664,18 +1667,11 @@ function TicketPage() {
     toast.success(`Applied template "${template.name}"`);
   };
 
-  const deleteTicketFilterTemplate = async (templateId: string) => {
-    if (!user?.id) return;
+  const deleteTicketFilterTemplate = async (templateId: number | string) => {
     try {
-      // Fetch the full unfiltered list so we don't drop other companies' templates
-      const freshConfig = await getUserConfig(user.id);
-      const allExisting: any[] = freshConfig?.filterTemplates?.ticket ?? [];
-      const allUpdated = allExisting.filter((t) => t.id !== templateId);
-      await createOrUpdateUserConfig(user.id, {
-        filterTemplates: { ticket: allUpdated },
-      });
-      setTicketFilterTemplates((prev) => prev.filter((t) => t.id !== templateId));
-      if (activeTemplateId === templateId) setActiveTemplateId(null);
+      await deleteFilterTemplate(Number(templateId));
+      await fetchTicketFilterTemplates();
+      if (String(activeTemplateId) === String(templateId)) setActiveTemplateId(null);
       toast.success("Filter template deleted");
     } catch (error) {
       console.error("Error deleting filter template:", error);
@@ -3736,7 +3732,7 @@ function TicketPage() {
               </DropdownMenu>
               {/*Filter Templates Dropdown */}
               <FilterTemplateButton
-                templates={ticketFilterTemplates}
+                categorizedTemplates={categorizedTicketTemplates}
                 activeTemplateId={activeTemplateId}
                 isFilterActive={
                   !!(
@@ -3762,6 +3758,7 @@ function TicketPage() {
                 onSave={saveCurrentAsTicketTemplate}
                 onApply={applyTicketFilterTemplate}
                 onDelete={deleteTicketFilterTemplate}
+                onRefresh={fetchTicketFilterTemplates}
               />
             </div>
           </div>

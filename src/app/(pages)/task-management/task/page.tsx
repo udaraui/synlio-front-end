@@ -60,6 +60,12 @@ import {
   getUserConfig,
 } from "@/services/user-management/user-config-service";
 import {
+  CategorizedFilterTemplates,
+  createFilterTemplate,
+  deleteFilterTemplate,
+  getCategorizedFilterTemplates,
+} from "@/services/filter-template/filter-template-service";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -288,9 +294,22 @@ function Page() {
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
   // Filter templates
-  const [taskFilterTemplates, setTaskFilterTemplates] = useState<any[]>([]);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [categorizedTaskTemplates, setCategorizedTaskTemplates] = useState<CategorizedFilterTemplates>({
+    private: [],
+    sharedWithMe: [],
+    public: [],
+  });
+  const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  const fetchTaskFilterTemplates = useCallback(async () => {
+    try {
+      const res = await getCategorizedFilterTemplates("TASK");
+      setCategorizedTaskTemplates(res);
+    } catch (err) {
+      console.error("Failed to fetch task filter templates:", err);
+    }
+  }, []);
   //
   const [taskSpaces, setTaskSpaces] = useState<any[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
@@ -475,10 +494,9 @@ function Page() {
         try { return JSON.parse(localStorage.getItem("active_company") || "null"); } catch { return null; }
       })();
       const activeCompanyId: number | undefined = activeCompany?.companyId;
-      const newTemplate = {
-        id: Date.now().toString(),
+      await createFilterTemplate({
         name: name.trim(),
-        companyId: activeCompanyId,
+        type: "TASK",
         filters: {
           spaceId: selectedSpaceId,
           nameFilter,
@@ -494,18 +512,9 @@ function Page() {
           specialFilter,
           sortOption,
         },
-        createdAt: new Date().toISOString(),
-      };
-      // Fetch the full unfiltered list so we don't drop other companies' templates
-      const freshConfig = await getUserConfig(user.id);
-      const allExisting: any[] = freshConfig?.filterTemplates?.task ?? [];
-      const allUpdated = [...allExisting, newTemplate];
-      await createOrUpdateUserConfig(user.id, {
-        filterTemplates: { task: allUpdated },
       });
-      // State only tracks current-company templates
-      setTaskFilterTemplates((prev) => [...prev, newTemplate]);
-      toast.success(`Filter template "${newTemplate.name}" saved`);
+      await fetchTaskFilterTemplates();
+      toast.success(`Filter template "${name}" saved`);
     } catch {
       toast.error("Failed to save filter template");
     } finally {
@@ -514,7 +523,7 @@ function Page() {
   };
 
   const applyTaskFilterTemplate = (template: any) => {
-    if (activeTemplateId === template.id) {
+    if (String(activeTemplateId) === String(template.id)) {
       clearAllFilters();
       toast.success(`Deselected template "${template.name}"`);
       return;
@@ -545,18 +554,11 @@ function Page() {
     toast.success(`Applied template "${template.name}"`);
   };
 
-  const deleteTaskFilterTemplate = async (templateId: string) => {
-    if (!user?.id) return;
+  const deleteTaskFilterTemplate = async (templateId: number | string) => {
     try {
-      // Fetch the full unfiltered list so we don't drop other companies' templates
-      const freshConfig = await getUserConfig(user.id);
-      const allExisting: any[] = freshConfig?.filterTemplates?.task ?? [];
-      const allUpdated = allExisting.filter((t) => t.id !== templateId);
-      await createOrUpdateUserConfig(user.id, {
-        filterTemplates: { task: allUpdated },
-      });
-      setTaskFilterTemplates((prev) => prev.filter((t) => t.id !== templateId));
-      if (activeTemplateId === templateId) setActiveTemplateId(null);
+      await deleteFilterTemplate(Number(templateId));
+      await fetchTaskFilterTemplates();
+      if (String(activeTemplateId) === String(templateId)) setActiveTemplateId(null);
       toast.success("Filter template deleted");
     } catch {
       toast.error("Failed to delete filter template");
@@ -630,15 +632,7 @@ function Page() {
     const activeCompanyId: number | undefined = activeCompany?.companyId;
     getUserConfig(user.id)
       .then((cfg) => {
-        if (cfg?.filterTemplates?.task) {
-          const all = cfg.filterTemplates.task;
-          // Show only templates that belong to the active company,
-          // or legacy templates without a companyId (backward compatibility).
-          const filtered = activeCompanyId
-            ? all.filter((t: any) => t.companyId === activeCompanyId)
-            : all;
-          setTaskFilterTemplates(filtered);
-        }
+        fetchTaskFilterTemplates();
         if (cfg?.viewPreference?.taskDefaultSort) {
           const fetchedDefault = cfg.viewPreference.taskDefaultSort as SortOption;
           setDefaultSortOption(fetchedDefault);
@@ -3380,13 +3374,14 @@ function Page() {
               </DropdownMenu>
               {/* Filter Templates Dropdown */}
               <FilterTemplateButton
-                templates={taskFilterTemplates}
+                categorizedTemplates={categorizedTaskTemplates}
                 activeTemplateId={activeTemplateId}
                 isFilterActive={hasActiveFilters || !!selectedSpaceId}
                 isSaving={isSavingTemplate}
                 onSave={saveCurrentAsTaskTemplate}
                 onApply={applyTaskFilterTemplate}
                 onDelete={deleteTaskFilterTemplate}
+                onRefresh={fetchTaskFilterTemplates}
               />
             </div>
           </div>

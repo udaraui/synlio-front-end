@@ -50,7 +50,8 @@ import {
   User as UserIcon,
   Camera,
   Save,
-  UserCheck
+  UserCheck,
+  AlertTriangle
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createUser, searchUserByEmail } from "@/services/user-management/user-service";
@@ -90,6 +91,7 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
   const [allCompanies, setAllCompanies] = useState<any[]>([]);
   const [isSystemUser, setIsSystemUser] = useState(false);
   const [existingUser, setExistingUser] = useState<any | null>(null);
+  const [isAlreadyInCompany, setIsAlreadyInCompany] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
       form.reset({ companyId: defaultCompanyId || "" });
       setExistingUser(null);
       setPreviewUrl(null);
+      setIsAlreadyInCompany(false);
     }
   }, [open, form, defaultCompanyId]);
 
@@ -161,6 +164,30 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
     }
   }, [selectedCompanyId, isSystemUser]);
 
+  // Check if existing user is already in the target company
+  useEffect(() => {
+    if (existingUser) {
+      let targetCompanyId: number | null = null;
+      if (isSystemUser) {
+        targetCompanyId = selectedCompanyId ? parseInt(selectedCompanyId) : null;
+      } else {
+        const active_company = safeParse(localStorage.getItem("active_company"));
+        targetCompanyId = active_company?.companyId ? parseInt(active_company.companyId) : null;
+      }
+
+      if (targetCompanyId) {
+        const isMember = existingUser.companies?.some(
+          (c: any) => c.id === targetCompanyId
+        );
+        setIsAlreadyInCompany(!!isMember);
+      } else {
+        setIsAlreadyInCompany(false);
+      }
+    } else {
+      setIsAlreadyInCompany(false);
+    }
+  }, [existingUser, selectedCompanyId, isSystemUser]);
+
   // Email lookup — autofill if existing user found
   const emailValue = form.watch("email");
   const debouncedEmail = useDebounce(emailValue, 500);
@@ -175,21 +202,6 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
             form.setValue("first_name", response.data.first_name);
             form.setValue("last_name", response.data.last_name);
             form.setValue("phone_number", response.data.mobile_number || "");
-
-            if (!isSystemUser) {
-              const active_company = safeParse(localStorage.getItem("active_company"));
-              if (active_company?.companyId) {
-                const isMember = response.data.companies?.some(
-                  (c: any) => c.id === active_company.companyId
-                );
-                if (isMember) toast.info("This user is already a member of this company");
-              }
-            } else if (selectedCompanyId) {
-              const isMember = response.data.companies?.some(
-                (c: any) => c.id === parseInt(selectedCompanyId)
-              );
-              if (isMember) toast.info("This user is already a member of the selected company");
-            }
           } else {
             setExistingUser(null);
           }
@@ -203,7 +215,7 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
       }
     };
     searchUser();
-  }, [debouncedEmail, form, isSystemUser, selectedCompanyId]);
+  }, [debouncedEmail, form]);
 
   useEffect(() => {
     getFilteredDivisions();
@@ -219,6 +231,11 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
   };
 
   const onSubmit = async (data: any) => {
+    if (existingUser && isAlreadyInCompany) {
+      toast.warning("This user is already a member of this company.");
+      return;
+    }
+
     if (!existingUser && !data.password) {
       toast.error("Password is required for new users");
       return;
@@ -259,12 +276,14 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
         onOpenChange(false);
         form.reset();
         setExistingUser(null);
+        setIsAlreadyInCompany(false);
         onSubmitCallback?.(payload);
       } else {
         toast.error("Operation failed");
       }
     } catch (error: any) {
-      toast.error("Error (" + error.message + ")");
+      const msg = error.response?.data?.message || error.message || "Operation failed";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -352,9 +371,15 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                           <FormControl>
                             <Input type="email" placeholder="e.g. john@company.com" autoComplete="new-password" className="shadow-none" {...field} />
                           </FormControl>
-                          {existingUser && (
+                         {existingUser && isAlreadyInCompany && (
+                            <div className="flex items-center gap-1.5 mt-1 text-sm text-amber-600 dark:text-amber-400">
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                              This user is already a member of this company.
+                            </div>
+                          )}
+                          {existingUser && !isAlreadyInCompany && (
                             <div className="flex items-center gap-1.5 mt-1 text-sm text-emerald-600 dark:text-emerald-400">
-                              <UserCheck className="h-3.5 w-3.5" />
+                              <UserCheck className="h-3.5 w-3.5 shrink-0" />
                               Existing user found. Basic information filled automatically.
                             </div>
                           )}

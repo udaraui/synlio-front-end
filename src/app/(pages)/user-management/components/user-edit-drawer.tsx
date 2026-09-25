@@ -73,7 +73,7 @@ interface UserEditDrawerProps {
 const formSchema = z.object({
   first_name: z.string().min(1, { message: "First name is required." }),
   last_name: z.string().min(1, { message: "Last name is required." }),
-  email: z.string().email({ message: "Invalid email address." }),
+  email: z.string().email({ message: "Invalid email address." }).optional(),
   phone_number: z.string().min(1, { message: "Phone number is required." }),
   profile_picture: z.union([z.instanceof(File), z.undefined()]).optional(),
   companies: z.array(z.number()).optional().default([]),
@@ -252,6 +252,7 @@ export function UserEditDrawer({
     };
 
     if (!data.profile_picture) delete payload.profile_picture;
+    delete payload.email; // Email is immutable after creation
     delete payload.companies;
     delete payload.divisions;
 
@@ -373,10 +374,17 @@ export function UserEditDrawer({
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="e.g. john@company.com" autoComplete="off" className="shadow-none" {...field} />
+                            <Input
+                              type="email"
+                              autoComplete="off"
+                              className="shadow-none bg-muted text-muted-foreground cursor-not-allowed"
+                              disabled
+                              {...field}
+                            />
                           </FormControl>
+                          <p className="text-xs text-muted-foreground mt-0.5">Email cannot be changed after creation.</p>
                           <FormMessage />
                         </FormItem>
                       )}

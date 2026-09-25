@@ -44,5 +44,6 @@ export const API_ENDPOINTS = {
   PULSE: `${API_URL}/pulse`,
   TICKET_TEMPLATE: `${API_URL}/ticket-templates`,
   CHAT: `${API_URL}/chat`,
+  FILTER_TEMPLATE: `${API_URL}/filter-templates`,
 };
 

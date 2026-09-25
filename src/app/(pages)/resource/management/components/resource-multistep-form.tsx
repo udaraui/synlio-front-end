@@ -678,7 +678,8 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                 <Input
                                   type="email"
                                   placeholder="e.g. john.doe@company.com"
-                                  className="shadow-none"
+                                  className={`shadow-none ${type === 'edit' ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
+                                  disabled={type === 'edit'}
                                   {...field}
                                   onBlur={(e) => {
                                     field.onBlur();
@@ -697,6 +698,9 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                               <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Profile details pre-filled from existing user account.
                               </p>
+                            )}
+                            {type === 'edit' && (
+                              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed after creation.</p>
                             )}
                           </FormItem>
                         )} />
