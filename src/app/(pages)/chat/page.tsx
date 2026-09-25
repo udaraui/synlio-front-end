@@ -18,6 +18,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { setBreadcrumbs } = useBreadcrumb();
 
   useEffect(() => {
@@ -32,6 +33,14 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +67,7 @@ export default function ChatPage() {
         { id: aiMessageId, role: "ai", content: "" },
       ]);
       
-      setIsLoading(false); // Stop the "thinking" indicator, we are now streaming
+      setIsLoading(false);
 
       // Read the stream
       const reader = response.getReader();
@@ -168,15 +177,21 @@ export default function ChatPage() {
       <div className="p-3 bg-background border-t">
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto relative flex items-end overflow-hidden rounded-full border bg-card focus-within:ring-1 focus-within:ring-primary"
+          className="max-w-4xl mx-auto relative flex items-end overflow-hidden rounded-[24px] border bg-card focus-within:ring-1 focus-within:ring-primary"
         >
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e as any);
+              }
+            }}
             placeholder="Ask something..."
-            className="w-full h-14 bg-transparent dark:bg-gray-900 px-5 pr-12 text-sm focus:outline-none"
-            autoComplete="off"
+            className="w-full min-h-[56px] max-h-[200px] py-[18px] bg-transparent dark:bg-gray-900 px-5 pr-14 text-sm focus:outline-none resize-none overflow-y-auto"
+            rows={1}
           />
           <Button
             type="submit"
