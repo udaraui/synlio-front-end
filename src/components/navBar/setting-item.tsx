@@ -351,7 +351,7 @@ function SettingItem() {
   const colorOptions = [
     { name: "Default", value: "default" },
     { name: "Green", value: "#10b981" },
-    { name: "Black", value: "#09090b" },
+    { name: "Slate", value: "#475569" },
     { name: "Blue", value: "#3b82f6" },
     { name: "Purple", value: "#a855f7" },
     { name: "Red", value: "#ef4444" },
