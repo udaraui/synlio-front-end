@@ -103,10 +103,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     fetchInitialData();
   }, []);
 
-  const dashboardData = React.useMemo(() => {
+  const mySpaceData = React.useMemo(() => {
     const items = [
       { title: "Home", url: "/home", icon: Home, privilege_codes: [] },
-      { title: "Synalytics", url: "/synalytics", icon: ChartNoAxesCombined, privilege_codes: [], isUnderConstruction: true },
+      {
+        title: "Pulse",
+        url: "/pulse",
+        icon: Activity,
+        iconClassName: "text-yellow-400",
+        iconColor: "#facc15",
+        privilege_codes: ["109"],
+        activePaths: ["/pulse"],
+      },
     ];
     return isSystemUser ? [] : items;
   }, [isSystemUser]);
@@ -127,23 +135,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         privilege_codes: ["100"],
         activePaths: ["/ticket-management/ticket-space", "/ticket-management/ticket"],
       },
-      {
-        title: "Pulse",
-        url: "/pulse",
-        icon: Activity,
-        iconClassName: "text-yellow-400",
-        iconColor: "#facc15",
-        privilege_codes: ["109"],
-        activePaths: ["/pulse"],
-      },
     ];
-    return isSystemUser ? items.filter((item) => item.title !== "Pulse") : items;
-  }, [isSystemUser]);
+    return items;
+  }, []);
 
-  const aiData = React.useMemo(() => [
-    { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [], isUnderConstruction: true },
-    { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
-  ], []);
+  const aiData = React.useMemo(() => {
+    const items = [
+      { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [], isUnderConstruction: true },
+      { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
+      { title: "Synalytics", url: "/synalytics", icon: ChartNoAxesCombined, privilege_codes: [], isUnderConstruction: true },
+    ];
+    return isSystemUser ? items.filter(i => i.title !== "Synalytics") : items;
+  }, [isSystemUser]);
 
   const resourceData = React.useMemo(() => [
     { title: "Resource", url: "/resource/management", icon: Users, privilege_codes: ["38"], activePaths: ["/resource/management"] },
@@ -167,7 +170,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return subs.length > 0 || allowed ? { ...item, items: subs } : null;
     }).filter(Boolean), [canAccess]);
 
-  const visibleDashboardItems = React.useMemo(() => filterItems(dashboardData), [dashboardData, filterItems]);
+  const visibleMySpaceItems = React.useMemo(() => filterItems(mySpaceData), [mySpaceData, filterItems]);
   const visibleSpacesItems = React.useMemo(() => filterItems(spacesData), [spacesData, filterItems]);
   const visibleAiItems = React.useMemo(() => filterItems(aiData), [aiData, filterItems]);
   const visibleResourceItems = React.useMemo(() => filterItems(resourceData), [resourceData, filterItems]);
@@ -179,8 +182,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <CompanySwitcher companies={companies as Company[]} fistActiveCompany={activeCompany} />
       </SidebarHeader>
       <SidebarContent className="sidebar gap-3 pt-1">
-        {visibleDashboardItems.length > 0 && <NavMain items={visibleDashboardItems} />}
-        {visibleAiItems.length > 0 && (<NavMain items={visibleAiItems} label="AI" />)}
+        {visibleMySpaceItems.length > 0 && <NavMain items={visibleMySpaceItems} label="My Space" />}
+        {visibleAiItems.length > 0 && (<NavMain items={visibleAiItems} label="Intelligence" />)}
         {visibleSpacesItems.length > 0 && (<NavMain items={visibleSpacesItems} label="Spaces" />)}
         {visibleResourceItems.length > 0 && <NavMain items={visibleResourceItems} label="Team" />}
         <NavMasters masters={visibleMastersItems} />

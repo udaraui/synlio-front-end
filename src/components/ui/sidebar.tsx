@@ -403,7 +403,7 @@ function SidebarGroupLabel({
       data-slot="sidebar-group-label"
       data-sidebar="group-label"
       className={cn(
-        "text-sidebar-foreground/70 ring-sidebar-ring flex h-5 shrink-0 items-center rounded-sm px-2 text-sm pb-2 outline-hidden transition-all duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 overflow-hidden",
+        "text-sidebar-foreground/70 ring-sidebar-ring flex h-5 shrink-0 items-center rounded-sm px-2 text-xs pb-2 outline-hidden transition-all duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 overflow-hidden",
         "group-data-[collapsible=icon]:text-transparent group-data-[collapsible=icon]:border-b group-data-[collapsible=icon]:border-sidebar-foreground/50 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:w-4 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:!-mt-[6px] group-data-[collapsible=icon]:!mb-[6px] group-data-[collapsible=icon]:!px-0 group-data-[collapsible=icon]:!pb-0 group-data-[collapsible=icon]:opacity-100",
         className
       )}
