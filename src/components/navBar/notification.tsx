@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import { io } from "socket.io-client";
 import { Bell, CheckCheck, Loader2, SquareCheckBig, Ticket, ExternalLink } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -174,6 +175,29 @@ function Notification() {
             channel.close();
         };
     }, [pollBadgeCount]);
+
+    // Listen to real-time Web PubSub events
+    useEffect(() => {
+        if (!user || !user.id) return;
+
+        const endpoint = process.env.NEXT_PUBLIC_WEBPUBSUB_ENDPOINT || "";
+        const hub = process.env.NEXT_PUBLIC_WEBPUBSUB_HUB || "Hub";
+
+        if (!endpoint) return;
+
+        const socket = io(endpoint, {
+            path: `/clients/socketio/hubs/${hub}`,
+            query: { userId: user.id },
+        });
+
+        socket.on("new_notification", () => {
+            void pollBadgeCount(); // Instant refresh on event
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, pollBadgeCount]);
 
     // Fetch full list only when dropdown opens
     useEffect(() => {
