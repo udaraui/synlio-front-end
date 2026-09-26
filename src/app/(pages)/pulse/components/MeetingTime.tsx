@@ -462,7 +462,7 @@ const MeetingTime = forwardRef<MeetingTimeHandle, MeetingTimeProps>(({ startDate
 
   return (
     <>
-      <div className="border rounded-lg border-l-3 border-l-purple-500 overflow-hidden bg-card text-card-foreground shadow-xs flex flex-col">
+      <div className="border rounded-lg border-l-2 border-l-purple-500 overflow-hidden bg-card text-card-foreground flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
           <span className="flex items-center gap-2 text-sm font-semibold">

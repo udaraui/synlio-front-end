@@ -327,7 +327,7 @@ const NeedsAttention: React.FC<NeedsAttentionProps> = ({ data, loading, error, o
     }
 
     return (
-        <div className="border rounded-lg border-l-3 border-l-red-400 overflow-hidden bg-card text-card-foreground shadow-xs">
+        <div className="border rounded-lg border-l-2 border-l-red-400 overflow-hidden bg-card text-card-foreground">
             <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                     <TriangleAlert className="h-4 w-4 text-red-400 flex-shrink-0" />

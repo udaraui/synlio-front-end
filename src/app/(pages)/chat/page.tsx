@@ -177,7 +177,7 @@ export default function ChatPage() {
       <div className="p-3 bg-background border-t">
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto relative flex items-end overflow-hidden rounded-[24px] border bg-card focus-within:ring-1 focus-within:ring-primary"
+          className="max-w-4xl mx-auto relative flex items-end overflow-hidden rounded-[24px] border border-input bg-card focus-within:ring-1 focus-within:ring-primary"
         >
           <textarea
             ref={textareaRef}

@@ -582,7 +582,7 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
   const totalCount = allItems.length;
 
   return (
-    <div className="border rounded-lg border-l-3 border-l-primary overflow-hidden bg-card text-card-foreground shadow-xs">
+    <div className="border rounded-lg border-l-2 border-l-primary overflow-hidden bg-card text-card-foreground">
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
         <span className="flex items-center gap-2 text-sm font-semibold">
           <MousePointerClick className="h-4 w-4 text-primary shrink-0" />
@@ -650,7 +650,7 @@ const SynlioActivity: React.FC<SynlioActivityProps> = ({ data, loading, error, s
               }}
             />
             <Label htmlFor="show-inprogress" className={cn("text-xs font-medium cursor-pointer", !showInProgressWork && "text-muted-foreground/80")}>
-              In progress work
+              On going work
             </Label>
           </div>
         </div>

@@ -8,7 +8,7 @@ const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
-  timeout: 30000, // 30 seconds timeout for all requests
+  timeout: 50000, // 50 seconds timeout for all requests
 });
 
 // A private variable inside this module to hold the token

@@ -463,7 +463,7 @@ function SettingItem() {
                   setShowSearchDropdown(true);
                   setSearchTerm("");
                 }}
-                className="pl-9 pr-10 py-1.5 text-sm bg-white dark:bg-gray-900 border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground w-64 transition-all"
+                className="pl-9 pr-10 py-1.5 text-sm bg-white dark:bg-gray-900 border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring w-64 transition-all"
               />
               {searchTerm && (
                 <X
