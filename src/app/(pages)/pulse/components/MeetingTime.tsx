@@ -370,6 +370,7 @@ const MeetingTime = forwardRef<MeetingTimeHandle, MeetingTimeProps>(({ startDate
     // this fires once with undefined dates and again moments later with real
     // ones, doubling every request below.
     if (!startDate || !endDate) {
+      if (!parentLoading) setLoading(false);
       return undefined;
     }
 
@@ -405,7 +406,7 @@ const MeetingTime = forwardRef<MeetingTimeHandle, MeetingTimeProps>(({ startDate
   useEffect(() => {
     const cleanup = fetchData();
     return () => { cleanup.then((fn) => fn?.()); };
-  }, [fetchData]);
+  }, [fetchData, parentLoading]);
 
   const handleIgnore = async (meeting: Meeting) => {
     const isIgnored = meeting.actionState === 'ignored';
@@ -533,7 +534,7 @@ const MeetingTime = forwardRef<MeetingTimeHandle, MeetingTimeProps>(({ startDate
         {/* Body */}
         <div className="flex flex-col">
           {/* Skeleton */}
-          {loading && Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+          {(loading || parentLoading) && Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
             <div key={i} className="flex flex-col gap-1.5 px-4 py-3 border-b last:border-b-0 animate-pulse">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0 space-y-1.5">
@@ -553,7 +554,7 @@ const MeetingTime = forwardRef<MeetingTimeHandle, MeetingTimeProps>(({ startDate
           ))}
 
           {/* Error */}
-          {!loading && error && (
+          {!(loading || parentLoading) && error && (
             <div className="flex flex-col items-center justify-center gap-2 text-center py-8 px-4">
               <AlertCircle className="h-8 w-8 text-destructive/50" />
               <p className="text-sm font-medium text-destructive">Failed to load meetings</p>
@@ -562,16 +563,16 @@ const MeetingTime = forwardRef<MeetingTimeHandle, MeetingTimeProps>(({ startDate
           )}
 
           {/* Empty */}
-          {!loading && !error && meetings.length === 0 && (
+          {!(loading || parentLoading) && !error && meetings.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-2 text-center py-8 px-4">
               <PackageOpen className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground">No meetings synced yet</p>
+              <p className="text-sm font-medium text-muted-foreground">No recent meetings</p>
               <p className="text-xs text-muted-foreground/60">Your recent meetings will appear here.</p>
             </div>
           )}
 
           {/* Meeting rows */}
-          {!loading && !error && visibleMeetings.map((meeting) => {
+          {!(loading || parentLoading) && !error && visibleMeetings.map((meeting) => {
             const isIgnored = meeting.actionState === 'ignored';
             const effectiveStart = new Date(meeting.effectiveStartTime ?? meeting.scheduledStartTime);
             const effectiveEnd = meeting.effectiveEndTime

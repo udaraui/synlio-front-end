@@ -96,6 +96,7 @@ export function UserEditDrawer({
   const [isSystemUser, setIsSystemUser] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -125,6 +126,7 @@ export function UserEditDrawer({
 
   useEffect(() => {
     const getInitialData = async () => {
+      setIsLoadingDropdowns(true);
       const localCompanies = safeParse(localStorage.getItem("companies")) || [];
       const systemMode = localCompanies.length === 0;
       setIsSystemUser(systemMode);
@@ -143,6 +145,7 @@ export function UserEditDrawer({
         const response = await getAllRoleByCompany(active_company.companyId);
         if (response.status === 200) setRoles(response.data);
       }
+      setIsLoadingDropdowns(false);
     };
     getInitialData();
   }, [user]);
@@ -150,6 +153,7 @@ export function UserEditDrawer({
   const selectedCompanyId = form.watch("companyId");
   useEffect(() => {
     if (isSystemUser && selectedCompanyId) {
+      setIsLoadingDropdowns(true);
       const fetchRoles = async () => {
         const response = await getAllRoleByCompany(parseInt(selectedCompanyId));
         if (response.status === 200) setRoles(response.data);
@@ -158,8 +162,9 @@ export function UserEditDrawer({
         const response = await getAllDivisionsByCompanyId(parseInt(selectedCompanyId));
         if (response.status === 200) setDivisions(response.data);
       };
-      fetchRoles();
-      fetchDivisions();
+      Promise.all([fetchRoles(), fetchDivisions()]).finally(() => {
+        setIsLoadingDropdowns(false);
+      });
     }
   }, [selectedCompanyId, isSystemUser]);
 
@@ -220,11 +225,13 @@ export function UserEditDrawer({
 
   const getFilteredDivisions = async () => {
     if (isSystemUser) return;
+    setIsLoadingDropdowns(true);
     const active_company = safeParse(localStorage.getItem("active_company"));
     if (active_company?.companyId) {
       const response = await getAllDivisionsByCompanyId(active_company.companyId);
       if (response.status === 200) setDivisions(response.data);
     }
+    setIsLoadingDropdowns(false);
   };
 
   const onSubmit = async (data: any) => {
@@ -493,9 +500,10 @@ export function UserEditDrawer({
                                 type="button"
                                 variant="outline"
                                 role="combobox"
+                                disabled={isLoadingDropdowns}
                                 className="w-full justify-between font-normal"
                               >
-                                {selectedCount > 0
+                                {isLoadingDropdowns ? "Loading..." : selectedCount > 0
                                   ? `${selectedCount} division(s)`
                                   : "Select divisions"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -559,9 +567,10 @@ export function UserEditDrawer({
                                 type="button"
                                 variant="outline"
                                 role="combobox"
+                                disabled={isLoadingDropdowns}
                                 className="w-full justify-between font-normal"
                               >
-                                {selectedCount > 0
+                                {isLoadingDropdowns ? "Loading..." : selectedCount > 0
                                   ? `${selectedCount} role(s)`
                                   : "Select roles..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

@@ -228,7 +228,9 @@ const formatSingleChange = (item: ActivityItem, capitalizeFirst: boolean = false
         } else {
           const displayKey = firstKey;
 
-          if (displayKey === 'assigneeName') {
+          if (displayKey === 'assigneeProfilePicUrl') {
+            actionText = <span>changed assignee profile pic.</span>;
+          } else if (displayKey === 'assigneeName') {
             const fromUser = { name: from, pic: payload.assigneeProfilePicUrl?.from, email: payload.assigneeEmail?.from };
             const toUser = { name: to, pic: payload.assigneeProfilePicUrl?.to, email: payload.assigneeEmail?.to };
             if (from && to) {
@@ -271,23 +273,23 @@ const formatSingleChange = (item: ActivityItem, capitalizeFirst: boolean = false
             }
           } else {
             const isProgress = firstKey === 'progressPercentage';
-            const fromFormatted = formatValue(from) + (isProgress && from != null ? '%' : '');
-            const toFormatted = formatValue(to) + (isProgress && to != null ? '%' : '');
-            if (from && to) {
-              actionText = (
-                <>
-                  <span>changed {displayField.toLowerCase()} from </span>
-                  <span className={highlight ? "font-medium text-foreground" : ""}>{fromFormatted}</span>
-                  <ArrowRight className="inline h-3 w-3 mx-1 text-muted-foreground" />
-                  <span className={highlight ? "font-medium text-foreground" : ""}>{toFormatted}</span>
-                </>
-              );
-            } else if (to) {
-              actionText = <><span>set {displayField.toLowerCase()} to </span><span className={highlight ? "font-medium text-foreground" : ""}>{toFormatted}</span></>;
-            } else if (from) {
-              actionText = <><span>removed {displayField.toLowerCase()} </span><span className={highlight ? "font-medium text-foreground" : ""}>{fromFormatted}</span></>;
+              const fromFormatted = formatValue(from) + (isProgress && from != null ? '%' : '');
+              const toFormatted = formatValue(to) + (isProgress && to != null ? '%' : '');
+              if (from && to) {
+                actionText = (
+                  <>
+                    <span>changed {displayField.toLowerCase()} from </span>
+                    <span className={`truncate max-w-[150px] inline-block align-bottom ${highlight ? "font-medium text-foreground" : ""}`} title={fromFormatted as string}>{fromFormatted}</span>
+                    <ArrowRight className="inline h-3 w-3 mx-1 text-muted-foreground" />
+                    <span className={`truncate max-w-[150px] inline-block align-bottom ${highlight ? "font-medium text-foreground" : ""}`} title={toFormatted as string}>{toFormatted}</span>
+                  </>
+                );
+              } else if (to) {
+                actionText = <><span>set {displayField.toLowerCase()} to </span><span className={`truncate max-w-[150px] inline-block align-bottom ${highlight ? "font-medium text-foreground" : ""}`} title={toFormatted as string}>{toFormatted}</span></>;
+              } else if (from) {
+                actionText = <><span>removed {displayField.toLowerCase()} </span><span className={`truncate max-w-[150px] inline-block align-bottom ${highlight ? "font-medium text-foreground" : ""}`} title={fromFormatted as string}>{fromFormatted}</span></>;
+              }
             }
-          }
         }
       }
     }

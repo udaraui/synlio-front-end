@@ -912,8 +912,11 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
         const profilePicKeys = ['profilePicUrl', 'profilePic', 'profilePicture', 'avatar', 'avatarUrl', 'assigneeProfilePicUrl'];
         profilePicKeys.forEach(picKey => {
             if (payload[picKey]) {
-                // Only show "Profile Pic Updated" if it wasn't an assignee change (assignee change already handles itself well)
-                if (picKey !== 'assigneeProfilePicUrl') {
+                if (picKey === 'assigneeProfilePicUrl') {
+                    if (!payload.assigneeName) {
+                        sentences.push(wrapSentence(<span key={picKey}>changed assignee profile pic.</span>));
+                    }
+                } else {
                     sentences.push(wrapSentence(<span key={picKey}>updated profile pic.</span>));
                 }
             }
@@ -941,9 +944,9 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
             const val = payload[k];
             const label = k.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
             if (val && typeof val === 'object' && ('from' in val || 'to' in val)) {
-                sentences.push(wrapSentence(<span key={k}>changed {label} from <span className={valClass}>{String(val.from || 'None')}</span>{toText}<span className={valClass}>{String(val.to || 'None')}</span>.</span>));
+                sentences.push(wrapSentence(<span key={k}>changed {label} from <span className={`truncate max-w-[150px] inline-block align-bottom ${valClass}`} title={String(val.from || 'None')}>{String(val.from || 'None')}</span>{toText}<span className={`truncate max-w-[150px] inline-block align-bottom ${valClass}`} title={String(val.to || 'None')}>{String(val.to || 'None')}</span>.</span>));
             } else if (val && typeof val !== 'object') {
-                sentences.push(wrapSentence(<span key={k}>updated {label} to <span className={valClass}>{String(val)}</span>.</span>));
+                sentences.push(wrapSentence(<span key={k}>updated {label} to <span className={`truncate max-w-[200px] inline-block align-bottom ${valClass}`} title={String(val)}>{String(val)}</span>.</span>));
             }
         });
 

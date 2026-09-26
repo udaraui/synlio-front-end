@@ -1,9 +1,8 @@
-// /lib/axios.ts
-
 import { API_URL } from "@/services/api";
 import { safeParse } from "@/services/auth/auth-service";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
+
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -114,15 +113,7 @@ axiosInstance.interceptors.response.use(
         const segments = parsedPath.split('/').filter(s => s && s !== 'api' && s !== 'v1');
         const entity = segments.length > 0 ? segments[0].replace(/-/g, ' ') : 'resource';
 
-        const method = originalRequest?.method?.toUpperCase() || '';
-        let actionName = 'perform this action';
-
-        if (method === 'GET') actionName = `view ${entity} details`;
-        else if (method === 'POST') actionName = `create a new ${entity}`;
-        else if (method === 'PUT' || method === 'PATCH') actionName = `update this ${entity}`;
-        else if (method === 'DELETE') actionName = `delete this ${entity}`;
-
-        toast.error(`Access denied, You don't have permission to ${actionName}`);
+        toast.error(`Access denied, You don't have permission: ${entity}`);
       }
 
       return Promise.reject(error);
@@ -213,4 +204,3 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
-

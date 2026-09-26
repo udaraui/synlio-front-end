@@ -2165,18 +2165,18 @@ export default function CreateTicketPage() {
                                     <div className="mt-1.5 flex flex-col gap-1">
                                       {fromToPairs.map((pair, pi) => (
                                         <div key={pi} className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="inline-flex items-center text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                                          <span className="inline-flex items-center text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate max-w-[150px]" title={String(pair.from)}>
                                             {(pair as any).fromPic && (
-                                              <Avatar className="h-3.5 w-3.5 mr-1"><AvatarImage src={(pair as any).fromPic} /><AvatarFallback className="text-[8px] bg-primary text-white">{getInitials(pair.from)}</AvatarFallback></Avatar>
+                                              <Avatar className="h-3.5 w-3.5 mr-1 flex-shrink-0"><AvatarImage src={(pair as any).fromPic} /><AvatarFallback className="text-[8px] bg-primary text-white">{getInitials(pair.from)}</AvatarFallback></Avatar>
                                             )}
-                                            {pair.from}
+                                            <span className="truncate">{pair.from}</span>
                                           </span>
                                           <ArrowRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                          <span className="inline-flex items-center text-[11px] text-primary font-semibold">
+                                          <span className="inline-flex items-center text-[11px] text-primary font-semibold truncate max-w-[150px]" title={String(pair.to)}>
                                             {(pair as any).toPic && (
-                                              <Avatar className="h-3.5 w-3.5 mr-1"><AvatarImage src={(pair as any).toPic} /><AvatarFallback className="text-[8px] bg-primary text-white">{getInitials(pair.to)}</AvatarFallback></Avatar>
+                                              <Avatar className="h-3.5 w-3.5 mr-1 flex-shrink-0"><AvatarImage src={(pair as any).toPic} /><AvatarFallback className="text-[8px] bg-primary text-white">{getInitials(pair.to)}</AvatarFallback></Avatar>
                                             )}
-                                            {pair.to}
+                                            <span className="truncate">{pair.to}</span>
                                           </span>
                                         </div>
                                       ))}
