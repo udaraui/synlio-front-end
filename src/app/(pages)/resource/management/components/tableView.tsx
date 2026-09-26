@@ -37,6 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import ResponsiveSkillRow from "@/components/common/ResponsiveSkillRow";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -387,24 +388,12 @@ const TableView: React.FC<TableViewProps> = ({
               </svg>
               */}
 
-              <div className="w-7 h-7 rounded-full overflow-hidden relative z-10 bg-primary flex items-center justify-center border border-gray-100 dark:border-gray-700">
-                {r.profile_pic && r.profile_pic.length > 0 && !r.profile_pic.includes("ui-avatars.com") ? (
-                  <img
-                    src={r.profile_pic}
-                    alt={fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-[10px] font-medium text-white dark:text-black leading-none mt-[1px]">
-                    {initials}
-                  </span>
-                )}
-                {/*
-                <span className="absolute text-white dark:text-black inset-0 flex items-center justify-center text-[10px] opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 bg-primary">
-                  {utilizationPercent}%
-                </span>
-                */}
-              </div>
+              <Avatar className="w-7 h-7 rounded-full border border-gray-100 dark:border-gray-700 bg-primary">
+                <AvatarImage src={(r.profile_pic && !r.profile_pic.includes("ui-avatars.com")) ? r.profile_pic : undefined} alt={fullName} className="object-cover" />
+                <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
             </div>
 
             <div className="flex flex-col min-w-0">

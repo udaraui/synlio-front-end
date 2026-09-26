@@ -38,7 +38,7 @@ import {
 import { disableUser } from '@/services/user-management/user-service';
 import { disableResource } from '@/services/resource-management/resource-service';
 import DeleteUserModal from './delete-user-modal';
-import { ProfileImage } from '@/components/common/ProfileImage';
+
 import {
   Table,
   TableBody,
@@ -384,23 +384,15 @@ const UserList: React.FC<UserListProps> = ({
                         >
                           <TableCell className="py-2 px-4">
                             <div className="flex items-center gap-3">
-                              {user.profile_picture ? (
-                                <ProfileImage
-                                  profileImage={user.profile_picture}
-                                  userName={user.first_name}
-                                  size="sm"
+                              <Avatar className="h-8 w-8 flex-shrink-0">
+                                <AvatarImage
+                                  src={user.profile_picture || undefined}
+                                  alt={`${user.first_name} ${user.last_name}`}
                                 />
-                              ) : (
-                                <Avatar className="h-8 w-8 flex-shrink-0">
-                                  <AvatarImage
-                                    src={user.profile_picture}
-                                    alt={`${user.first_name} ${user.last_name}`}
-                                  />
-                                  <AvatarFallback className="text-xs font-semibold">
-                                    {getInitials(user.first_name, user.last_name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
+                                <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-black">
+                                  {getInitials(user.first_name, user.last_name)}
+                                </AvatarFallback>
+                              </Avatar>
                               <div className="min-w-0">
                                 <p className="text-sm font-medium truncate">
                                   {user.first_name} {user.last_name}

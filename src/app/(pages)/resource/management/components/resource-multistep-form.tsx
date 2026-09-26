@@ -658,14 +658,14 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                         <FormField control={form.control} name="first_name" render={({ field }) => (
                           <FormItem>
                             <FormLabel>First Name <span className="text-red-500">*</span></FormLabel>
-                            <FormControl><Input placeholder="e.g. John" className="shadow-none" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g. John" className="shadow-none" {...field} onChange={(e) => field.onChange(e.target.value.trimStart())} onBlur={(e) => field.onChange(e.target.value.trim())} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
                         <FormField control={form.control} name="last_name" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Last Name <span className="text-red-500">*</span></FormLabel>
-                            <FormControl><Input placeholder="e.g. Doe" className="shadow-none" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g. Doe" className="shadow-none" {...field} onChange={(e) => field.onChange(e.target.value.trimStart())} onBlur={(e) => field.onChange(e.target.value.trim())} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
@@ -681,9 +681,10 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                   className={`shadow-none ${type === 'edit' ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
                                   disabled={type === 'edit'}
                                   {...field}
+                                  onChange={(e) => field.onChange(e.target.value.trimStart())}
                                   onBlur={(e) => {
-                                    field.onBlur();
-                                    if (type === 'create') handleEmailBlur(e.target.value);
+                                    field.onChange(e.target.value.trim());
+                                    if (type === 'create') handleEmailBlur(e.target.value.trim());
                                   }}
                                 />
                               </FormControl>
@@ -695,12 +696,12 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                             </div>
                             <FormMessage />
                             {type === 'create' && emailCheckStatus === 'prefilled_from_user' && (
-                              <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                              <p className="text-xs text-emerald-600 flex items-center gap-1 mt-0.5">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Profile details pre-filled from existing user account.
                               </p>
                             )}
                             {type === 'edit' && (
-                              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed after creation.</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">Email cannot be changed after creation.</p>
                             )}
                           </FormItem>
                         )} />

@@ -12,11 +12,6 @@ import {
   Camera,
   Check,
   ChevronsUpDown,
-  Mail,
-  Phone,
-  Briefcase,
-  Shield,
-  Building2,
   Loader2,
   Save,
 } from "lucide-react";
@@ -117,6 +112,16 @@ export function UserEditDrawer({
       companyId: defaultCompanyId || "",
     },
   });
+
+  const watchedFirstName = form.watch("first_name") || "";
+  const watchedLastName = form.watch("last_name") || "";
+
+  const getInitials = (first: string, last: string) => {
+    const f = first.trim();
+    const l = last.trim();
+    if (!f && !l) return "?";
+    return `${f.charAt(0) || ""}${l.charAt(0) || ""}`.toUpperCase();
+  };
 
   useEffect(() => {
     const getInitialData = async () => {
@@ -309,8 +314,7 @@ export function UserEditDrawer({
                             className="object-cover"
                           />
                           <AvatarFallback className="text-2xl font-semibold bg-primary text-white">
-                            {user?.first_name?.charAt(0)}
-                            {user?.last_name?.charAt(0)}
+                            {getInitials(watchedFirstName, watchedLastName)}
                           </AvatarFallback>
                         </Avatar>
                         <button
@@ -349,7 +353,14 @@ export function UserEditDrawer({
                       <FormItem>
                         <FormLabel>First Name <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. John" autoComplete="off" className="shadow-none" {...field} />
+                          <Input 
+                            placeholder="e.g. John" 
+                            autoComplete="off" 
+                            className="shadow-none" 
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value.trimStart())}
+                            onBlur={(e) => field.onChange(e.target.value.trim())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -362,7 +373,14 @@ export function UserEditDrawer({
                       <FormItem>
                         <FormLabel>Last Name <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Doe" autoComplete="off" className="shadow-none" {...field} />
+                          <Input 
+                            placeholder="e.g. Doe" 
+                            autoComplete="off" 
+                            className="shadow-none" 
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value.trimStart())}
+                            onBlur={(e) => field.onChange(e.target.value.trim())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

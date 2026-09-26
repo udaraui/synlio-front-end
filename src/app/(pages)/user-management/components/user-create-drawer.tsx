@@ -113,6 +113,16 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
     },
   });
 
+  const watchedFirstName = form.watch("first_name") || "";
+  const watchedLastName = form.watch("last_name") || "";
+
+  const getInitials = (first: string, last: string) => {
+    const f = first.trim();
+    const l = last.trim();
+    if (!f && !l) return <UserIcon className="w-12 h-12" />;
+    return `${f.charAt(0) || ""}${l.charAt(0) || ""}`.toUpperCase();
+  };
+
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
@@ -316,13 +326,13 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                   render={({ field: { onChange, value, ...rest } }) => (
                     <div className="flex flex-col items-center gap-2 flex-shrink-0">
                       <div className="relative">
-                        <Avatar className="h-25 w-25 border-1 border-background ring-1 ring-border">
+                        <Avatar className="h-24 w-24 border-2 border-background ring-1 ring-border">
                           <AvatarImage
                             src={previewUrl || undefined}
                             className="object-cover"
                           />
-                          <AvatarFallback className="text-lg font-semibold bg-primary text-white">
-                            <UserIcon className="w-12 h-12" />
+                          <AvatarFallback className="text-2xl font-semibold bg-primary text-white">
+                            {getInitials(watchedFirstName, watchedLastName)}
                           </AvatarFallback>
                         </Avatar>
                         <button
@@ -369,7 +379,15 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                             )}
                           </div>
                           <FormControl>
-                            <Input type="email" placeholder="e.g. john@company.com" autoComplete="new-password" className="shadow-none" {...field} />
+                            <Input 
+                              type="email" 
+                              placeholder="e.g. john@company.com" 
+                              autoComplete="new-password" 
+                              className="shadow-none" 
+                              {...field} 
+                              onChange={(e) => field.onChange(e.target.value.trimStart())}
+                              onBlur={(e) => field.onChange(e.target.value.trim())}
+                            />
                           </FormControl>
                          {existingUser && isAlreadyInCompany && (
                             <div className="flex items-center gap-1.5 mt-1 text-sm text-amber-600 dark:text-amber-400">
@@ -395,7 +413,14 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                       <FormItem>
                         <FormLabel>First Name <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. John" autoComplete="off" className="shadow-none" {...field} />
+                          <Input 
+                            placeholder="e.g. John" 
+                            autoComplete="off" 
+                            className="shadow-none" 
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value.trimStart())}
+                            onBlur={(e) => field.onChange(e.target.value.trim())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -408,7 +433,14 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                       <FormItem>
                         <FormLabel>Last Name <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Doe" autoComplete="off" className="shadow-none" {...field} />
+                          <Input 
+                            placeholder="e.g. Doe" 
+                            autoComplete="off" 
+                            className="shadow-none" 
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value.trimStart())}
+                            onBlur={(e) => field.onChange(e.target.value.trim())}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

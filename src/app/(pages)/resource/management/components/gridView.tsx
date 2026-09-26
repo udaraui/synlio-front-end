@@ -38,6 +38,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // --- Interface Definitions ---
 interface Resource {
@@ -259,24 +260,12 @@ const GridView: React.FC<GridViewProps> = ({
                   </svg>
                   */}
 
-                  <div className="w-8 h-8 rounded-full overflow-hidden relative z-10 bg-primary flex items-center justify-center border border-gray-100 dark:border-gray-700">
-                    {resource.profile_pic && resource.profile_pic.length > 0 ? (
-                      <img
-                        src={resource.profile_pic}
-                        alt={fullName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white dark:text-black text-xs font-semibold">
-                        {initials}
-                      </span>
-                    )}
-                    {/*
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white dark:text-black opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 bg-primary">
-                      {utilizationPercent}%
-                    </span>
-                    */}
-                  </div>
+                  <Avatar className="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-700 bg-primary">
+                    <AvatarImage src={resource.profile_pic || undefined} alt={fullName} className="object-cover" />
+                    <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
 
                 <div className="flex-1 min-w-0">

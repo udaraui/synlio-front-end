@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
-import { ProfileImage } from "@/components/common/ProfileImage";
+
 
 interface UserViewProps {
   open: boolean;
@@ -88,16 +88,10 @@ const UserView: React.FC<UserViewProps> = ({
           {canViewUser ? (
             isLoading ? (
               <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
-            ) : user.profile_picture ? (
-              <ProfileImage
-                profileImage={user.profile_picture}
-                userName={user.first_name}
-                size="md"
-              />
             ) : (
               <Avatar className="h-14 w-14 flex-shrink-0 shadow-sm border border-border/50">
                 <AvatarImage
-                  src={user.profile_picture}
+                  src={user.profile_picture || undefined}
                   alt={`${user.first_name} ${user.last_name}`}
                 />
                 <AvatarFallback className="text-lg font-semibold bg-primary text-white">
