@@ -104,7 +104,7 @@ function SettingItem() {
   // Privilege checks
   const canSearchTasks = usePrivilegeGuard("54");
   const canSearchSpaces = usePrivilegeGuard("44");
-  const canViewAllSpaces = usePrivilegeGuard("106");
+  const canViewSpaces = usePrivilegeGuard("44");
 
   // Handle theme change with backend sync
   const handleThemeChange = async (newTheme: string) => {
@@ -125,7 +125,7 @@ function SettingItem() {
     const fetchTaskSpaces = async () => {
       try {
         const filters: any[] = [];
-        if (!canViewAllSpaces && user?.id) {
+        if (!canViewSpaces && user?.id) {
           filters.push({ field: "userId", value: user.id, matchMode: "member" });
         }
 
@@ -141,7 +141,7 @@ function SettingItem() {
       }
     };
     fetchTaskSpaces();
-  }, [canSearchSpaces, canViewAllSpaces, user?.id]);
+  }, [canSearchSpaces, canViewSpaces, user?.id]);
 
   // Load status + severity configs whenever selected spaces change
   useEffect(() => {

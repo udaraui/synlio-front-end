@@ -239,7 +239,7 @@ function TicketPage() {
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const canView = usePrivilegeGuard("101") as boolean;
   const canCreate = usePrivilegeGuard("103") as boolean;
-  const canViewAllTicketSpaces = usePrivilegeGuard("105") as boolean;
+  const canViewTicketSpaces = usePrivilegeGuard("100") as boolean;
   // Export Excel privilege — id: 113 (export:excel-tickets)
   const canExportTickets = usePrivilegeGuard("113") as boolean;
   const [isLoading, setIsLoading] = useState(false);
@@ -550,7 +550,7 @@ function TicketPage() {
             },
           ]
           : [];
-        if (!canViewAllTicketSpaces && user?.id) {
+        if (!canViewTicketSpaces && user?.id) {
           filters.push({
             field: "userId",
             value: user.id,
@@ -1193,7 +1193,7 @@ function TicketPage() {
         multiSorts: [{ field: sortField, order: sortOrder.toString() }],
       };
 
-      const result = canViewAllTicketSpaces
+      const result = canViewTicketSpaces
         ? await searchTickets(params)
         : await searchTicketsByQueue(params);
       // Normalise assignee + participants from TicketPermission → User format
@@ -1255,7 +1255,7 @@ function TicketPage() {
     }
   }, [
     canView,
-    canViewAllTicketSpaces,
+    canViewTicketSpaces,
     user?.id,
     isInitialized,
     configVersion,
@@ -1382,7 +1382,7 @@ function TicketPage() {
               multiSorts: [{ field: "createdAt", order: "-1" }], // Default sort by date
             };
 
-            const result = canViewAllTicketSpaces
+            const result = canViewTicketSpaces
               ? await searchTickets(params)
               : await searchTicketsByQueue(params);
 

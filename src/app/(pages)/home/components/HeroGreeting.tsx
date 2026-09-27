@@ -163,7 +163,7 @@ export default function HeroGreeting({
   refreshing = false,
 }: HeroGreetingProps) {
   const { user } = useAuth();
-  const canViewAllTicketSpaces = usePrivilegeGuard("105") as boolean;
+  const canViewTicketSpaces = usePrivilegeGuard("100") as boolean;
   const displayName = user?.first_name ?? user?.name ?? "there";
   const greeting = getGreeting();
 
@@ -184,7 +184,7 @@ export default function HeroGreeting({
       getUserConfig(user.id),
       canTasks ? searchTaskSpaces({}) : Promise.resolve({ data: [] }),
       canTickets ? searchTicketSpaces(
-        !canViewAllTicketSpaces && user.id ? { filters: [{ field: 'userId', value: user.id, matchMode: 'member' }] } : {}
+        !canViewTicketSpaces && user.id ? { filters: [{ field: 'userId', value: user.id, matchMode: 'member' }] } : {}
       ) : Promise.resolve({ data: [] }),
     ])
       .then(([config, taskSpacesRes, ticketSpacesRes]) => {
@@ -211,7 +211,7 @@ export default function HeroGreeting({
       })
       .catch(() => { })
       .finally(() => setLoading(false));
-  }, [user?.id, canTasks, canTickets, canViewAllTicketSpaces]);
+  }, [user?.id, canTasks, canTickets, canViewTicketSpaces]);
 
   // ── Navigation handlers ───────────────────────────────────────────────
   const handleTaskBoard = (t: FilterTemplate) => {

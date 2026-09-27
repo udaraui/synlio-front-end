@@ -142,8 +142,8 @@ export default function LinkWorkItemDialog({
   onLinked,
 }: LinkWorkItemDialogProps) {
   const { user } = useAuth();
-  const canViewAllTaskSpaces = usePrivilegeGuard('106') as boolean;
-  const canViewAllTicketSpaces = usePrivilegeGuard('105') as boolean;
+  const canViewTaskSpaces = usePrivilegeGuard('44') as boolean;
+  const canViewTicketSpaces = usePrivilegeGuard('100') as boolean;
   const [targetType, setTargetType] = useState<WorkItemType>(currentType);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(ALL_SPACES);
@@ -203,9 +203,9 @@ export default function LinkWorkItemDialog({
     (async () => {
       try {
         const searchFn = targetType === 'Task' ? searchTaskSpaces : searchTicketSpaces;
-        const canViewAllSpaces = targetType === 'Task' ? canViewAllTaskSpaces : canViewAllTicketSpaces;
+        const canViewSpaces = targetType === 'Task' ? canViewTaskSpaces : canViewTicketSpaces;
         const filters: any[] = [];
-        if (!canViewAllSpaces && user?.id) {
+        if (!canViewSpaces && user?.id) {
           filters.push({ field: 'userId', value: user.id, matchMode: 'member' });
         }
         const res = await searchFn({
@@ -222,7 +222,7 @@ export default function LinkWorkItemDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, targetType, canViewAllTaskSpaces, canViewAllTicketSpaces, user?.id]);
+  }, [open, targetType, canViewTaskSpaces, canViewTicketSpaces, user?.id]);
 
   // Re-run search when target type or space filter changes
   useEffect(() => {
@@ -297,11 +297,11 @@ export default function LinkWorkItemDialog({
       try {
         const searchFn = targetType === 'Task' ? searchTasks : searchTickets;
         const spaceField = targetType === 'Task' ? 'taskSpaceId' : 'ticketSpaceId';
-        const canViewAllSpaces = targetType === 'Task' ? canViewAllTaskSpaces : canViewAllTicketSpaces;
+        const canViewSpaces = targetType === 'Task' ? canViewTaskSpaces : canViewTicketSpaces;
         const spaceFilter =
           selectedSpaceId !== ALL_SPACES
             ? [{ field: spaceField, value: Number(selectedSpaceId), matchMode: 'equals' }]
-            : !canViewAllSpaces
+            : !canViewSpaces
               ? [{ field: spaceField, value: spaces.map((s) => s.id), matchMode: 'in' }]
               : [];
         const [nameRes, codeRes] = await Promise.all([

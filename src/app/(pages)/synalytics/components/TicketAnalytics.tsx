@@ -81,7 +81,7 @@ export default function TicketAnalytics({
   onSaveStatusChange?: (s: string) => void;
 } = {}) {
   const { user } = useAuth();
-  const canViewAllTicketSpaces = usePrivilegeGuard("105") as boolean;
+  const canViewTicketSpaces = usePrivilegeGuard("100") as boolean;
 
   // ── Layout hook ────────────────────────────────────────────────────────────
   const { cards, sortedVisible, loaded, saveStatus, toggleVisibility, reorder, reorderAll, updateWidth, resetToDefault } =
@@ -127,7 +127,7 @@ export default function TicketAnalytics({
         const activeCompany = JSON.parse(localStorage.getItem("active_company") || "null");
         const filters: any[] = activeCompany?.id
           ? [{ field: "companyId", value: activeCompany.id, matchMode: "equals" }] : [];
-        if (!canViewAllTicketSpaces && user?.id)
+        if (!canViewTicketSpaces && user?.id)
           filters.push({ field: "userId", value: user.id, matchMode: "member" });
         const result = await searchTicketSpaces({ first: 0, rows: 1000, filters, sortField: "name", sortOrder: 1 });
         const spaces = result.data || [];

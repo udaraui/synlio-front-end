@@ -49,7 +49,7 @@ function Page() {
   const canCreate = usePrivilegeGuard("45") as boolean;
   const canEdit = usePrivilegeGuard("46") as boolean;
   const canDelete = usePrivilegeGuard("50") as boolean;
-  const canViewAllSpaces = usePrivilegeGuard("106") as boolean;
+  const canViewSpaces = usePrivilegeGuard("44") as boolean;
   const canCreateTask = usePrivilegeGuard("55") as boolean;
   const canViewTask = usePrivilegeGuard("54") as boolean;
   const [isLoading, setIsLoading] = useState(false);
@@ -93,7 +93,7 @@ function Page() {
     const companyId = safeParse(localStorage.getItem("active_company"));
 
     const fetchKey = JSON.stringify({
-      canViewAllSpaces,
+      canViewSpaces,
       userId: user.id,
       nameTerm,
       descTerm,
@@ -110,7 +110,7 @@ function Page() {
 
     try {
       const filters: any[] = [];
-      if (!canViewAllSpaces)
+      if (!canViewSpaces)
         filters.push({ field: "userId", value: user.id, matchMode: "member" });
       if (nameTerm)
         filters.push({ field: "name", value: nameTerm, matchMode: "contains" });
@@ -178,7 +178,7 @@ function Page() {
     }
   }, [
     canView,
-    canViewAllSpaces,
+    canViewSpaces,
     user?.id,
     nameTerm,
     descTerm,

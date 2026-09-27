@@ -1265,9 +1265,9 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
                                                     const email = (r.email || '').toLowerCase();
                                                     return name.includes(resourceFilterSearch.toLowerCase()) || email.includes(resourceFilterSearch.toLowerCase());
                                                 })
-                                                .map(r => (
+                                                .map((r, idx) => (
                                                     <button
-                                                        key={r.id}
+                                                        key={r.id || r.email || idx}
                                                         className={cn(
                                                             "w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-accent transition-colors text-left",
                                                             approvalResourceFilter === r.email && "bg-primary/10 text-primary font-medium"

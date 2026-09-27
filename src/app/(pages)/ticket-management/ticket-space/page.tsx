@@ -42,7 +42,7 @@ function Page() {
   const canCreate = usePrivilegeGuard("97") as boolean;
   const canEdit = usePrivilegeGuard("98") as boolean;
   const canDelete = usePrivilegeGuard("99") as boolean;
-  const canViewAllSpaces = usePrivilegeGuard("105") as boolean;
+  const canViewSpaces = usePrivilegeGuard("100") as boolean;
   const canCreateTicket = usePrivilegeGuard("103") as boolean;
   const canViewTicket = usePrivilegeGuard("101") as boolean;
 
@@ -94,7 +94,7 @@ function Page() {
 
     // Create a unique key for this fetch request
     const fetchKey = JSON.stringify({
-      canViewAllSpaces,
+      canViewSpaces,
       userId: user.id,
       debouncedNameTerm,
       debouncedDescriptionTerm,
@@ -115,7 +115,7 @@ function Page() {
     try {
       const filters: any[] = [];
       // Only add user membership filter if user doesn't have 'view:all-ticket-spaces' permission
-      if (!canViewAllSpaces) {
+      if (!canViewSpaces) {
         filters.push({
           field: 'userId',
           value: user.id,
@@ -190,7 +190,7 @@ function Page() {
       setHasDataFetched(true);
       isFetchingRef.current = false;
     }
-  }, [canView, canViewAllSpaces, user?.id, debouncedNameTerm, debouncedDescriptionTerm, currentPage, itemsPerPage]);
+  }, [canView, canViewSpaces, user?.id, debouncedNameTerm, debouncedDescriptionTerm, currentPage, itemsPerPage]);
 
   useEffect(() => {
     fetchData();
