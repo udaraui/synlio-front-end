@@ -472,6 +472,8 @@ function TicketPage() {
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
+  const needsDefaultStatusFilterRef = useRef(false);
+
   const fetchTicketFilterTemplates = useCallback(async () => {
     try {
       const res = await getCategorizedFilterTemplates("TICKET");
@@ -506,6 +508,7 @@ function TicketPage() {
     sessionStorage.removeItem(TICKET_FILTERS_SESSION_KEY);
     setSelectedTicketSpaceFilter(ticketSpaceId || "");
     clearAllFilterStates();
+    needsDefaultStatusFilterRef.current = true;
   };
 
   // Toggle pin/unpin filter
@@ -642,6 +645,7 @@ function TicketPage() {
       } catch {
         /* ignore */
       }
+      needsDefaultStatusFilterRef.current = true;
     } else if (urlSpaceId) {
       // Returning from form or direct link — restore filters if same space
       setSelectedTicketSpaceFilter(urlSpaceId);
@@ -652,6 +656,7 @@ function TicketPage() {
           if (f.selectedTicketSpaceFilter === urlSpaceId) {
             // Same space — restore all filters
             restoreFiltersFromSession(f);
+            needsDefaultStatusFilterRef.current = false;
           } else {
             // Different space stored — clear stale session
             try {
@@ -659,10 +664,13 @@ function TicketPage() {
             } catch {
               /* ignore */
             }
+            needsDefaultStatusFilterRef.current = true;
           }
+        } else {
+          needsDefaultStatusFilterRef.current = true;
         }
       } catch {
-        /* ignore */
+        needsDefaultStatusFilterRef.current = true;
       }
     } else {
       // No URL space — restore everything from session (including space)
@@ -673,9 +681,12 @@ function TicketPage() {
           if (f.selectedTicketSpaceFilter)
             setSelectedTicketSpaceFilter(f.selectedTicketSpaceFilter);
           restoreFiltersFromSession(f);
+          needsDefaultStatusFilterRef.current = false;
+        } else {
+          needsDefaultStatusFilterRef.current = true;
         }
       } catch {
-        /* ignore */
+        needsDefaultStatusFilterRef.current = true;
       }
     }
 
@@ -933,8 +944,7 @@ function TicketPage() {
       return;
     }
     if (!canView || !user?.id || !isInitialized) return;
-    // When a ticket space is selected, wait until its config is loaded so the
-    // default status filter (TOSTART + PROCESSING) can be applied correctly.
+    // When a ticket space is selected, wait until its config is loaded.
     // configVersion being in the deps array ensures this runs once config arrives.
     if (selectedTicketSpaceFilter && !configRef.current) return;
 
@@ -1004,25 +1014,11 @@ function TicketPage() {
 
       // Status filter
       if (statusFilter.length > 0) {
-        // User explicitly selected statuses → respect their choice
         filters.push({
           field: "statusId",
           matchMode: "in",
           value: statusFilter.map((id) => parseInt(id)),
         });
-      } else if (selectedTicketSpaceFilter) {
-        // No user selection → default to AUTOSTART + PROCESSING statuses only.
-        // If the user wants other statuses (e.g. Finished) they can add a status filter.
-        const defaultStatusIds = (configRef.current?.statuses || [])
-          .filter((s: any) => s.base === "To Start" || s.base === "Processing")
-          .map((s: any) => s.id);
-        if (defaultStatusIds.length > 0) {
-          filters.push({
-            field: "statusId",
-            matchMode: "in",
-            value: defaultStatusIds,
-          });
-        }
       }
 
       // Severity filter
@@ -1333,8 +1329,10 @@ function TicketPage() {
         // ── Parallel execution of Config & Tickets (Maximum Speed) ───────────
 
         // 1. Launch ALL configs in one giant parallel block
+        const statusConfigPromise = getTicketSpaceStatusConfig(spaceId);
+
         const configPromise = Promise.all([
-          getTicketSpaceStatusConfig(spaceId),
+          statusConfigPromise,
           getTicketSpaceSeverityConfig(spaceId),
           getTicketSpaceTypesConfig(spaceId),
           getTicketSpaceQueueConfig(spaceId),
@@ -1364,16 +1362,36 @@ function TicketPage() {
           } catch {
             /* ignore */
           }
-          // Intentionally removed default status filter checking so we load all tickets initially
+          
+          if (needsDefaultStatusFilterRef.current) {
+            const defaultStatusIds = (statusRes.statuses ?? [])
+              .filter((s: any) => s.base === 'To Start' || s.base === 'Processing')
+              .map((s: any) => s.id.toString());
+            if (defaultStatusIds.length > 0) {
+              setStatusFilter(defaultStatusIds);
+            }
+          }
         });
 
-        // 2. Launch initial ticket search in parallel (with NO status filters so it loads instantly)
-        const hasSessionRestored = !!sessionStorage.getItem(TICKET_FILTERS_SESSION_KEY);
+        // 2. Launch initial ticket search (waits for status config to apply default filters)
         const ticketsPromise = (async () => {
-          if (!hasSessionRestored) {
+          if (needsDefaultStatusFilterRef.current) {
+            const statusRes = await statusConfigPromise;
+            const defaultStatusIds = (statusRes.statuses ?? [])
+              .filter((s: any) => s.base === 'To Start' || s.base === 'Processing')
+              .map((s: any) => parseInt(s.id));
+
             const initialFilters: any[] = [
               { field: "ticketSpaceId", value: spaceId, matchMode: "equals" },
             ];
+
+            if (defaultStatusIds.length > 0) {
+              initialFilters.push({
+                field: "statusId",
+                matchMode: "in",
+                value: defaultStatusIds,
+              });
+            }
 
             const params = {
               first: 0,

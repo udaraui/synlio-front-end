@@ -14,10 +14,29 @@ import {
   FileCode,
   Paperclip,
   Loader2,
+  Eye,
+  Download,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   patchTicketAttachment,
   getTicketAttachments,
@@ -29,16 +48,6 @@ import {
   getTaskAttachmentsByTask,
   deleteTaskAttachment,
 } from '@/services/common/comment-service';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -68,6 +77,12 @@ export interface AttachmentSectionProps {
   onAttachmentCountChange?: (count: number) => void;
 }
 
+interface PreviewItem {
+  url: string;
+  name: string;
+  isBlob?: boolean;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const getFileNameFromUrl = (url: string): string => {
@@ -81,8 +96,31 @@ const getFileNameFromUrl = (url: string): string => {
   }
 };
 
-const isImageUrl = (url: string): boolean =>
-  /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(url);
+const getCleanExtension = (urlOrName: string): string => {
+  if (!urlOrName) return '';
+  const clean = urlOrName.split('?')[0];
+  return clean.split('.').pop()?.toLowerCase() || '';
+};
+
+const isImageUrl = (urlOrName: string): boolean =>
+  /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(urlOrName);
+
+const isPdfUrl = (urlOrName: string): boolean =>
+  getCleanExtension(urlOrName) === 'pdf';
+
+const isVideoUrl = (urlOrName: string): boolean =>
+  ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(getCleanExtension(urlOrName));
+
+const isAudioUrl = (urlOrName: string): boolean =>
+  ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(getCleanExtension(urlOrName));
+
+const isOfficeDocUrl = (urlOrName: string): boolean =>
+  ['xls', 'xlsx', 'doc', 'docx', 'ppt', 'pptx', 'csv'].includes(getCleanExtension(urlOrName));
+
+const isTextOrCodeUrl = (urlOrName: string): boolean =>
+  ['txt', 'md', 'log', 'js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'xml', 'py', 'java', 'php', 'sql'].includes(
+    getCleanExtension(urlOrName)
+  );
 
 const getFileTypeInfo = (
   fileName: string,
@@ -104,7 +142,7 @@ const getFileTypeInfo = (
     return { icon: Film, bg: 'bg-purple-500/10', color: 'text-purple-500', label: ext.toUpperCase() };
   if (['mp3', 'wav', 'ogg', 'flac'].includes(ext))
     return { icon: Music, bg: 'bg-pink-500/10', color: 'text-pink-500', label: ext.toUpperCase() };
-  if (['js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'xml', 'py', 'java', 'php'].includes(ext))
+  if (['js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'xml', 'py', 'java', 'php', 'sql'].includes(ext))
     return { icon: FileCode, bg: 'bg-cyan-500/10', color: 'text-cyan-600', label: ext.toUpperCase() };
   if (['txt', 'md', 'log'].includes(ext))
     return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground', label: ext.toUpperCase() };
@@ -123,6 +161,7 @@ export function AttachmentSection({
   const [existingAttachments, setExistingAttachments] = useState<AttachmentItem[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [previewItem, setPreviewItem] = useState<PreviewItem | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const dragCounter = useRef(0);
@@ -192,7 +231,9 @@ export function AttachmentSection({
       }
     } else {
       // Create mode — hand files to the parent to upload on submit
-      onPendingFilesChange?.([...pendingFiles, ...newFiles]);
+      const updatedPending = [...pendingFiles, ...newFiles];
+      onPendingFilesChange?.(updatedPending);
+      onAttachmentCountChange?.(updatedPending.length);
     }
   };
 
@@ -269,7 +310,9 @@ export function AttachmentSection({
   // ── Remove helpers ──────────────────────────────────────────────────────────
 
   const removePendingFile = (index: number) => {
-    onPendingFilesChange?.(pendingFiles.filter((_, i) => i !== index));
+    const updated = pendingFiles.filter((_, i) => i !== index);
+    onPendingFilesChange?.(updated);
+    onAttachmentCountChange?.(updated.length);
   };
 
   const confirmDelete = (id: number) => setDeleteConfirm(id);
@@ -293,6 +336,19 @@ export function AttachmentSection({
     } catch {
       toast.error('Failed to remove attachment');
     }
+  };
+
+  // ── Preview handlers ────────────────────────────────────────────────────────
+
+  const openPreview = (url: string, name: string, isBlob: boolean = false) => {
+    setPreviewItem({ url, name, isBlob });
+  };
+
+  const handleClosePreview = () => {
+    if (previewItem?.isBlob && previewItem.url) {
+      URL.revokeObjectURL(previewItem.url);
+    }
+    setPreviewItem(null);
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -345,7 +401,8 @@ export function AttachmentSection({
               return (
                 <div
                   key={`existing-${attachment.id}`}
-                  className="relative group rounded-lg border overflow-hidden h-[88px] flex flex-col"
+                  onClick={() => openPreview(attachment.link, fileName, false)}
+                  className="relative group rounded-lg border overflow-hidden h-[88px] flex flex-col cursor-pointer transition-all hover:border-primary/50 hover:shadow-sm"
                   title={fileName}
                 >
                   {isImage ? (
@@ -353,7 +410,7 @@ export function AttachmentSection({
                     <img
                       src={attachment.link}
                       alt={fileName}
-                      className="w-full flex-1 object-cover min-h-0"
+                      className="w-full flex-1 object-cover min-h-0 bg-muted/20"
                     />
                   ) : (
                     <div
@@ -371,12 +428,27 @@ export function AttachmentSection({
                   <div className="bg-white dark:bg-gray-800/50 border-t px-1.5 py-0.5 shrink-0">
                     <span className="text-[10px] text-muted-foreground truncate block">{fileName}</span>
                   </div>
+
                   {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                  <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded-lg">
                     <button
                       type="button"
-                      title="Open"
-                      onClick={() => window.open(attachment.link, '_blank')}
+                      title="Preview"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPreview(attachment.link, fileName, false);
+                      }}
+                      className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-white" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Open in new window"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(attachment.link, '_blank');
+                      }}
                       className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5 text-white" />
@@ -384,7 +456,10 @@ export function AttachmentSection({
                     <button
                       type="button"
                       title="Delete"
-                      onClick={() => confirmDelete(attachment.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDelete(attachment.id);
+                      }}
                       className="p-1.5 rounded-full bg-red-500/70 hover:bg-red-600 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-white" />
@@ -403,7 +478,11 @@ export function AttachmentSection({
               return (
                 <div
                   key={`pending-${index}`}
-                  className="relative group rounded-lg border overflow-hidden h-[88px] flex flex-col"
+                  onClick={() => {
+                    const blobUrl = URL.createObjectURL(file);
+                    openPreview(blobUrl, file.name, true);
+                  }}
+                  className="relative group rounded-lg border overflow-hidden h-[88px] flex flex-col cursor-pointer transition-all hover:border-primary/50 hover:shadow-sm"
                   title={file.name}
                 >
                   {isImage && previewUrl ? (
@@ -411,7 +490,7 @@ export function AttachmentSection({
                     <img
                       src={previewUrl}
                       alt={file.name}
-                      className="w-full flex-1 object-cover min-h-0"
+                      className="w-full flex-1 object-cover min-h-0 bg-muted/20"
                     />
                   ) : (
                     <div
@@ -429,12 +508,28 @@ export function AttachmentSection({
                   <div className="bg-white dark:bg-gray-800/50 border-t px-1.5 py-0.5 shrink-0">
                     <span className="text-[10px] text-muted-foreground truncate block">{file.name}</span>
                   </div>
-                  {/* Hover overlay — remove only (not saved yet) */}
-                  <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 rounded-lg">
+                    <button
+                      type="button"
+                      title="Preview"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const blobUrl = URL.createObjectURL(file);
+                        openPreview(blobUrl, file.name, true);
+                      }}
+                      className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-white" />
+                    </button>
                     <button
                       type="button"
                       title="Remove"
-                      onClick={() => removePendingFile(index)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePendingFile(index);
+                      }}
                       className="p-1.5 rounded-full bg-red-500/70 hover:bg-red-600 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-white" />
@@ -487,6 +582,200 @@ export function AttachmentSection({
         </div>
       )}
 
+      {/* ─── Attachment Preview Dialog ───────────────────────────────────────── */}
+      <Dialog
+        open={previewItem !== null}
+        onOpenChange={(open) => {
+          if (!open) handleClosePreview();
+        }}
+      >
+        <DialogContent className="max-w-5xl w-[92vw] h-[85vh] p-0 flex flex-col overflow-hidden gap-0 rounded-xl bg-background border shadow-2xl">
+          {/* Custom Header with Actions */}
+          <DialogHeader className="px-4 py-3 bg-muted/40 border-b flex flex-row items-center justify-between space-y-0 shrink-0">
+            <div className="flex items-center gap-2 min-w-0 pr-4">
+              {previewItem && (() => {
+                const info = getFileTypeInfo(previewItem.name);
+                const Icon = info.icon;
+                return (
+                  <div className={cn('p-1.5 rounded-md shrink-0', info.bg)}>
+                    <Icon className={cn('w-4 h-4', info.color)} />
+                  </div>
+                );
+              })()}
+              <DialogTitle className="text-sm font-semibold truncate text-left" title={previewItem?.name}>
+                {previewItem?.name || 'Attachment Preview'}
+              </DialogTitle>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 mr-6">
+              {previewItem && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => window.open(previewItem.url, '_blank')}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Open in new window
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs"
+                    asChild
+                  >
+                    <a
+                      href={previewItem.url}
+                      download={previewItem.name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download
+                    </a>
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* Preview Container */}
+          <div className="flex-1 w-full h-full relative bg-muted/10 dark:bg-gray-950 flex items-center justify-center overflow-auto p-4">
+            {previewItem && (() => {
+              const { url, name, isBlob } = previewItem;
+
+              // 1. Image preview
+              if (isImageUrl(name) || isImageUrl(url)) {
+                return (
+                  <div className="flex items-center justify-center w-full h-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={name}
+                      className="max-w-full max-h-full object-contain rounded-md shadow-sm select-none"
+                    />
+                  </div>
+                );
+              }
+
+              // 2. Video preview
+              if (isVideoUrl(name) || isVideoUrl(url)) {
+                return (
+                  <div className="flex items-center justify-center w-full h-full">
+                    <video
+                      src={url}
+                      controls
+                      autoPlay
+                      className="max-w-full max-h-full rounded-md shadow-sm"
+                    >
+                      Your browser does not support playing this video.
+                    </video>
+                  </div>
+                );
+              }
+
+              // 3. Audio preview
+              if (isAudioUrl(name) || isAudioUrl(url)) {
+                const info = getFileTypeInfo(name);
+                const Icon = info.icon;
+                return (
+                  <div className="flex flex-col items-center justify-center gap-6 p-8 bg-card rounded-xl border shadow-sm max-w-md w-full">
+                    <div className={cn('p-6 rounded-2xl', info.bg)}>
+                      <Icon className={cn('w-12 h-12', info.color)} />
+                    </div>
+                    <div className="text-center w-full">
+                      <p className="text-sm font-semibold truncate mb-1">{name}</p>
+                      <p className="text-xs text-muted-foreground">Audio file</p>
+                    </div>
+                    <audio src={url} controls className="w-full" />
+                  </div>
+                );
+              }
+
+              // 4. PDF preview (Native browser viewer)
+              if (isPdfUrl(name) || isPdfUrl(url)) {
+                return (
+                  <iframe
+                    src={url}
+                    className="w-full h-full border-none rounded-md bg-white"
+                    title={name}
+                  />
+                );
+              }
+
+              // 5. Office Documents (Word, Excel, PowerPoint)
+              if (isOfficeDocUrl(name) || isOfficeDocUrl(url)) {
+                if (!isBlob && url.startsWith('http')) {
+                  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                  return (
+                    <iframe
+                      src={googleViewerUrl}
+                      className="w-full h-full border-none rounded-md bg-white"
+                      title={name}
+                      onError={() => toast.error('Could not load online preview')}
+                    />
+                  );
+                }
+              }
+
+              // 6. Text & Code files
+              if (isTextOrCodeUrl(name) || isTextOrCodeUrl(url)) {
+                return (
+                  <iframe
+                    src={url}
+                    className="w-full h-full border-none rounded-md bg-white dark:bg-gray-900 p-2"
+                    title={name}
+                  />
+                );
+              }
+
+              // 7. Generic / Unsupported preview
+              const typeInfo = getFileTypeInfo(name);
+              const TypeIcon = typeInfo.icon;
+              return (
+                <div className="flex flex-col items-center justify-center gap-4 text-center max-w-md p-8 bg-card rounded-xl border shadow-sm">
+                  <div className={cn('p-5 rounded-2xl', typeInfo.bg)}>
+                    <TypeIcon className={cn('w-12 h-12', typeInfo.color)} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground truncate max-w-xs">{name}</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Preview not directly embeddable for this format.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(url, '_blank')}
+                      className="gap-1.5"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Open in new window
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="gap-1.5"
+                      asChild
+                    >
+                      <a href={url} download={name} target="_blank" rel="noopener noreferrer">
+                        <Download className="w-4 h-4" />
+                        Download
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation */}
       <AlertDialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
@@ -507,4 +796,3 @@ export function AttachmentSection({
     </div>
   );
 }
-

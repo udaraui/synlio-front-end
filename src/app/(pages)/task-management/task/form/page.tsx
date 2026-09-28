@@ -133,6 +133,7 @@ import { ChecklistSection } from '@/components/common/ChecklistSection';
 import { AttachmentSection } from '@/components/common/AttachmentSection';
 import { CommentSection } from '@/components/common/CommentSection';
 import { TaskSpaceResourceDropdown } from '@/components/common/TaskSpaceResourceDropdown';
+import { uploadTaskAttachment, createTaskAttachment } from '@/services/common/comment-service';
 import { createResourceLog, deleteResourceLog, getResourceTaskLogHistory, updateResourceLog } from '@/services/work-log/work-log.service';
 import { AssigneeType } from "@/enums/assignee-type.enum";
 import { setMeetingActionState } from '@/services/common/meetings-integration.service';
@@ -268,7 +269,9 @@ export default function TaskFormPage() {
   const [taskViewData, setTaskViewData] = useState<any>(null);
   const [nextTaskCode, setNextTaskCode] = useState<string>('');
   const [parentTaskInfo, setParentTaskInfo] = useState<{ id: number; name: string; code?: string; hierarchyLevelConfigId?: number; hierarchyLevelIcon?: string; hierarchyLevelColor?: string } | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [attachmentCount, setAttachmentCount] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [childTasksOpen, setChildTasksOpen] = useState(false);
@@ -938,6 +941,20 @@ export default function TaskFormPage() {
         );
         const newTask = await createTask({ ...payload, code });
 
+        // Upload pending attachments if any (create mode)
+        if (attachments.length > 0 && newTask?.id) {
+          const uploadPromises = attachments.map(async (file) => {
+            try {
+              const link = await uploadTaskAttachment(file);
+              await createTaskAttachment(newTask.id, link);
+            } catch (error) {
+              console.error('Error uploading task attachment:', error);
+              toast.warning(`Failed to upload ${file.name}`);
+            }
+          });
+          await Promise.all(uploadPromises);
+        }
+
         if (!formData.parentTaskId && user?.id) {
           const isSpaceMember = (config?.resources ?? []).some((r: any) => r.id === user.id);
           if (!isSpaceMember) {
@@ -1383,16 +1400,25 @@ export default function TaskFormPage() {
                 <button type="button" className="flex items-center gap-2 w-full text-left">
                   <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform duration-200', !attachmentsOpen && '-rotate-90')} />
                   <span className="text-sm font-medium">Attachments</span>
+                  {attachmentCount > 0 && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({attachmentCount})
+                    </span>
+                  )}
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3">
+              <div className={cn('mt-3', !attachmentsOpen && 'hidden')}>
                 <AttachmentSection
                   entityType="Task"
                   entityId={isEditMode && taskId ? Number(taskId) : undefined}
-                  pendingFiles={[]}
-                  onPendingFilesChange={() => { }}
+                  pendingFiles={attachments}
+                  onPendingFilesChange={setAttachments}
+                  onAttachmentCountChange={(count) => {
+                    setAttachmentCount(count);
+                    if (count > 0) setAttachmentsOpen(true);
+                  }}
                 />
-              </CollapsibleContent>
+              </div>
             </Collapsible>
 
             {/* Child Tasks (edit mode only) */}
