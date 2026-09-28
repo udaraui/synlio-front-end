@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
-import { Bell, Check, Info, Mail, MonitorSmartphone, Plus, Trash, Loader2, Pencil } from "lucide-react";
+import { Bell, Check, Info, Mail, MonitorSmartphone, Plus, Trash, Loader2, Pencil, Save } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,7 @@ function ChannelRadioGroup({
             onClick={() => onChange(opt.value)}
             className={cn(
               "flex items-center gap-2 cursor-pointer rounded-md border px-3 py-2 transition-colors text-sm",
-              active ? "border-primary bg-primary/5" : "hover:bg-muted",
+              active ? "border-primary" : "hover:bg-muted",
             )}
           >
             {opt.icons(active)}
@@ -292,7 +292,7 @@ function UserMultiSelect({
           onClick={() => setPopoverOpen(true)}
         >
           <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:opacity-80 transition-opacity">
-            <AvatarFallback>
+            <AvatarFallback className="bg-transparent border border-dashed border-primary text-primary hover:bg-primary/5 transition-colors">
               <Plus className="w-3.5 h-3.5" />
             </AvatarFallback>
           </Avatar>
@@ -537,7 +537,7 @@ function RuleDialog({
                     <label
                       key={val}
                       onClick={() => toggleEvent(val)}
-                      className="flex items-center gap-2 rounded-md border border-primary bg-primary/5 px-3 py-2 text-sm cursor-pointer"
+                      className="flex items-center gap-2 rounded-md border border-primary px-3 py-2 text-sm cursor-pointer"
                     >
                       <Checkbox checked={true} onCheckedChange={() => toggleEvent(val)} />
                       <span className="truncate">{label}</span>
@@ -590,11 +590,11 @@ function RuleDialog({
             <div className="grid grid-cols-3 gap-3 items-start">
               {/* Col 1: Assignee + Creator */}
               <div className="flex flex-col gap-2">
-                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccAssignee ? "opacity-40 cursor-not-allowed" : form.toAssignee ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccAssignee ? "opacity-40 cursor-not-allowed" : form.toAssignee ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                   <Checkbox checked={form.toAssignee} disabled={form.ccAssignee} onCheckedChange={(c) => { set("toAssignee", !!c); if (!!c) set("ccAssignee", false); }} />
                   Assignee
                 </label>
-                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccCreator ? "opacity-40 cursor-not-allowed" : form.toCreator ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccCreator ? "opacity-40 cursor-not-allowed" : form.toCreator ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                   <Checkbox checked={form.toCreator} disabled={form.ccCreator} onCheckedChange={(c) => { set("toCreator", !!c); if (!!c) set("ccCreator", false); }} />
                   Creator
                 </label>
@@ -602,17 +602,17 @@ function RuleDialog({
               {/* Col 2: Co-Assignees/Participants + Actor */}
               <div className="flex flex-col gap-2">
                 {isTicket ? (
-                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccParticipants ? "opacity-40 cursor-not-allowed" : form.toParticipants ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccParticipants ? "opacity-40 cursor-not-allowed" : form.toParticipants ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                     <Checkbox checked={form.toParticipants} disabled={form.ccParticipants} onCheckedChange={(c) => { set("toParticipants", !!c); if (!!c) set("ccParticipants", false); }} />
                     Participants
                   </label>
                 ) : (
-                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccCoAssignees ? "opacity-40 cursor-not-allowed" : form.toCoAssignees ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccCoAssignees ? "opacity-40 cursor-not-allowed" : form.toCoAssignees ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                     <Checkbox checked={form.toCoAssignees} disabled={form.ccCoAssignees} onCheckedChange={(c) => { set("toCoAssignees", !!c); if (!!c) set("ccCoAssignees", false); }} />
                     Co-Assignees
                   </label>
                 )}
-                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccActor ? "opacity-40 cursor-not-allowed" : form.toActor ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.ccActor ? "opacity-40 cursor-not-allowed" : form.toActor ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                   <Checkbox checked={form.toActor} disabled={form.ccActor} onCheckedChange={(c) => { set("toActor", !!c); if (!!c) set("ccActor", false); }} />
                   Actor
                 </label>
@@ -663,11 +663,11 @@ function RuleDialog({
             <div className="grid grid-cols-3 gap-3 items-start">
               {/* Col 1: Assignee + Creator */}
               <div className="flex flex-col gap-2">
-                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toAssignee ? "opacity-40 cursor-not-allowed" : form.ccAssignee ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toAssignee ? "opacity-40 cursor-not-allowed" : form.ccAssignee ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                   <Checkbox checked={form.ccAssignee} disabled={form.toAssignee} onCheckedChange={(c) => { set("ccAssignee", !!c); if (!!c) set("toAssignee", false); }} />
                   Assignee
                 </label>
-                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toCreator ? "opacity-40 cursor-not-allowed" : form.ccCreator ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toCreator ? "opacity-40 cursor-not-allowed" : form.ccCreator ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                   <Checkbox checked={form.ccCreator} disabled={form.toCreator} onCheckedChange={(c) => { set("ccCreator", !!c); if (!!c) set("toCreator", false); }} />
                   Creator
                 </label>
@@ -675,17 +675,17 @@ function RuleDialog({
               {/* Col 2: Co-Assignees/Participants + Actor */}
               <div className="flex flex-col gap-2">
                 {isTicket ? (
-                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toParticipants ? "opacity-40 cursor-not-allowed" : form.ccParticipants ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toParticipants ? "opacity-40 cursor-not-allowed" : form.ccParticipants ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                     <Checkbox checked={form.ccParticipants} disabled={form.toParticipants} onCheckedChange={(c) => { set("ccParticipants", !!c); if (!!c) set("toParticipants", false); }} />
                     Participants
                   </label>
                 ) : (
-                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toCoAssignees ? "opacity-40 cursor-not-allowed" : form.ccCoAssignees ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                  <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toCoAssignees ? "opacity-40 cursor-not-allowed" : form.ccCoAssignees ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                     <Checkbox checked={form.ccCoAssignees} disabled={form.toCoAssignees} onCheckedChange={(c) => { set("ccCoAssignees", !!c); if (!!c) set("toCoAssignees", false); }} />
                     Co-Assignees
                   </label>
                 )}
-                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toActor ? "opacity-40 cursor-not-allowed" : form.ccActor ? "border-primary bg-primary/5 cursor-pointer" : "cursor-pointer hover:bg-muted")}>
+                <label className={cn("flex items-center gap-2 rounded-md border px-3 py-2 transition-colors text-sm", form.toActor ? "opacity-40 cursor-not-allowed" : form.ccActor ? "border-primary cursor-pointer" : "cursor-pointer hover:bg-muted")}>
                   <Checkbox checked={form.ccActor} disabled={form.toActor} onCheckedChange={(c) => { set("ccActor", !!c); if (!!c) set("toActor", false); }} />
                   Actor
                 </label>
@@ -720,7 +720,8 @@ function RuleDialog({
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? "Saving…" : editRule ? "Update Rule" : "Create Rule"}
           </Button>
         </DialogFooter>
@@ -786,6 +787,7 @@ export function AlertsTabContent({
   const isTicket = spaceType === "ticket";
 
   const [rules, setRules] = useState<SpaceAlertRule[]>([]);
+  const [userMap, setUserMap] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -799,6 +801,25 @@ export function AlertsTabContent({
     try {
       const data = await getAlertRulesBySpace(spaceType, spaceId);
       setRules(data);
+
+      const uids = new Set<number>();
+      for (const r of data) {
+        r.toAdditionalUserIds?.forEach((id) => uids.add(id));
+        r.ccAdditionalUserIds?.forEach((id) => uids.add(id));
+      }
+
+      if (uids.size > 0) {
+        try {
+          const users = await getUsersByIds(Array.from(uids));
+          const map: Record<number, string> = {};
+          for (const u of users) {
+            map[u.id] = (u.first_name || u.last_name) ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : u.email.split("@")[0];
+          }
+          setUserMap(map);
+        } catch {
+          // ignore user fetch error
+        }
+      }
     } catch {
       toast.error("Failed to load alert rules");
     } finally {
@@ -902,8 +923,13 @@ export function AlertsTabContent({
                       toParts.push("Participants");
                     if (rule.toCreator) toParts.push("Creator");
                     if (rule.toActor) toParts.push("Actor");
-                    if (rule.toAdditionalUserIds?.length)
-                      toParts.push(`+${rule.toAdditionalUserIds.length} user(s)`);
+                    if (rule.toAdditionalUserIds?.length) {
+                      rule.toAdditionalUserIds.forEach((uid) => {
+                        const name = userMap[uid];
+                        if (name) toParts.push(name);
+                        else toParts.push(`User #${uid}`);
+                      });
+                    }
 
                     const ccParts: string[] = [];
                     if (rule.ccAssignee) ccParts.push("Assignee");
@@ -913,8 +939,13 @@ export function AlertsTabContent({
                       ccParts.push("Participants");
                     if (rule.ccCreator) ccParts.push("Creator");
                     if (rule.ccActor) ccParts.push("Actor");
-                    if (rule.ccAdditionalUserIds?.length)
-                      ccParts.push(`+${rule.ccAdditionalUserIds.length} user(s)`);
+                    if (rule.ccAdditionalUserIds?.length) {
+                      rule.ccAdditionalUserIds.forEach((uid) => {
+                        const name = userMap[uid];
+                        if (name) ccParts.push(name);
+                        else ccParts.push(`User #${uid}`);
+                      });
+                    }
 
                     return (
                       <TableRow
