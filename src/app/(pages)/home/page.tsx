@@ -5,6 +5,9 @@ import { useBreadcrumbsEffect } from "@/hooks/useBreadcrumbsEffect";
 import { safeParse } from "@/services/auth/auth-service";
 import { useMenuAccess } from "@/hooks/use-menu-access";
 import { useSidebar } from "@/components/ui/sidebar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { PartyPopper } from "lucide-react";
 import HeroGreeting from "./components/HeroGreeting";
 import MyMeetingsColumn from "./components/MyMeetingsColumn";
 import WeekCalendar, { DayCountsMap } from "./components/WeekCalendar";
@@ -25,6 +28,7 @@ export default function Page() {
   const [meetingsData, setMeetingsData] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [meetingsError, setMeetingsError] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const canTasks = canAccess(["44"]);
   const canTickets = canAccess(["100"]);
@@ -129,6 +133,16 @@ export default function Page() {
 
   useBreadcrumbsEffect([{ label: "Home", isCurrentPage: true }]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("welcome") === "true") {
+        setShowWelcome(true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+
   return (
     <main className="p-4 pt-12 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
       {/* ── Row 1: HeroGreeting ── */}
@@ -190,6 +204,27 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      {/* ── Welcome Popup ── */}
+      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader className="flex flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <PartyPopper className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-2xl mt-4">Welcome to Synlio!</DialogTitle>
+            <DialogDescription className="text-center mt-2">
+              Your company and admin account have been successfully set up.
+              You are ready to get started!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <Button onClick={() => setShowWelcome(false)} className="w-full">
+              Let's Go
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

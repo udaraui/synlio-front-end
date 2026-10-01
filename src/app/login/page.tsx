@@ -238,6 +238,19 @@ export default function LoginPage() {
                 </span>
               </Link>
             </div>
+
+            <div className="text-center mt-2">
+              <span className="text-sm text-muted-foreground">
+                Don&apos;t have an account?{" "}
+              </span>
+              <Link
+                href="/register"
+                className="text-sm font-medium hover:underline"
+                style={{ color: "oklch(71.443% 0.12133 240.504)" }}
+              >
+                Register
+              </Link>
+            </div>
           </CardContent>
           {/*<CardFooter>*/}
           {/*  <p className="text-muted-foreground px-8 text-center text-sm">*/}
