@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { BotMessageSquare, Loader2, ArrowRight } from "lucide-react";
+import { BotMessageSquare, ArrowRight } from "lucide-react";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
@@ -11,6 +11,7 @@ interface Message {
   id: string;
   role: "user" | "ai";
   content: string;
+  isThinking?: boolean;
 }
 
 export default function ChatPage() {
@@ -59,14 +60,14 @@ export default function ChatPage() {
     try {
       // Connect to the NestJS proxy backend which pipes the FastAPI stream via chatService
       const response = await chatService.streamChat(userMessage.content);
-      
+
       // Setup the initial AI message
       const aiMessageId = (Date.now() + 1).toString();
       setMessages((prev) => [
         ...prev,
-        { id: aiMessageId, role: "ai", content: "" },
+        { id: aiMessageId, role: "ai", content: "", isThinking: true },
       ]);
-      
+
       setIsLoading(false);
 
       // Read the stream
@@ -79,13 +80,20 @@ export default function ChatPage() {
         done = doneReading;
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
-          
-          setMessages((prev) => 
-            prev.map((msg) => 
-              msg.id === aiMessageId 
-                ? { ...msg, content: msg.content + chunk } 
-                : msg
-            )
+
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (msg.id === aiMessageId) {
+                if (chunk.includes("__FINAL__")) {
+                  return { ...msg, content: chunk.split("__FINAL__").pop() || "", isThinking: false };
+                }
+                if (chunk.includes("__REPLACE__")) {
+                  return { ...msg, content: chunk.split("__REPLACE__").pop() || "", isThinking: true };
+                }
+                return { ...msg, content: msg.content + chunk };
+              }
+              return msg;
+            })
           );
         }
       }
@@ -117,11 +125,10 @@ export default function ChatPage() {
               className={`flex px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`flex max-w-[80%] items-start gap-3 rounded-2xl px-5 py-1 border ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground flex-row-reverse rounded-tr-xs"
-                    : "bg-muted text-foreground rounded-tl-xs"
-                }`}
+                className={`flex max-w-[80%] items-start gap-3 rounded-2xl px-5 py-1 border ${msg.role === "user"
+                  ? "bg-primary text-primary-foreground flex-row-reverse rounded-tr-xs"
+                  : "bg-muted text-foreground rounded-tl-xs"
+                  }`}
               >
                 {/* {msg.role !== "user" && (
                   <div
@@ -130,20 +137,33 @@ export default function ChatPage() {
                     <BotMessageSquare className="w-5 h-5" />
                   </div>
                 )} */}
-                <div className={`flex-1 overflow-hidden ${msg.role !== "user" ? "pt-1" : ""}`}>
+                <div className="flex-1 overflow-hidden">
                   {msg.role === "user" ? (
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  ) : msg.isThinking ? (
+                    <div className="flex items-center gap-2 pt-1 pb-1">
+                      <div className="relative flex h-2 w-2 ml-1 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">{msg.content}</span>
+                    </div>
                   ) : (
                     <div className="text-sm leading-relaxed max-w-none">
-                      <ReactMarkdown 
+                      <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="w-full text-sm border border-border rounded-md overflow-hidden" {...props} /></div>,
-                          thead: ({node, ...props}) => <thead className="bg-muted/50 text-left" {...props} />,
-                          th: ({node, ...props}) => <th className="border border-border px-4 py-2 uppercase text-xs" {...props} />,
-                          td: ({node, ...props}) => <td className="border border-border px-4 py-2" {...props} />,
-                          p: ({node, ...props}) => <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                          table: ({ node, ...props }) => <div className="overflow-x-auto my-4"><table className="w-full text-sm border border-border rounded-md overflow-hidden" {...props} /></div>,
+                          thead: ({ node, ...props }) => <thead className="bg-muted/50 text-left" {...props} />,
+                          th: ({ node, ...props }) => <th className="border border-border px-4 py-2 uppercase text-xs" {...props} />,
+                          td: ({ node, ...props }) => <td className="border border-border px-4 py-2" {...props} />,
+                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />,
+                          strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                          h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                          h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                          h3: ({ node, ...props }) => <h3 className="text-md font-semibold mt-4 mb-2 text-primary" {...props} />,
+                          ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-4 space-y-1" {...props} />,
+                          li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
                         }}
                       >
                         {msg.content}
@@ -155,17 +175,19 @@ export default function ChatPage() {
             </div>
           ))
         )}
-        
+
         {/* Loading Indicator */}
         {isLoading && (
           <div className="flex px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16 justify-start">
-            <div className="flex max-w-[80%] items-center gap-3 rounded-2xl px-5 py-1 bg-muted text-foreground rounded-tl-sm border">
-              <div className="flex items-center gap-3 pt-1 pb-1">
-                <div className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            <div className="flex max-w-[80%] items-start gap-3 rounded-2xl px-5 py-1 border bg-muted text-foreground rounded-tl-xs">
+              <div className="flex-1 overflow-hidden">
+                <div className="flex items-center gap-2 pt-1 pb-1">
+                  <div className="relative flex h-2 w-2 ml-1 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">Synlio is thinking</span>
                 </div>
-                <span className="text-sm text-muted-foreground">Synlio is thinking</span>
               </div>
             </div>
           </div>
