@@ -206,7 +206,7 @@ export default function RegisterPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className={cn("grid gap-3")}
               >
-                <div className="grid grid-cols-2 mt-2">
+                <div className="grid grid-cols-[4fr_6fr] mt-2 gap-2">
 
                   {/* Profile Picture */}
                   <div className="flex justify-start">
