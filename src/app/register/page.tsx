@@ -25,11 +25,12 @@ import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle2, AlertCircle, Camera, User as UserIcon } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "@/services/api";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ─── Zod Schema ──────────────────────────────────────────────────────────────
 
@@ -51,6 +52,7 @@ const registerSchema = z
       .min(6, "Password must be at least 6 characters long")
       .max(128),
     confirmPassword: z.string().min(1, "Please confirm your password"),
+    user_profile_picture: z.instanceof(File).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -71,6 +73,7 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
   const [userProfilePicture, setUserProfilePicture] = useState<File | null>(null);
+  const [userPreviewUrl, setUserPreviewUrl] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
@@ -86,6 +89,13 @@ export default function RegisterPage() {
     },
     mode: "onTouched",
   });
+
+  const getInitials = (first?: string, last?: string) => {
+    const f = (first || "").trim();
+    const l = (last || "").trim();
+    if (!f && !l) return <UserIcon className="w-12 h-12" />;
+    return `${f.charAt(0) || ""}${l.charAt(0) || ""}`.toUpperCase();
+  };
 
   // ─── Debounced email check ──────────────────────────────────────────────
 
@@ -196,35 +206,81 @@ export default function RegisterPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className={cn("grid gap-3")}
               >
-                {/* Name row */}
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="first_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Jane" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="last_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="grid grid-cols-2 mt-2">
+
+                  {/* Profile Picture */}
+                  <div className="flex justify-start">
+                    <FormField
+                      control={form.control}
+                      name="user_profile_picture"
+                      render={({ field: { onChange, value, ...rest } }) => (
+                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                          <FormLabel className="text-xs text-muted-foreground">Profile Picture (optional)</FormLabel>
+                          <div className="relative">
+                            <Avatar className="h-24 w-24 border-2 border-background ring-1 ring-border">
+                              <AvatarImage src={userPreviewUrl || undefined} className="object-cover" />
+                              <AvatarFallback className="text-2xl font-semibold bg-primary text-white">
+                                {getInitials(form.watch("first_name"), form.watch("last_name"))}
+                              </AvatarFallback>
+                            </Avatar>
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById("user-pic-upload")?.click()}
+                              className="absolute cursor-pointer bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <Input
+                            type="file"
+                            id="user-pic-upload"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onChange(file);
+                                setUserProfilePicture(file);
+                                setUserPreviewUrl(URL.createObjectURL(file));
+                              }
+                            }}
+                            {...rest}
+                          />
+                        </div>
+                      )}
+                    />
+                  </div>
+                  {/* Name row */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="first_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Jane" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="last_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
+
 
                 {/* Mobile number */}
                 <FormField
@@ -245,25 +301,6 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-
-
-
-                {/* Profile Picture */}
-                <FormItem>
-                  <FormLabel>
-                    Profile Picture{" "}
-                    <span className="text-muted-foreground font-normal text-xs">
-                      (optional)
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setUserProfilePicture(e.target.files?.[0] || null)}
-                    />
-                  </FormControl>
-                </FormItem>
                 <FormField
                   control={form.control}
                   name="email"
@@ -282,7 +319,7 @@ export default function RegisterPage() {
                             className={cn(
                               "pr-9",
                               emailStatus === "taken" &&
-                                "border-destructive focus-visible:ring-destructive"
+                              "border-destructive focus-visible:ring-destructive"
                             )}
                           />
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">

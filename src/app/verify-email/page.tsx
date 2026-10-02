@@ -88,18 +88,18 @@ export default function VerifyEmailPage() {
             )}
 
             {status === "success" && (
-              <>
-                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-green-50 dark:bg-green-950 mb-2">
+              <div className="flex flex-col items-center justify-center text-center w-full py-4">
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-green-50 dark:bg-green-950 mb-4">
                   <CheckCircle2 className="h-7 w-7 text-green-500" />
                 </div>
-                <CardTitle className="text-lg tracking-tight">
+                <CardTitle className="text-xl tracking-tight mb-2">
                   Email verified!
                 </CardTitle>
                 <CardDescription>
                   Your account is active. Redirecting you to set up your
                   company…
                 </CardDescription>
-              </>
+              </div>
             )}
 
             {status === "error" && (

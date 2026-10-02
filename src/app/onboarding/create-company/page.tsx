@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Building2, ShieldCheck, CheckCircle2, ArrowRight } from "lucide-react";
+import { Loader2, Building2, ShieldCheck, CheckCircle2, ArrowRight, Camera, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
 import { API_URL } from "@/services/api";
@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/auth.context";
 import Image from "next/image";
 import Logo from "../../../../public/logo.png";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,8 @@ const companySchema = z.object({
     .min(1, "Company code is required")
     .max(50, "Company code is too long")
     .regex(/^[A-Za-z0-9_-]+$/, "Only letters, numbers, dashes, and underscores"),
+  user_profile_picture: z.instanceof(File).optional(),
+  company_profile_picture: z.instanceof(File).optional(),
 });
 
 type CompanyFormValues = z.infer<typeof companySchema>;
@@ -119,6 +122,8 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
   const [companyProfilePicture, setCompanyProfilePicture] = useState<File | null>(null);
+  const [userPreviewUrl, setUserPreviewUrl] = useState<string | null>(null);
+  const [companyPreviewUrl, setCompanyPreviewUrl] = useState<string | null>(null);
 
   const form = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
@@ -155,6 +160,19 @@ export default function OnboardingPage() {
     }
   }
 
+  const getInitials = (first?: string, last?: string) => {
+    const f = (first || "").trim();
+    const l = (last || "").trim();
+    if (!f && !l) return <UserIcon className="w-12 h-12" />;
+    return `${f.charAt(0) || ""}${l.charAt(0) || ""}`.toUpperCase();
+  };
+
+  const getCompanyInitials = (name?: string) => {
+    const n = (name || "").trim();
+    if (!n) return <Building2 className="w-12 h-12" />;
+    return n.substring(0, 2).toUpperCase();
+  };
+
   // ─── Step 2: Setup Admin Role ───────────────────────────────────────────
 
   async function onSetupAdminRole() {
@@ -172,9 +190,10 @@ export default function OnboardingPage() {
       }
       
       // Fetch and setup companies in localStorage so the user has the right privileges to access /home
-      if (user?.id) {
+      const effectiveUserId = return_user?.id || user?.id;
+      if (effectiveUserId) {
         const companiesResponse = await axiosInstance.get(
-          `/authorization/getCompanyByUserId/${user.id}`
+          `/authorization/getCompanyByUserId/${effectiveUserId}`
         );
         const userCompanies: any[] = companiesResponse.data ?? [];
         localStorage.setItem("companies", JSON.stringify(userCompanies));
@@ -248,6 +267,49 @@ export default function OnboardingPage() {
                   onSubmit={form.handleSubmit(onCreateCompany)}
                   className="grid gap-4"
                 >
+                  <div className="flex justify-center gap-8 mb-4">
+
+                    {/* Company Profile Picture */}
+                    <FormField
+                      control={form.control}
+                      name="company_profile_picture"
+                      render={({ field: { onChange, value, ...rest } }) => (
+                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                          <FormLabel className="text-xs text-muted-foreground">Company Logo</FormLabel>
+                          <div className="relative">
+                            <Avatar className="h-24 w-24 border-2 border-background ring-1 ring-border rounded-xl">
+                              <AvatarImage src={companyPreviewUrl || undefined} className="object-cover rounded-xl" />
+                              <AvatarFallback className="text-2xl font-semibold bg-primary text-white rounded-xl">
+                                {getCompanyInitials(form.watch("company_name"))}
+                              </AvatarFallback>
+                            </Avatar>
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById("company-pic-upload")?.click()}
+                              className="absolute cursor-pointer bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <Input
+                            type="file"
+                            id="company-pic-upload"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onChange(file);
+                                setCompanyProfilePicture(file);
+                                setCompanyPreviewUrl(URL.createObjectURL(file));
+                              }
+                            }}
+                            {...rest}
+                          />
+                        </div>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={form.control}
                     name="company_name"
@@ -290,17 +352,6 @@ export default function OnboardingPage() {
                       </FormItem>
                     )}
                   />
-
-                  <FormItem>
-                    <FormLabel>Company Profile Picture</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setCompanyProfilePicture(e.target.files?.[0] || null)}
-                      />
-                    </FormControl>
-                  </FormItem>
 
                   <Button
                     type="submit"
