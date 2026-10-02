@@ -192,7 +192,7 @@ export default function RegisterPage() {
 
         <Card className="gap-4">
           <CardHeader>
-            <CardTitle className="text-lg tracking-tight text-center">
+            <CardTitle className="text-md tracking-tight">
               Create an account
             </CardTitle>
             {/* <CardDescription>
@@ -206,20 +206,18 @@ export default function RegisterPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className={cn("grid gap-3")}
               >
-                <div className="grid grid-cols-[4fr_6fr] mt-2 gap-2">
-
                   {/* Profile Picture */}
-                  <div className="flex justify-start">
+                  <div className="flex justify-center items-center">
                     <FormField
                       control={form.control}
                       name="user_profile_picture"
                       render={({ field: { onChange, value, ...rest } }) => (
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                          <FormLabel className="text-xs text-muted-foreground">Profile Picture (optional)</FormLabel>
+                          {/* <FormLabel className="text-xs text-muted-foreground">Profile Picture (optional)</FormLabel> */}
                           <div className="relative">
-                            <Avatar className="h-24 w-24 border-2 border-background ring-1 ring-border">
-                              <AvatarImage src={userPreviewUrl || undefined} className="object-cover" />
-                              <AvatarFallback className="text-2xl font-semibold bg-primary text-white">
+                            <Avatar className="h-18 w-18 border-2 border-background ring-1 ring-border">
+                              <AvatarImage src={userPreviewUrl || undefined} className="object-cover text-md" />
+                              <AvatarFallback className="text-md font-semibold bg-primary text-white">
                                 {getInitials(form.watch("first_name"), form.watch("last_name"))}
                               </AvatarFallback>
                             </Avatar>
@@ -250,6 +248,9 @@ export default function RegisterPage() {
                       )}
                     />
                   </div>
+
+                {/* <div className="grid grid-cols-[25%_75%] gap-2"> */}
+
                   {/* Name row */}
                   <div className="grid grid-cols-1 gap-3">
                     <FormField
@@ -279,7 +280,7 @@ export default function RegisterPage() {
                       )}
                     />
                   </div>
-                </div>
+                {/* </div> */}
 
 
                 {/* Mobile number */}
@@ -349,79 +350,83 @@ export default function RegisterPage() {
                   )}
                 />
 
-                {/* Password */}
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Min. 8 characters"
-                            className="pr-10"
-                            {...field}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            title={
-                              showPassword ? "Hide password" : "Show password"
-                            }
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                            tabIndex={-1}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-2">
 
-                {/* Confirm password */}
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showConfirm ? "text" : "password"}
-                            placeholder="Repeat your password"
-                            className="pr-10"
-                            {...field}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirm(!showConfirm)}
-                            title={
-                              showConfirm ? "Hide password" : "Show password"
-                            }
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                            tabIndex={-1}
-                          >
-                            {showConfirm ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  {/* Password */}
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Min. 6 characters"
+                              className="pr-10"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              title={
+                                showPassword ? "Hide password" : "Show password"
+                              }
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Confirm password */}
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showConfirm ? "text" : "password"}
+                              placeholder="Repeat your password"
+                              className="pr-10"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirm(!showConfirm)}
+                              title={
+                                showConfirm ? "Hide password" : "Show password"
+                              }
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              tabIndex={-1}
+                            >
+                              {showConfirm ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
 
                 {/* Submit */}
                 <Button
