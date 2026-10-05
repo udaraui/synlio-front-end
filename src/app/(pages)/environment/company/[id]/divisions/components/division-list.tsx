@@ -141,7 +141,7 @@ const DivisionList: React.FC<DivisionListProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`h-7 text-xs px-1.5 ${sortOption ? 'bg-primary/10 dark:bg-primary/20 border-primary text-black dark:text-white' : ''}`}
+                  className={`h-7 text-xs px-1.5`}
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>

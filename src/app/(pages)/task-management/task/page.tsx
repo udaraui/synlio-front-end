@@ -2451,7 +2451,7 @@ function Page() {
                   size="sm"
                   variant="outline"
                   title="Sort"
-                  className={`h-7 w-7 p-0 shrink-0 transition-colors ${sortOption !== "createdAt-desc" || defaultSortOption !== "createdAt-desc" ? "border-primary hover:bg-primary/5 dark:hover:bg-primary/10" : ""}`}
+                  className={`h-7 w-7 p-0 shrink-0 transition-colors`}
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>

@@ -339,10 +339,7 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
                   size="sm"
                   variant="outline"
                   title="Sort"
-                  className={`h-7 w-7 p-0 ${sortOption
-                    ? "bg-primary/10 dark:bg-primary/20 border-primary text-black dark:text-white"
-                    : ""
-                    }`}
+                  className={`h-7 w-7 p-0`}
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>

@@ -215,7 +215,7 @@ const Skill_categories_list: React.FC<SkillCategoryTableProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`h-7 w-7 text-xs px-2 `}
+                  className={`h-7 w-7 text-xs px-2`}
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>

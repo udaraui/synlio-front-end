@@ -2569,7 +2569,7 @@ function TicketPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className={`h-7 w-7 p-0 shrink-0 ${sortOption !== defaultSortOption ? "border-primary" : ""} border border-border shadow-none`}
+                  className={`h-7 w-7 p-0 shrink-0`}
                   title="Sort"
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
