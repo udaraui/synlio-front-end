@@ -76,6 +76,8 @@
     "color": "^5.0.3",
     "date-fns": "^3.6.0",
     "dnd-kit-sortable-tree": "^0.1.73",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "framer-motion": "^12.5.0",
     "frappe-gantt": "^1.0.4",
     "js-cookie": "^3.0.5",
