@@ -37,9 +37,11 @@ interface Message {
 }
 
 import { Plus, X } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const CustomEChartsRenderer = ({ chartOptions }: { chartOptions: any }) => {
   const chartRef = useRef<any>(null);
+  const { resolvedTheme } = useTheme();
   const [legendItems, setLegendItems] = useState<{ name: string, color: string, selected: boolean }[]>([]);
 
   // Hide the native ECharts legend since we are building a custom React one
@@ -122,7 +124,7 @@ const CustomEChartsRenderer = ({ chartOptions }: { chartOptions: any }) => {
 
         // Hide legend if it's not a pie chart (Bar/Line charts will use X-axis labels instead)
         // if (series[0]?.subType !== 'pie') {
-           newLegend.length = 0;
+        newLegend.length = 0;
         // }
 
         // Only update if we found legends and it's different to prevent infinite loops
@@ -159,8 +161,8 @@ const CustomEChartsRenderer = ({ chartOptions }: { chartOptions: any }) => {
               key={item.name}
               onClick={() => toggleLegend(item.name, idx)}
               className={`inline-flex items-center gap-1.5 rounded-md border pl-2 pr-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${item.selected
-                  ? "border-border text-foreground"
-                  : "border-border border-dashed text-muted-foreground hover:bg-muted/50"
+                ? "border-border text-foreground"
+                : "border-border border-dashed text-muted-foreground hover:bg-muted/50"
                 }`}
             >
               {item.selected ? (
@@ -303,8 +305,8 @@ const markdownComponents = {
   p: ({ node, children, ...props }: any) => {
     const text = extractText(children);
     if (text.trim().startsWith('### ') || /^(Pie Chart|Bar Chart|Line Chart|Table):/i.test(text.trim())) {
-       const cleanText = text.replace(/^###\s*/, '').replace(/^(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/i, '');
-       return <h3 className="text-lg font-medium mt-5 mb-2 text-foreground" {...props}>{cleanText}</h3>;
+      const cleanText = text.replace(/^###\s*/, '').replace(/^(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/i, '');
+      return <h3 className="text-lg font-medium mt-5 mb-2 text-foreground" {...props}>{cleanText}</h3>;
     }
     return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{children}</p>;
   },
@@ -321,6 +323,7 @@ const markdownComponents = {
   li: ({ node, ...props }: any) => <li className="leading-relaxed" {...props} />,
   a: ({ node, ...props }: any) => <a className="text-primary hover:underline" {...props} />,
   code: ({ node, inline, className, children, ...props }: any) => {
+    const { resolvedTheme } = useTheme();
     const match = /language-(\w+)/.exec(className || '');
     if (!inline && match && match[1] === 'echarts') {
       try {
@@ -335,22 +338,46 @@ const markdownComponents = {
         chartOptions.grid.right = 20;
         chartOptions.grid.containLabel = true;
 
-        // 1. Force Tooltip styles
+        // 2.5 Axis and Dynamic Theme Styling (Text, Lines, Grid)
+        // Use explicit hex colors to guarantee perfect contrast in canvas
+        const isDark = resolvedTheme === 'dark';
+        const axisColor = isDark ? '#94a3b8' : '#64748b'; // Slate 400 (dark) vs Slate 500 (light)
+        const splitLineColor = isDark ? '#334155' : '#e2e8f0'; // Slate 700 (dark) vs Slate 200 (light)
+        const textColor = isDark ? '#f8fafc' : '#0f172a'; // Slate 50 (dark) vs Slate 900 (light)
+
+        // 1. Force Tooltip styles (Mimic Shadcn UI Popover)
         if (!chartOptions.tooltip) chartOptions.tooltip = { trigger: 'item' };
-        chartOptions.tooltip.borderWidth = 0;
-        chartOptions.tooltip.borderRadius = 8;
+        chartOptions.tooltip.backgroundColor = isDark ? '#020817' : '#ffffff';
+        chartOptions.tooltip.borderColor = isDark ? '#1e293b' : '#e2e8f0';
+        chartOptions.tooltip.textStyle = { color: textColor, fontWeight: 'normal', fontSize: 13 };
+        chartOptions.tooltip.borderWidth = 1;
+        chartOptions.tooltip.borderRadius = 6;
+        chartOptions.tooltip.extraCssText = 'box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); font-weight: normal !important;';
 
         // 2. Hide ECharts native legend (React handles it now)
         if (!chartOptions.legend) chartOptions.legend = {};
         chartOptions.legend.show = false;
-        
-        // 2.5 Hide redundant yAxis names (e.g. 'Count') since the chart title covers it
+
+        if (chartOptions.xAxis) {
+          const xAxes = Array.isArray(chartOptions.xAxis) ? chartOptions.xAxis : [chartOptions.xAxis];
+          xAxes.forEach((x: any) => {
+            if (!x.axisLabel) x.axisLabel = {};
+            x.axisLabel.color = axisColor;
+            if (!x.axisLine) x.axisLine = {};
+            x.axisLine.lineStyle = { color: splitLineColor };
+          });
+        }
+
         if (chartOptions.yAxis) {
-           if (Array.isArray(chartOptions.yAxis)) {
-              chartOptions.yAxis.forEach((y: any) => delete y.name);
-           } else {
-              delete chartOptions.yAxis.name;
-           }
+          const yAxes = Array.isArray(chartOptions.yAxis) ? chartOptions.yAxis : [chartOptions.yAxis];
+          yAxes.forEach((y: any) => {
+            delete y.name; // Hide redundant yAxis names (e.g. 'Count')
+            if (!y.axisLabel) y.axisLabel = {};
+            y.axisLabel.color = axisColor;
+            if (!y.splitLine) y.splitLine = {};
+            if (!y.splitLine.lineStyle) y.splitLine.lineStyle = {};
+            y.splitLine.lineStyle.color = splitLineColor;
+          });
         }
 
         // 3. Force Series styles (e.g. force Pie chart labels and add padding)
@@ -360,11 +387,14 @@ const markdownComponents = {
               // Force labels to show (override any AI config that hid them)
               if (!s.label) s.label = {};
               s.label.show = true;
+              s.label.color = textColor;
+              s.label.textBorderColor = 'transparent';
+              s.label.textBorderWidth = 0;
 
               if (!s.labelLine) s.labelLine = {};
               s.labelLine.show = true;
               if (!s.labelLine.lineStyle) s.labelLine.lineStyle = {};
-              s.labelLine.lineStyle.color = '#94a3b8'; // Neutral slate-400 color instead of inheriting slice color
+              s.labelLine.lineStyle.color = axisColor;
 
               if (s.data && Array.isArray(s.data)) {
                 s.data.forEach((d: any) => {
@@ -380,7 +410,7 @@ const markdownComponents = {
               // Force standard label formatter at the series level with bold count
               s.label.formatter = '{b} {c|{c}} ({d}%)';
               s.label.rich = {
-                c: { fontWeight: 'bold' }
+                c: { fontWeight: 'bold', color: textColor }
               };
 
               // Remove rounded corners and borders (padding)
@@ -394,7 +424,7 @@ const markdownComponents = {
               s.symbolSize = 8;
               if (!s.lineStyle) s.lineStyle = {};
               s.lineStyle.width = 3;
-              s.lineStyle.color = '#cbd5e1'; // Neutral slate-300 so the colorful dots stand out
+              s.lineStyle.color = splitLineColor;
             }
           });
         }
@@ -404,7 +434,7 @@ const markdownComponents = {
           if (typeof text !== 'string') return { cleanName: text, dbColor: null };
           const match = text.match(/^\{\{(.*?)::(.*?)::(.*?)::(.*?)\}\}$/);
           if (match) {
-             return { cleanName: match[2], dbColor: match[3] && match[3] !== 'null' ? match[3] : null };
+            return { cleanName: match[2], dbColor: match[3] && match[3] !== 'null' ? match[3] : null };
           }
           return { cleanName: text, dbColor: null };
         };
@@ -441,7 +471,7 @@ const markdownComponents = {
                 const val = rows[i][1];
                 const { cleanName, dbColor } = parseCategoryString(rawCatName);
                 const color = dbColor || getFallbackColor(cleanName);
-                
+
                 newData.push({
                   name: cleanName,
                   value: val,
@@ -450,10 +480,13 @@ const markdownComponents = {
               }
               delete chartOptions.dataset;
               if (isLine || isBar) {
-                 chartOptions.xAxis = { type: 'category', data: newData.map(d => d.name) };
-                 chartOptions.series[0].data = newData.map(d => ({ value: d.value, itemStyle: d.itemStyle }));
+                const xAxisObj = Array.isArray(chartOptions.xAxis) ? (chartOptions.xAxis[0] || {}) : (chartOptions.xAxis || {});
+                const newXAxis = { ...xAxisObj, type: 'category', data: newData.map(d => d.name) };
+                chartOptions.xAxis = Array.isArray(chartOptions.xAxis) ? [newXAxis, ...chartOptions.xAxis.slice(1)] : newXAxis;
+
+                chartOptions.series[0].data = newData.map(d => ({ value: d.value, itemStyle: d.itemStyle }));
               } else {
-                 chartOptions.series[0].data = newData;
+                chartOptions.series[0].data = newData;
               }
               chartOptions.series.length = 1; // Cleanup redundant hallucinated series
             }
@@ -620,8 +653,8 @@ export default function ChatPage() {
                           components={markdownComponents as any}
                         >
                           {msg.content
-                             .replace(/\n*###\s/g, '\n\n### ')
-                             .replace(/###\s*(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/gi, '### ')}
+                            .replace(/\n*###\s/g, '\n\n### ')
+                            .replace(/###\s*(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/gi, '### ')}
                         </ReactMarkdown>
                       </div>
                     )}
