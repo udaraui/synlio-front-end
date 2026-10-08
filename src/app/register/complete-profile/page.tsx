@@ -259,7 +259,15 @@ export default function CompleteProfilePage() {
               <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 1 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
               <Form {...userForm}>
                 <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-5 flex flex-col h-full">
-                  <div className="flex justify-center mb-8">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex flex-col space-y-1.5">
+                      <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-foreground">
+                        Profile details
+                      </h1>
+                      <p className="text-sm text-slate-500 dark:text-muted-foreground">
+                        Set up your personal profile
+                      </p>
+                    </div>
                     <FormField
                       control={userForm.control}
                       name="user_profile_picture"
@@ -380,25 +388,13 @@ export default function CompleteProfilePage() {
                     )}
                   />
 
-                  <div className="flex gap-3 mt-auto pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        sessionStorage.removeItem("registration_token");
-                        sessionStorage.removeItem("pending_email");
-                        router.push('/login');
-                      }}
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back
-                    </Button>
+                  <div className="flex mt-auto pt-2">
                     <Button 
                       type="submit" 
-                      className="flex-1 group"
+                      className="w-full group"
                       disabled={Object.keys(userForm.formState.errors).length > 0}
                     >
-                      Company
+                      Continue
                       <ArrowRight className="w-4 h-4" />
                     </Button>
                   </div>
@@ -409,7 +405,15 @@ export default function CompleteProfilePage() {
             <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 2 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
               <Form {...companyForm}>
                 <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-5 flex flex-col h-full">
-                  <div className="flex justify-center mb-8">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex flex-col space-y-1.5">
+                      <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-foreground">
+                        Company details
+                      </h1>
+                      <p className="text-sm text-slate-500 dark:text-muted-foreground">
+                        Set up your company profile
+                      </p>
+                    </div>
                     <FormField
                       control={companyForm.control}
                       name="company_profile_picture"

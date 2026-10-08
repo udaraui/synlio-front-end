@@ -7,9 +7,9 @@ import Image from "next/image";
 import axios from "axios";
 import { API_URL } from "@/services/api";
 import { toast } from "sonner";
-import { 
-  Loader2, 
-  MailOpen, 
+import {
+  Loader2,
+  MailOpen,
   ArrowLeft,
   RefreshCw
 } from "lucide-react";
@@ -41,7 +41,7 @@ export default function VerifyEmailPage() {
 
   const handleVerify = async (otpValue: string) => {
     if (otpValue.length !== 6 || !email) return;
-    
+
     setIsLoading(true);
     try {
       const response = await axios.post(`${API_URL}/auth/verify-otp`, {
@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
       // Save the registration token to proceed to the final step
       if (response.data.registration_token) {
         sessionStorage.setItem("registration_token", response.data.registration_token);
-        toast.success("Email verified successfully!");
+        toast.success("Your email is verified");
         router.push("/register/complete-profile");
       }
     } catch (error: any) {
@@ -80,12 +80,12 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
-      
+
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
-        
-        <div className="w-full max-w-[380px] flex flex-col items-center">
-          
+
+        <div className="w-full max-w-[380px]">
+
           {/* Brand header */}
           {/* <div className="mb-8 gap-3 flex items-center justify-center">
             <Image src={Logo} width={38} height={38} alt="synlio" />
@@ -94,51 +94,52 @@ export default function VerifyEmailPage() {
             </span>
           </div> */}
 
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-foreground">
+          <div className="flex flex-col space-y-1.5 mb-8">
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-foreground">
               Check your email
             </h1>
-            <p className="text-sm text-slate-500 dark:text-muted-foreground mt-2 leading-relaxed">
-              We've sent a 6-digit verification code to <br/>
+            <p className="text-sm text-slate-500 dark:text-muted-foreground leading-relaxed">
+              We've sent a 6-digit verification code to <br />
               <span className="font-semibold text-slate-900 dark:text-foreground">{email}</span>
             </p>
           </div>
 
           <div className="flex flex-col items-center w-full">
-            <div className="mb-8">
-              <InputOTP 
-                maxLength={6} 
-                value={code} 
+            <div className="mb-8 w-full">
+              <InputOTP
+                maxLength={6}
+                value={code}
                 onChange={(value) => {
                   setCode(value);
                   if (value.length === 6) handleVerify(value);
                 }}
                 disabled={isLoading}
+                containerClassName="w-full justify-between"
               >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} className="h-12 w-12 text-lg" />
-                  <InputOTPSlot index={1} className="h-12 w-12 text-lg" />
-                  <InputOTPSlot index={2} className="h-12 w-12 text-lg" />
+                <InputOTPGroup className="flex-1">
+                  <InputOTPSlot index={0} className="h-12 flex-1 text-lg" />
+                  <InputOTPSlot index={1} className="h-12 flex-1 text-lg" />
+                  <InputOTPSlot index={2} className="h-12 flex-1 text-lg" />
                 </InputOTPGroup>
                 <InputOTPSeparator />
-                <InputOTPGroup>
-                  <InputOTPSlot index={3} className="h-12 w-12 text-lg" />
-                  <InputOTPSlot index={4} className="h-12 w-12 text-lg" />
-                  <InputOTPSlot index={5} className="h-12 w-12 text-lg" />
+                <InputOTPGroup className="flex-1">
+                  <InputOTPSlot index={3} className="h-12 flex-1 text-lg" />
+                  <InputOTPSlot index={4} className="h-12 flex-1 text-lg" />
+                  <InputOTPSlot index={5} className="h-12 flex-1 text-lg" />
                 </InputOTPGroup>
               </InputOTP>
             </div>
 
             <div className="flex flex-row w-full gap-3 mb-6">
-              <Button
+              {/* <Button
                 variant="outline"
                 className="flex-1"
                 onClick={() => router.push('/register')}
                 disabled={isLoading}
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
+                Cancel
+              </Button> */}
               <Button
                 className="flex-1"
                 disabled={isLoading || code.length !== 6}
@@ -146,7 +147,7 @@ export default function VerifyEmailPage() {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Verifying…
                   </>
                 ) : (
@@ -171,7 +172,7 @@ export default function VerifyEmailPage() {
               </p>
             </div>
           </div>
-          
+
         </div>
       </div>
 
@@ -213,7 +214,7 @@ export default function VerifyEmailPage() {
         </div>
       </div>
       */}
-      
+
       {/* Marketing Column (Right) */}
       <RegistrationMarketing />
     </div>

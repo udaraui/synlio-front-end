@@ -3,7 +3,7 @@ import Logo from "../../public/logo.png";
 
 export default function RegistrationMarketing() {
   return (
-    <div className="hidden lg:flex flex-col items-center justify-center w-1/2 p-8 xl:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-background dark:to-muted/30 relative overflow-hidden select-none">
+    <div className="hidden lg:flex flex-col items-center justify-center w-1/2 p-8 xl:p-12 bg-neutral-50 dark:bg-neutral-950 relative overflow-hidden select-none">
 
       {/* Brand Header */}
       {/* <div className="absolute top-28 flex items-center gap-2">
@@ -121,7 +121,7 @@ export default function RegistrationMarketing() {
         </div>
 
         {/* Foreground Layer: Card 1 (Resource Group) */}
-        <div className="group absolute bottom-[10%] left-[-2%] w-[280px] bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border-y border-r border-l border-b-slate-100 border-r-slate-100 dark:border-t-white/10 dark:border-b-white/10 dark:border-r-white/10 p-4 z-20 transition-transform duration-700 cursor-pointer">
+        <div className="group absolute bottom-[10%] left-[-2%] w-[280px] bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border border-white dark:border-white/10 p-4 z-20 transition-transform duration-700 cursor-pointer">
           {/* Header */}
           <div className="flex items-center justify-between gap-3 relative h-6">
             <div className="absolute inset-y-0 left-0 flex items-center w-24">
@@ -160,7 +160,7 @@ export default function RegistrationMarketing() {
         </div>
 
         {/* Foreground Layer: Card 2 (Missing Time) */}
-        <div className="group absolute top-[10%] right-[-2%] w-[220px] bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border border-slate-100 dark:border-white/10 dark:border-white/10 p-5 z-20 transition-transform duration-700 cursor-pointer">
+        <div className="group absolute top-[10%] right-[-2%] w-[220px] bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border border-white dark:border-white/10 p-5 z-20 transition-transform duration-700 cursor-pointer">
           <div className="flex justify-between items-center mb-4 relative h-5">
             <div className="absolute left-0 flex items-center w-20">
               <div className="w-full h-3.5 bg-slate-200 dark:bg-white/20 rounded-full transition-opacity duration-700"></div>

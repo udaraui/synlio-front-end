@@ -120,11 +120,11 @@ export default function RegisterPage() {
             </span>
           </div> */}
 
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-foreground">
+          <div className="flex flex-col space-y-1.5 mb-8">
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-foreground">
               Create an account
             </h1>
-            <p className="text-sm text-slate-500 dark:text-muted-foreground mt-2">
+            <p className="text-sm text-slate-500 dark:text-muted-foreground">
               Enter your email below to get started
             </p>
           </div>
@@ -199,9 +199,9 @@ export default function RegisterPage() {
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-slate-200 dark:border-border" />
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-white dark:bg-background px-3 text-slate-500 dark:text-muted-foreground font-medium">
-                OR
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white dark:bg-background px-3 text-slate-500 dark:text-muted-foreground">
+                Or continue with
               </span>
             </div>
           </div>

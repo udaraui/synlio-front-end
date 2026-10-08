@@ -235,9 +235,9 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-slate-200 dark:border-border" />
               </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white dark:bg-card px-3 text-slate-500 dark:text-muted-foreground font-medium">
-                  OR
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white dark:bg-card px-3 text-slate-500 dark:text-muted-foreground">
+                  Or continue with
                 </span>
               </div>
             </div>
@@ -248,6 +248,7 @@ export default function LoginPage() {
                 variant="outline"
                 type="button"
                 className="w-full"
+                onClick={() => toast.info('Under construction')}
               >
                 <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -263,6 +264,7 @@ export default function LoginPage() {
                 variant="outline"
                 type="button"
                 className="w-full"
+                onClick={() => toast.info('Under construction')}
               >
                 <svg className="mr-1 h-4 w-4" viewBox="0 0 21 21">
                   <path fill="#f25022" d="M0 0h10v10H0z" />

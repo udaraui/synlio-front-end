@@ -227,7 +227,7 @@ export default function Page() {
               onClick={() => setShowWelcome(false)}
               className="w-full"
             >
-              Get Start
+              Get Started
             </Button>
           </DialogFooter>
         </DialogContent>
