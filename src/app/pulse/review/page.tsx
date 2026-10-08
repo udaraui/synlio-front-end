@@ -189,7 +189,7 @@ const ReviewContent = () => {
                         You are logged in as <strong>{user?.email}</strong>, but this snapshot was forwarded to <strong>{accessDenied.intendedEmail}</strong>.
                     </p>
                     <p className="text-muted-foreground text-center mb-2">
-                        Please log in with the correct account to review this snapshot.
+                        Please sign in with the correct account to review this snapshot.
                     </p>
                     <div className="flex gap-4 mt-2">
                         <Button variant="outline" onClick={() => logout(window.location.pathname + window.location.search)}>Logout</Button>

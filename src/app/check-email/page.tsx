@@ -117,7 +117,7 @@ export default function CheckEmailPage() {
                   style={{ color: "oklch(71.443% 0.12133 240.504)" }}
                   className="font-medium hover:underline"
                 >
-                  Log in
+                  Sign in
                 </span>
               </Link>
             </div>

@@ -99,8 +99,8 @@ export default function RegisterPage() {
   const EmailStatusIcon = () => {
     if (emailStatus === "checking")
       return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
-    if (emailStatus === "available")
-      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    // if (emailStatus === "available")
+    //   return <CheckCircle2 className="h-4 w-4 text-green-500" />;
     if (emailStatus === "taken")
       return <AlertCircle className="h-4 w-4 text-destructive" />;
     return null;
@@ -150,9 +150,9 @@ export default function RegisterPage() {
                             checkEmail(e.target.value);
                           }}
                           className={cn(
-                            "pr-9 h-11 rounded-lg",
+                            "pr-9",
                             emailStatus === "taken" &&
-                            "border-destructive focus-visible:ring-destructive"
+                            "border-destructive"
                           )}
                         />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -161,18 +161,14 @@ export default function RegisterPage() {
                       </div>
                     </FormControl>
                     {emailStatus === "taken" ? (
-                      <p className="text-[0.8rem] font-medium text-destructive">
+                      <p className="text-sm text-destructive px-1 pt-1.5">
                         This email is already registered.{" "}
                         <Link
                           href="/login"
-                          className="underline underline-offset-2"
+                          className="underline-offset-2"
                         >
-                          Log in instead?
+                          <span className="underline">Sign in</span> instead?
                         </Link>
-                      </p>
-                    ) : emailStatus === "available" ? (
-                      <p className="text-[0.8rem] font-medium text-green-600">
-                        Email is available.
                       </p>
                     ) : (
                       <FormMessage />
@@ -182,7 +178,7 @@ export default function RegisterPage() {
               />
 
               <Button
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium"
+                className="w-full"
                 disabled={isLoading || emailStatus === "taken"}
                 type="submit"
               >
@@ -199,13 +195,13 @@ export default function RegisterPage() {
           </Form>
 
           {/* Divider */}
-          <div className="relative my-8">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-slate-200" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
+            <div className="relative flex justify-center text-xs">
               <span className="bg-white px-3 text-slate-500 font-medium">
-                Or continue with
+                OR
               </span>
             </div>
           </div>
@@ -215,9 +211,9 @@ export default function RegisterPage() {
             <Button 
               variant="outline" 
               type="button" 
-              className="w-full h-11 bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-sm"
+              className="w-full"
             >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -230,9 +226,9 @@ export default function RegisterPage() {
             <Button 
               variant="outline" 
               type="button" 
-              className="w-full h-11 bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-sm"
+              className="w-full"
             >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 21 21">
+              <svg className="mr-1 h-4 w-4" viewBox="0 0 21 21">
                 <path fill="#f25022" d="M0 0h10v10H0z"/>
                 <path fill="#7fba00" d="M11 0h10v10H11z"/>
                 <path fill="#00a4ef" d="M0 11h10v10H0z"/>
@@ -242,15 +238,15 @@ export default function RegisterPage() {
             </Button>
           </div>
 
-          <div className="text-center mt-10">
+          <div className="text-center mt-8">
             <span className="text-sm text-slate-500">
               Already have an account?{" "}
             </span>
             <Link
               href="/login"
-              className="text-sm font-semibold hover:underline text-[#0073ea]"
+              className="text-sm font-semibold hover:underline text-primary"
             >
-              Log in
+              Sign in
             </Link>
           </div>
           

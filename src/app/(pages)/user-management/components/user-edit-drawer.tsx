@@ -657,7 +657,7 @@ export function UserEditDrawer({
                     <div>
                       <FormLabel className="text-sm font-medium">Account Status</FormLabel>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {field.value ? "User is active and can log in" : "User is disabled"}
+                        {field.value ? "User is active and can sign in" : "User is disabled"}
                       </p>
                     </div>
                     <FormControl>

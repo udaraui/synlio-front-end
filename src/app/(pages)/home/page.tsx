@@ -209,36 +209,27 @@ export default function Page() {
 
       {/* ── Welcome Popup ── */}
       <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-        {/* p-0, overflow-hidden, and rounded-3xl create a seamless edge-to-edge card */}
-        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border border-slate-100 shadow-2xl rounded-3xl gap-0">
-
-          {/* Soft Decorative Header Area */}
-          <div className="h-32 w-full bg-gradient-to-br from-slate-50 to-indigo-50/30 relative flex items-center justify-center border-b border-slate-100/50">
-            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-white flex items-center justify-center relative z-10 rotate-3 transition-transform hover:rotate-6">
-               <Image src={Logo} width={38} height={38} alt="Synlio" />
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader className="flex flex-col items-center gap-2 pt-4">
+            <div className="w-12 h-12 flex items-center justify-center mb-2">
+              <Image src={Logo} width={40} height={40} alt="Synlio" />
             </div>
-          </div>
+            <DialogTitle className="text-xl font-semibold text-center">
+              Welcome to Synlio
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-500">
+              Your company and admin account have been successfully set up. You are ready.
+            </DialogDescription>
+          </DialogHeader>
 
-          {/* Content Area */}
-          <div className="px-8 pt-6 pb-8 flex flex-col items-center text-center bg-white">
-            <DialogHeader className="flex flex-col items-center gap-0">
-              <DialogTitle className="text-xl font-semibold tracking-tight text-slate-900">
-                Welcome to Synlio
-              </DialogTitle>
-              <DialogDescription className="text-[13px] text-slate-500 mt-2.5 leading-relaxed max-w-[280px]">
-                Your company and admin account have been successfully set up. You are ready to get started.
-              </DialogDescription>
-            </DialogHeader>
-
-            <DialogFooter className="mt-8 w-full sm:justify-center">
-              <Button
-                onClick={() => setShowWelcome(false)}
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium transition-all shadow-sm hover:shadow-md"
-              >
-                Continue
-              </Button>
-            </DialogFooter>
-          </div>
+          <DialogFooter className="mt-4 sm:justify-center w-full">
+            <Button
+              onClick={() => setShowWelcome(false)}
+              className="w-full"
+            >
+              Get Start
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </main>

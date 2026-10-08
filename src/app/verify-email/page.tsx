@@ -20,7 +20,7 @@ import {
   InputOTPSeparator,
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
-import Logo from "../../../public/logo.png";
+import RegistrationMarketing from "@/components/registrationMarketing";
 
 export default function VerifyEmailPage() {
   const [email, setEmail] = useState<string | null>(null);
@@ -84,16 +84,6 @@ export default function VerifyEmailPage() {
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white overflow-y-auto">
         
-        {/* Back Button (Absolute positioning for top-left) */}
-        <div className="absolute top-8 left-8 hidden lg:block">
-          <Link href="/register">
-            <Button variant="ghost" className="text-slate-500 hover:text-slate-900">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-        </div>
-
         <div className="w-full max-w-[380px] flex flex-col items-center">
           
           {/* Brand header */}
@@ -139,20 +129,31 @@ export default function VerifyEmailPage() {
               </InputOTP>
             </div>
 
-            <Button
-              className="w-full h-11 bg-[#0073ea] hover:bg-[#0060c2] text-white rounded-lg font-medium mb-6"
-              disabled={isLoading || code.length !== 6}
-              onClick={() => handleVerify(code)}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying…
-                </>
-              ) : (
-                "Verify Email"
-              )}
-            </Button>
+            <div className="flex flex-row w-full gap-3 mb-6">
+              <Button
+                variant="outline"
+                className="w-1/2"
+                onClick={() => router.push('/register')}
+                disabled={isLoading}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+              <Button
+                className="w-1/2"
+                disabled={isLoading || code.length !== 6}
+                onClick={() => handleVerify(code)}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying…
+                  </>
+                ) : (
+                  "Verify Email"
+                )}
+              </Button>
+            </div>
 
             <div className="text-center space-y-4">
               <p className="text-sm text-slate-500">
@@ -160,7 +161,7 @@ export default function VerifyEmailPage() {
                 <button
                   onClick={handleResend}
                   disabled={isResending}
-                  className="font-semibold text-[#0073ea] hover:underline inline-flex items-center"
+                  className="font-semibold text-primary hover:underline inline-flex items-center"
                 >
                   {isResending ? (
                     <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
@@ -168,30 +169,24 @@ export default function VerifyEmailPage() {
                   Resend code
                 </button>
               </p>
-              
-              {/* Mobile back button equivalent */}
-              <div className="lg:hidden">
-                <Link href="/register" className="text-sm text-slate-500 hover:text-slate-900 underline underline-offset-2">
-                  Not your email? Change it here.
-                </Link>
-              </div>
             </div>
           </div>
           
         </div>
       </div>
-      
-      {/* Marketing Column (Right) - Subtle Inbox Visual */}
+
+      {/* 
+      {/* Marketing Column (Right) - Subtle Inbox Visual *\/}
       <div className="hidden lg:flex flex-col items-center justify-center w-1/2 p-8 xl:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 relative overflow-hidden select-none">
         
-        {/* Scaling Wrapper */}
+        {/* Scaling Wrapper *\/}
         <div className="relative w-full max-w-[600px] aspect-square flex items-center justify-center animate-[float_8s_ease-in-out_infinite] scale-90 xl:scale-100">
           
-          {/* Faint background elements for depth */}
+          {/* Faint background elements for depth *\/}
           <div className="absolute w-64 h-64 bg-indigo-300/20 rounded-full blur-3xl -top-10 -right-10"></div>
           <div className="absolute w-64 h-64 bg-blue-300/20 rounded-full blur-3xl bottom-10 -left-10"></div>
 
-          {/* Email Notification Card */}
+          {/* Email Notification Card *\/}
           <div className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_25px_50px_rgb(0,0,0,0.08)] p-8 rounded-3xl w-[360px] relative z-20">
             <div className="w-14 h-14 rounded-2xl bg-white text-indigo-200 flex items-center justify-center mb-8 shadow-sm border border-indigo-100">
               <MailOpen className="w-7 h-7" />
@@ -202,7 +197,7 @@ export default function VerifyEmailPage() {
               <div className="h-3 w-1/2 bg-slate-200/70 rounded-full"></div>
             </div>
             
-            {/* Visual OTP representation */}
+            {/* Visual OTP representation *\/}
             <div className="flex gap-2.5 justify-center">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div 
@@ -217,6 +212,10 @@ export default function VerifyEmailPage() {
 
         </div>
       </div>
+      */}
+      
+      {/* Marketing Column (Right) */}
+      <RegistrationMarketing />
     </div>
   );
 }

@@ -83,6 +83,7 @@ export default function CompleteProfilePage() {
   const [step, setStep] = useState<1 | 2 | 3>(1); // Step 3 is loading spinner
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [prefixManuallyEdited, setPrefixManuallyEdited] = useState(false);
 
@@ -100,7 +101,11 @@ export default function CompleteProfilePage() {
 
   const getCompanyInitials = (name?: string) => {
     const n = (name || "").trim();
-    if (!n) return <Building2 className="w-12 h-12" />;
+    if (!n) return <Building2 className="w-10 h-10" />;
+    const words = n.split(" ").filter(w => w.length > 0);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
     return n.substring(0, 2).toUpperCase();
   };
 
@@ -156,7 +161,7 @@ export default function CompleteProfilePage() {
   };
 
   const onCompanySubmit = async (values: CompanyFormValues) => {
-    setStep(3); // Show spinner
+    setIsSubmitting(true);
 
     const userValues = userForm.getValues();
 
@@ -215,7 +220,7 @@ export default function CompleteProfilePage() {
       }, 3000);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to complete registration");
-      setStep(2); // Go back to form
+      setIsSubmitting(false); // Go back to form
     }
   };
 
@@ -225,14 +230,7 @@ export default function CompleteProfilePage() {
     <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full lg:w-1/2 p-6 lg:p-12 bg-white overflow-y-auto">
-
-        {step === 3 ? (
-          <div className="flex flex-col items-center justify-center text-center">
-            <Loader2 className="w-10 h-10 animate-spin text-[#0073ea] mb-4" />
-            <h2 className="text-2xl font-light text-gray-900 tracking-tight">Setting up your workspace...</h2>
-          </div>
-        ) : (
-          <div className="w-full max-w-[480px]">
+        <div className="w-full max-w-[480px]">
             <div className="flex flex-col items-center text-center mb-8">
               {/* <Image src={Logo} width={48} height={48} alt="synlio" className="mb-6" /> */}
               {/* <h1 className="text-[32px] font-light text-gray-900 tracking-tight leading-tight">
@@ -257,16 +255,17 @@ export default function CompleteProfilePage() {
               </div> */}
             </div>
 
-            <div className={`transition-opacity duration-300 ${step === 1 ? 'block opacity-100' : 'hidden opacity-0'}`}>
+            <div className="relative grid w-full">
+              <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 1 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
               <Form {...userForm}>
-                <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-5">
+                <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-5 flex flex-col h-full">
                   <div className="flex justify-center mb-8">
                     <FormField
                       control={userForm.control}
                       name="user_profile_picture"
                       render={({ field: { onChange, value, ...rest } }) => (
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                          <FormLabel className="text-sm font-medium text-gray-700 mb-2">Profile Picture</FormLabel>
+                          {/* <FormLabel className="mb-2">Profile Picture</FormLabel> */}
                           <div className="relative">
                             <Avatar className="h-24 w-24 border-2 border-white ring-1 ring-gray-200 shadow-sm rounded-full">
                               <AvatarImage src={userPreviewUrl || undefined} className="object-cover rounded-full" />
@@ -277,7 +276,7 @@ export default function CompleteProfilePage() {
                             <button
                               type="button"
                               onClick={() => document.getElementById("user-pic-upload")?.click()}
-                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-white bg-[#0073ea] text-white rounded-full shadow-sm hover:bg-[#0060c2] transition-transform active:scale-95"
+                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-white bg-primary text-white rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
                             >
                               <Camera className="w-4 h-4" />
                             </button>
@@ -308,9 +307,9 @@ export default function CompleteProfilePage() {
                       name="first_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700 text-sm font-medium">First name</FormLabel>
+                          <FormLabel>First name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Jane" className="h-11 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900" {...field} />
+                            <Input placeholder="Jane" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -321,9 +320,9 @@ export default function CompleteProfilePage() {
                       name="last_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700 text-sm font-medium">Last name</FormLabel>
+                          <FormLabel>Last name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Doe" className="h-11 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900" {...field} />
+                            <Input placeholder="Doe" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -336,14 +335,13 @@ export default function CompleteProfilePage() {
                     name="mobile_number"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 text-sm font-medium">
-                          Mobile number <span className="text-gray-400 font-normal">(optional)</span>
+                        <FormLabel>
+                          Mobile <span className="text-muted-foreground font-normal">(optional)</span>
                         </FormLabel>
                         <FormControl>
                           <PhoneInput
                             defaultCountry="LK"
                             placeholder="77 123 4567"
-                            className="h-11 [&_input]:h-11 [&_input]:rounded-lg [&_input]:border-gray-300 [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-[#0073ea]/50 [&_input]:transition-all text-gray-900"
                             {...field}
                           />
                         </FormControl>
@@ -355,15 +353,16 @@ export default function CompleteProfilePage() {
                   <FormField
                     control={userForm.control}
                     name="password"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 text-sm font-medium">Password</FormLabel>
+                        <FormLabel>Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
                               type={showPassword ? "text" : "password"}
                               placeholder="Create a strong password"
-                              className="h-11 pr-10 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900"
+                              className="pr-10"
+                              aria-invalid={!!fieldState.error}
                               {...field}
                             />
                             <button
@@ -381,35 +380,53 @@ export default function CompleteProfilePage() {
                     )}
                   />
 
-                  <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/80 text-white rounded-lg mt-8 group font-medium">
-                    Continue to Company
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                  <div className="flex gap-3 mt-auto pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-1/2"
+                      onClick={() => {
+                        sessionStorage.removeItem("registration_token");
+                        sessionStorage.removeItem("pending_email");
+                        router.push('/login');
+                      }}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="w-1/2 group"
+                      disabled={Object.keys(userForm.formState.errors).length > 0}
+                    >
+                      Company
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </div>
 
-            <div className={`transition-opacity duration-300 ${step === 2 ? 'block opacity-100' : 'hidden opacity-0'}`}>
+            <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 2 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
               <Form {...companyForm}>
-                <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-5">
-                  <div className="flex justify-center mb-6">
+                <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-5 flex flex-col h-full">
+                  <div className="flex justify-center mb-8">
                     <FormField
                       control={companyForm.control}
                       name="company_profile_picture"
                       render={({ field: { onChange, value, ...rest } }) => (
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                          <FormLabel className="text-sm font-medium text-gray-700">Company Logo</FormLabel>
+                          {/* <FormLabel className="text-sm font-medium text-gray-700">Company Logo</FormLabel> */}
                           <div className="relative">
                             <Avatar className="h-24 w-24 border-2 border-white ring-1 ring-gray-200 shadow-sm rounded-full">
-                              <AvatarImage src={companyPreviewUrl || undefined} className="object-cover rounded-xl" />
-                              <AvatarFallback className="text-2xl font-semibold bg-gray-100 text-gray-600 rounded-xl">
+                              <AvatarImage src={companyPreviewUrl || undefined} className="object-cover rounded-full" />
+                              <AvatarFallback className="text-2xl font-semibold bg-gray-100 text-gray-600 rounded-full">
                                 {getCompanyInitials(companyForm.watch("company_name"))}
                               </AvatarFallback>
                             </Avatar>
                             <button
                               type="button"
                               onClick={() => document.getElementById("company-pic-upload")?.click()}
-                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-white bg-[#0073ea] text-white rounded-full shadow-sm hover:bg-[#0060c2] transition-transform active:scale-95"
+                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-white bg-primary text-white rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
                             >
                               <Camera className="w-4 h-4" />
                             </button>
@@ -439,11 +456,10 @@ export default function CompleteProfilePage() {
                     name="company_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-700 text-sm font-medium">Company Name</FormLabel>
+                        <FormLabel>Company Name</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Acme Corp"
-                            className="h-11 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900"
                             {...field}
                             onChange={(e) => {
                               field.onChange(e);
@@ -467,11 +483,11 @@ export default function CompleteProfilePage() {
                       name="company_address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-700 text-sm font-medium">
-                            Company Address <span className="text-gray-400 font-normal">(optional)</span>
+                          <FormLabel>
+                            Company Address <span className="text-muted-foreground font-normal">(optional)</span>
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="Address Line 1" className="h-11 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900" {...field} />
+                            <Input placeholder="Address Line 1" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -483,7 +499,7 @@ export default function CompleteProfilePage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input placeholder="Address Line 2 (Suite, Floor, etc.)" className="h-11 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900" {...field} />
+                            <Input placeholder="Address Line 2 (Suite, Floor, etc.)" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -495,7 +511,7 @@ export default function CompleteProfilePage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input placeholder="City, State, ZIP Code" className="h-11 rounded-lg border-gray-300 focus-visible:ring-2 focus-visible:ring-[#0073ea]/50 transition-all text-gray-900" {...field} />
+                            <Input placeholder="City, State, ZIP Code" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -503,27 +519,35 @@ export default function CompleteProfilePage() {
                     />
                   </div>
 
-                  <div className="flex gap-3 mt-8">
+                  <div className="flex gap-3 mt-auto pt-2">
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-1/2"
                       onClick={() => setStep(1)}
-                      className="h-11  rounded-lg px-4 border-gray-300 text-gray-700 hover:bg-gray-50"
                     >
-                      <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                      <ArrowLeft className="w-4 h-4" /> Back
                     </Button>
                     <Button
                       type="submit"
-                      className="flex-1 h-11 bg-primary hover:bg-primary/80 text-white rounded-lg font-medium"
+                      className="w-1/2"
+                      disabled={isSubmitting || Object.keys(companyForm.formState.errors).length > 0}
                     >
-                      Complete Registration
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Setting up...
+                        </>
+                      ) : (
+                        "Complete Profile"
+                      )}
                     </Button>
                   </div>
                 </form>
               </Form>
             </div>
+            </div>
           </div>
-        )}
       </div>
 
       {/* Marketing Column (Right) */}

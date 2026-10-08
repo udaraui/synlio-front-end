@@ -122,20 +122,28 @@ export default function LoginPage() {
 
   return (
 
-    <div className="flex flex-col items-center justify-center w-full h-full  p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 overflow-y-auto h-screen">
+    <div className="flex flex-col items-center justify-center w-full h-full p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 overflow-y-auto h-screen">
       <div className="w-full max-w-[480px]">
 
         {/* Brand header */}
-        <div className="mb-8 gap-3 flex items-center justify-center">
-          <Image src={Logo} width={38} height={38} alt="synlio" />
-          <span className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-widest">
+        <div className="mb-5 gap-2 flex items-center justify-center">
+          <Image src={Logo} width={28} height={28} alt="synlio" />
+          <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-widest">
             Synlio
           </span>
         </div>
 
+        <Card className="">
+          <CardContent className="p-5 pt-5 sm:p-8 sm:pt-6">
+            <div className="flex flex-col space-y-1.5 mb-8">
+              <h1 className="text-lg font-semibold tracking-tight text-slate-900">
+                Welcome back
+              </h1>
+              <p className="text-sm text-slate-500">
+                Enter your email and password to sign in to your account
+              </p>
+            </div>
 
-        <Card className="shadow-sm">
-          <CardContent className="p-0 sm:p-6 sm:pt-6 pt-6">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -150,7 +158,6 @@ export default function LoginPage() {
                       <FormControl>
                         <Input
                           placeholder="name@example.com"
-                          className="h-11 rounded-lg"
                           {...field}
                         />
                       </FormControl>
@@ -179,7 +186,7 @@ export default function LoginPage() {
                           <Input
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
-                            className="h-11 rounded-lg pr-10"
+                            className="pr-10"
                             {...field}
                           />
                           <button
@@ -203,7 +210,7 @@ export default function LoginPage() {
                 />
 
                 <Button
-                  className="w-full h-11 mt-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium"
+                  className="w-full mt-2"
                   disabled={isLoading}
                   type="submit"
                 >
@@ -213,20 +220,20 @@ export default function LoginPage() {
                       Signing in…
                     </>
                   ) : (
-                    "Log in"
+                    "Sign in"
                   )}
                 </Button>
               </form>
             </Form>
 
             {/* Divider */}
-            <div className="relative my-8">
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-slate-200" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
+              <div className="relative flex justify-center text-xs">
                 <span className="bg-white px-3 text-slate-500 font-medium">
-                  Or continue with
+                  OR
                 </span>
               </div>
             </div>
@@ -236,9 +243,9 @@ export default function LoginPage() {
               <Button
                 variant="outline"
                 type="button"
-                className="w-full h-11 bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-sm"
+                className="w-full"
               >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -251,9 +258,9 @@ export default function LoginPage() {
               <Button
                 variant="outline"
                 type="button"
-                className="w-full h-11 bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-sm"
+                className="w-full"
               >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 21 21">
+                <svg className="mr-1 h-4 w-4" viewBox="0 0 21 21">
                   <path fill="#f25022" d="M0 0h10v10H0z" />
                   <path fill="#7fba00" d="M11 0h10v10H11z" />
                   <path fill="#00a4ef" d="M0 11h10v10H0z" />
@@ -263,9 +270,9 @@ export default function LoginPage() {
               </Button>
             </div>
 
-            <div className="text-center mt-10">
+            <div className="text-center mt-6">
               <span className="text-sm text-slate-500">
-                Don&apos;t have an account?{" "}
+                Don't have an account?{" "}
               </span>
               <Link
                 href="/register"
