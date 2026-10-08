@@ -21,7 +21,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           __html: `
           (function(){try{
             var c = localStorage.getItem('primary-color');
-            if (c) document.documentElement.style.setProperty('--primary', c);
+            if (c && c !== 'default' && c !== 'null' && c !== 'undefined') {
+              document.documentElement.style.setProperty('--primary', c);
+            }
           }catch(e){}})();
           `,
         }}
