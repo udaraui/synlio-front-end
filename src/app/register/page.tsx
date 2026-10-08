@@ -109,7 +109,7 @@ export default function RegisterPage() {
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
       {/* Form Column (Left) */}
-      <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white overflow-y-auto">
+      <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
         <div className="w-full max-w-[380px]">
           
           {/* Brand header */}
@@ -121,10 +121,10 @@ export default function RegisterPage() {
           </div> */}
 
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-foreground">
               Create an account
             </h1>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-slate-500 dark:text-muted-foreground mt-2">
               Enter your email below to get started
             </p>
           </div>
@@ -151,7 +151,7 @@ export default function RegisterPage() {
                           }}
                           className={cn(
                             "pr-9",
-                            emailStatus === "taken" &&
+                            (emailStatus === "taken" || form.formState.errors.email) &&
                             "border-destructive"
                           )}
                         />
@@ -179,12 +179,12 @@ export default function RegisterPage() {
 
               <Button
                 className="w-full"
-                disabled={isLoading || emailStatus === "taken"}
+                disabled={isLoading || emailStatus === "taken" || !!form.formState.errors.email}
                 type="submit"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                     Please wait…
                   </>
                 ) : (
@@ -197,10 +197,10 @@ export default function RegisterPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200" />
+              <span className="w-full border-t border-slate-200 dark:border-border" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-3 text-slate-500 font-medium">
+              <span className="bg-white dark:bg-background px-3 text-slate-500 dark:text-muted-foreground font-medium">
                 OR
               </span>
             </div>
@@ -212,6 +212,7 @@ export default function RegisterPage() {
               variant="outline" 
               type="button" 
               className="w-full"
+              onClick={() => toast.info("Under construction")}
             >
               <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -227,6 +228,7 @@ export default function RegisterPage() {
               variant="outline" 
               type="button" 
               className="w-full"
+              onClick={() => toast.info("Under construction")}
             >
               <svg className="mr-1 h-4 w-4" viewBox="0 0 21 21">
                 <path fill="#f25022" d="M0 0h10v10H0z"/>
@@ -239,7 +241,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="text-center mt-8">
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-slate-500 dark:text-muted-foreground">
               Already have an account?{" "}
             </span>
             <Link

@@ -122,7 +122,7 @@ export default function LoginPage() {
 
   return (
 
-    <div className="flex flex-col items-center justify-center w-full h-full p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 overflow-y-auto h-screen">
+    <div className="flex flex-col items-center justify-center w-full h-full p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-background dark:to-background overflow-y-auto h-screen">
       <div className="w-full max-w-[480px]">
 
         {/* Brand header */}
@@ -136,10 +136,10 @@ export default function LoginPage() {
         <Card className="">
           <CardContent className="p-5 pt-5 sm:p-8 sm:pt-6">
             <div className="flex flex-col space-y-1.5 mb-8">
-              <h1 className="text-lg font-semibold tracking-tight text-slate-900">
-                Welcome back
+              <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-foreground">
+                Welcome
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-muted-foreground">
                 Enter your email and password to sign in to your account
               </p>
             </div>
@@ -154,10 +154,11 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-700">Email</FormLabel>
+                      <FormLabel className="text-slate-700 dark:text-foreground">Email</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="name@example.com"
+                          className={cn(form.formState.errors.email && "border-destructive")}
                           {...field}
                         />
                       </FormControl>
@@ -172,7 +173,7 @@ export default function LoginPage() {
                   render={({ field }) => (
                     <FormItem className="relative">
                       <div className="flex items-center justify-between">
-                        <FormLabel className="text-slate-700">Password</FormLabel>
+                        <FormLabel className="text-slate-700 dark:text-foreground">Password</FormLabel>
                         <Link
                           href="/forgot-password"
                           className="text-xs font-semibold text-primary hover:underline"
@@ -186,14 +187,17 @@ export default function LoginPage() {
                           <Input
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
-                            className="pr-10"
+                            className={cn(
+                              "pr-10",
+                              form.formState.errors.password && "border-destructive"
+                            )}
                             {...field}
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             title={showPassword ? "Hide password" : "Show password"}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-muted-foreground dark:hover:text-foreground transition-colors"
                             tabIndex={-1}
                           >
                             {showPassword ? (
@@ -229,10 +233,10 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-200" />
+                <span className="w-full border-t border-slate-200 dark:border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-slate-500 font-medium">
+                <span className="bg-white dark:bg-card px-3 text-slate-500 dark:text-muted-foreground font-medium">
                   OR
                 </span>
               </div>
@@ -271,7 +275,7 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center mt-6">
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-slate-500 dark:text-muted-foreground">
                 Don't have an account?{" "}
               </span>
               <Link

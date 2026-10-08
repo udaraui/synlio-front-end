@@ -82,7 +82,7 @@ export default function VerifyEmailPage() {
     <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
       
       {/* Form Column (Left) */}
-      <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white overflow-y-auto">
+      <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
         
         <div className="w-full max-w-[380px] flex flex-col items-center">
           
@@ -95,12 +95,12 @@ export default function VerifyEmailPage() {
           </div> */}
 
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-foreground">
               Check your email
             </h1>
-            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-muted-foreground mt-2 leading-relaxed">
               We've sent a 6-digit verification code to <br/>
-              <span className="font-semibold text-slate-900">{email}</span>
+              <span className="font-semibold text-slate-900 dark:text-foreground">{email}</span>
             </p>
           </div>
 
@@ -132,7 +132,7 @@ export default function VerifyEmailPage() {
             <div className="flex flex-row w-full gap-3 mb-6">
               <Button
                 variant="outline"
-                className="w-1/2"
+                className="flex-1"
                 onClick={() => router.push('/register')}
                 disabled={isLoading}
               >
@@ -140,7 +140,7 @@ export default function VerifyEmailPage() {
                 Back
               </Button>
               <Button
-                className="w-1/2"
+                className="flex-1"
                 disabled={isLoading || code.length !== 6}
                 onClick={() => handleVerify(code)}
               >
@@ -156,7 +156,7 @@ export default function VerifyEmailPage() {
             </div>
 
             <div className="text-center space-y-4">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-muted-foreground">
                 Didn't receive a code?{" "}
                 <button
                   onClick={handleResend}

@@ -48,9 +48,8 @@ const PhoneInput = React.forwardRef<
     className={cn(
       // Mirrors inputVariants: border, radius, height, transition, focus ring
       "flex h-9 w-full min-w-0 items-stretch rounded-md border border-input bg-transparent shadow-none transition-[color,box-shadow]",
-      "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
-      // Error state (aria-invalid is forwarded to the inner <input> by FormControl)
       "has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
+      "focus-within:!border-ring focus-within:!ring-ring/50 focus-within:!ring-[3px]",
       disabled && "pointer-events-none cursor-not-allowed opacity-50",
       className
     )}
@@ -186,7 +185,7 @@ function CountrySelect({
 function FlagComponent({ country, countryName }: RPNInput.FlagProps) {
   const Flag = country ? flags[country] : undefined;
   return (
-    <span className="flex h-4 w-6 shrink-0 overflow-hidden rounded-sm bg-foreground/10 [&_svg]:!size-full">
+    <span className="flex h-4 w-6 shrink-0 overflow-hidden rounded-[2px] bg-foreground/10 [&_svg]:!size-full">
       {Flag && <Flag title={countryName} />}
     </span>
   );

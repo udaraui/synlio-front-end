@@ -229,7 +229,7 @@ export default function CompleteProfilePage() {
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
       {/* Form Column (Left) */}
-      <div className="flex flex-col items-center justify-center w-full lg:w-1/2 p-6 lg:p-12 bg-white overflow-y-auto">
+      <div className="flex flex-col items-center justify-center w-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
         <div className="w-full max-w-[480px]">
             <div className="flex flex-col items-center text-center mb-8">
               {/* <Image src={Logo} width={48} height={48} alt="synlio" className="mb-6" /> */}
@@ -267,16 +267,16 @@ export default function CompleteProfilePage() {
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
                           {/* <FormLabel className="mb-2">Profile Picture</FormLabel> */}
                           <div className="relative">
-                            <Avatar className="h-24 w-24 border-2 border-white ring-1 ring-gray-200 shadow-sm rounded-full">
+                            <Avatar className="h-24 w-24 border border-border shadow-sm rounded-full">
                               <AvatarImage src={userPreviewUrl || undefined} className="object-cover rounded-full" />
-                              <AvatarFallback className="text-2xl font-semibold bg-gray-100 text-gray-600 rounded-full">
+                              <AvatarFallback className="text-2xl font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-white rounded-full">
                                 {getInitials(userForm.watch("first_name"), userForm.watch("last_name"))}
                               </AvatarFallback>
                             </Avatar>
                             <button
                               type="button"
                               onClick={() => document.getElementById("user-pic-upload")?.click()}
-                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-white bg-primary text-white rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
+                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-background bg-primary text-white dark:text-black rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
                             >
                               <Camera className="w-4 h-4" />
                             </button>
@@ -301,7 +301,7 @@ export default function CompleteProfilePage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 items-start">
                     <FormField
                       control={userForm.control}
                       name="first_name"
@@ -384,22 +384,22 @@ export default function CompleteProfilePage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-1/2"
+                      className="flex-1"
                       onClick={() => {
                         sessionStorage.removeItem("registration_token");
                         sessionStorage.removeItem("pending_email");
                         router.push('/login');
                       }}
                     >
-                      <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                      <ArrowLeft className="w-4 h-4" /> Back
                     </Button>
                     <Button 
                       type="submit" 
-                      className="w-1/2 group"
+                      className="flex-1 group"
                       disabled={Object.keys(userForm.formState.errors).length > 0}
                     >
                       Company
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      <ArrowRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </form>
@@ -417,16 +417,16 @@ export default function CompleteProfilePage() {
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
                           {/* <FormLabel className="text-sm font-medium text-gray-700">Company Logo</FormLabel> */}
                           <div className="relative">
-                            <Avatar className="h-24 w-24 border-2 border-white ring-1 ring-gray-200 shadow-sm rounded-full">
+                            <Avatar className="h-24 w-24 border border-border shadow-sm rounded-full">
                               <AvatarImage src={companyPreviewUrl || undefined} className="object-cover rounded-full" />
-                              <AvatarFallback className="text-2xl font-semibold bg-gray-100 text-gray-600 rounded-full">
+                              <AvatarFallback className="text-2xl font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-white rounded-full">
                                 {getCompanyInitials(companyForm.watch("company_name"))}
                               </AvatarFallback>
                             </Avatar>
                             <button
                               type="button"
                               onClick={() => document.getElementById("company-pic-upload")?.click()}
-                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-white bg-primary text-white rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
+                              className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-background bg-primary text-white dark:text-black rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
                             >
                               <Camera className="w-4 h-4" />
                             </button>
@@ -523,19 +523,19 @@ export default function CompleteProfilePage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-1/2"
+                      className="flex-1"
                       onClick={() => setStep(1)}
                     >
                       <ArrowLeft className="w-4 h-4" /> Back
                     </Button>
                     <Button
                       type="submit"
-                      className="w-1/2"
+                      className="flex-1"
                       disabled={isSubmitting || Object.keys(companyForm.formState.errors).length > 0}
                     >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Setting up...
                         </>
                       ) : (
