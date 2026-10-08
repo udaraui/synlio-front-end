@@ -176,7 +176,7 @@ export default function LoginPage() {
                         <FormLabel className="text-slate-700 dark:text-foreground">Password</FormLabel>
                         <Link
                           href="/forgot-password"
-                          className="text-xs font-semibold text-primary hover:underline"
+                          className="px-1 text-sm text-primary hover:underline"
                           tabIndex={-1}
                         >
                           Forgot password?

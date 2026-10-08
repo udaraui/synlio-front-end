@@ -77,8 +77,8 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-[480px]">
         {/* Logo */}
         <div className="mb-4 gap-2 flex items-center justify-center">
-          <Image src={Logo} width={35} height={35} alt={"synlio"} />
-          <span className="text-3xl font-bold text-gray-800 dark:text-gray-100 truncate tracking-widest">
+          <Image src={Logo} width={28} height={28} alt="synlio" />
+          <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-widest">
             Synlio
           </span>
         </div>
@@ -88,36 +88,22 @@ export default function ForgotPasswordPage() {
             /* ── Success state ── */
             <>
               <CardHeader>
-                <div className="flex flex-col items-center gap-3 py-2">
-                  <div
-                    className="flex h-14 w-14 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor:
-                        "color-mix(in oklch, oklch(71.443% 0.12133 240.504) 15%, white)",
-                    }}
-                  >
-                    <MailCheck
-                      className="h-7 w-7"
-                      style={{ color: "oklch(71.443% 0.12133 240.504)" }}
-                    />
-                  </div>
-                  <CardTitle className="text-lg tracking-tight text-center">
+                <div className="flex flex-col gap-3 py-2">
+                  <CardTitle className="text-lg tracking-tight">
                     Check Your Email
                   </CardTitle>
-                  <CardDescription className="text-center text-sm leading-relaxed">
-                    If an account with that email exists, we&apos;ve sent a
-                    password reset link. Please check your inbox and follow the
-                    instructions.
+                  <CardDescription className="text-sm leading-relaxed">
+                    We&apos;ve sent a password reset link. Please check your inbox and follow the instructions.
                   </CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3 pb-6">
+              <CardContent className="flex flex-col gap-3 pb-3">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-dashed"
                   onClick={() => router.push("/login")}
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" />
                   Back to Login
                 </Button>
                 <button
@@ -155,30 +141,27 @@ export default function ForgotPasswordPage() {
                   <form
                     onSubmit={form.handleSubmit(onSubmit)}
                     className={cn("grid gap-3")}
+                    noValidate
                   >
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address</FormLabel>
-                          <FormControl>
-                            <Input
-                              id="forgot-password-email"
-                              placeholder="name@example.com"
-                              type="email"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="relative mt-1">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
+                    <div className="py-2">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input
+                                id="forgot-password-email"
+                                placeholder="name@example.com"
+                                type="email"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <Button
@@ -188,10 +171,11 @@ export default function ForgotPasswordPage() {
                         backgroundColor: "oklch(71.443% 0.12133 240.504)",
                       }}
                       disabled={isLoading}
+                      type="submit"
                     >
                       {isLoading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Sending...
                         </>
                       ) : (
@@ -200,20 +184,17 @@ export default function ForgotPasswordPage() {
                     </Button>
 
                     {errorMessage && (
-                      <p className="text-sm text-destructive text-center">
+                      <p className="text-sm text-destructive text-center mt-2">
                         {errorMessage}
                       </p>
                     )}
 
-                    <div className="text-center mt-1">
-                      <Link
-                        href="/login"
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <ArrowLeft className="h-3.5 w-3.5" />
+                    <Button variant="outline" className="w-full border-dashed" asChild>
+                      <Link href="/login">
+                        <ArrowLeft className="h-4 w-4" />
                         Back to Login
                       </Link>
-                    </div>
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
