@@ -234,10 +234,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Backend logout failed, but continuing with client-side cleanup:', error);
     }
 
-    // Preserve theme and user_view_preferences only
+    // Preserve theme, view preferences, and primary color
     const theme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
     const viewPreferences = typeof window !== 'undefined' ? localStorage.getItem('user_view_preferences') : null;
     const ticketFilterPreferences = typeof window !== 'undefined' ? sessionStorage.getItem('TICKET_FILTERS_SESSION_KEY') : null;
+    const primaryColor = typeof window !== 'undefined' ? localStorage.getItem('primary-color') : null;
 
     // Clear state first
     setAccessToken(null);
@@ -254,6 +255,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       if (viewPreferences) {
         localStorage.setItem('user_view_preferences', viewPreferences);
+      }
+      if (primaryColor && primaryColor !== 'default' && primaryColor !== 'null' && primaryColor !== 'undefined') {
+        localStorage.setItem('primary-color', primaryColor);
       }
 
       if (ticketFilterPreferences) {
