@@ -17,6 +17,8 @@ import { DateRange } from "react-day-picker";
 import { getCalendarCounts } from "@/services/home/home.service";
 import { format } from "date-fns";
 import { getMeetings, Meeting } from "@/services/common/meetings-integration.service";
+import Image from "next/image";
+import Logo from "../../../../public/logo.png";
 
 export default function Page() {
   const router = useRouter();
@@ -207,22 +209,36 @@ export default function Page() {
 
       {/* ── Welcome Popup ── */}
       <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <PartyPopper className="h-8 w-8 text-primary" />
+        {/* p-0, overflow-hidden, and rounded-3xl create a seamless edge-to-edge card */}
+        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border border-slate-100 shadow-2xl rounded-3xl gap-0">
+
+          {/* Soft Decorative Header Area */}
+          <div className="h-32 w-full bg-gradient-to-br from-slate-50 to-indigo-50/30 relative flex items-center justify-center border-b border-slate-100/50">
+            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-white flex items-center justify-center relative z-10 rotate-3 transition-transform hover:rotate-6">
+               <Image src={Logo} width={38} height={38} alt="Synlio" />
             </div>
-            <DialogTitle className="text-2xl mt-4">Welcome to Synlio!</DialogTitle>
-            <DialogDescription className="text-center mt-2">
-              Your company and admin account have been successfully set up.
-              You are ready to get started!
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-6">
-            <Button onClick={() => setShowWelcome(false)} className="w-full">
-              Let's Go
-            </Button>
-          </DialogFooter>
+          </div>
+
+          {/* Content Area */}
+          <div className="px-8 pt-6 pb-8 flex flex-col items-center text-center bg-white">
+            <DialogHeader className="flex flex-col items-center gap-0">
+              <DialogTitle className="text-xl font-semibold tracking-tight text-slate-900">
+                Welcome to Synlio
+              </DialogTitle>
+              <DialogDescription className="text-[13px] text-slate-500 mt-2.5 leading-relaxed max-w-[280px]">
+                Your company and admin account have been successfully set up. You are ready to get started.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="mt-8 w-full sm:justify-center">
+              <Button
+                onClick={() => setShowWelcome(false)}
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium transition-all shadow-sm hover:shadow-md"
+              >
+                Continue
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </main>

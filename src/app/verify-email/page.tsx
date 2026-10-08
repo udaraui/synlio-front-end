@@ -1,135 +1,221 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import axios from "axios";
 import { API_URL } from "@/services/api";
-import { useAuth } from "@/contexts/auth.context";
-import Image from "next/image";
+import { toast } from "sonner";
+import { 
+  Loader2, 
+  MailOpen, 
+  ArrowLeft,
+  RefreshCw
+} from "lucide-react";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from "@/components/ui/input-otp";
+import { Button } from "@/components/ui/button";
 import Logo from "../../../public/logo.png";
-import Link from "next/link";
-
-type Status = "verifying" | "success" | "error";
 
 export default function VerifyEmailPage() {
-  const [status, setStatus] = useState<Status>("verifying");
-  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [email, setEmail] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { login } = useAuth();
-  const verifyPromise = useRef<Promise<any> | null>(null);
 
   useEffect(() => {
-    const token = searchParams?.get("token");
-    if (!token) {
-      setStatus("error");
-      setErrorMsg("Verification token is missing from the link.");
-      return;
+    // Retrieve the email saved from the first step
+    const pendingEmail = sessionStorage.getItem("pending_email");
+    if (!pendingEmail) {
+      router.replace("/register");
+    } else {
+      setEmail(pendingEmail);
     }
+  }, [router]);
 
-    if (!verifyPromise.current) {
-      verifyPromise.current = axios.get(
-        `${API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`,
-        { withCredentials: true }
-      );
-    }
-
-    verifyPromise.current
-      .then((res) => {
-        const { access_token, return_user } = res.data;
-        sessionStorage.removeItem("pending_verification_email");
-        login(access_token, return_user);
-        setStatus("success");
-        setTimeout(() => {
-          router.replace("/onboarding/create-company");
-        }, 1800);
-      })
-      .catch((err: any) => {
-        setStatus("error");
-        setErrorMsg(
-          err.response?.data?.message ??
-            "The verification link is invalid or has expired."
-        );
+  const handleVerify = async (otpValue: string) => {
+    if (otpValue.length !== 6 || !email) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/auth/verify-otp`, {
+        email,
+        code: otpValue,
       });
-  }, [searchParams, login, router]);
+
+      // Save the registration token to proceed to the final step
+      if (response.data.registration_token) {
+        sessionStorage.setItem("registration_token", response.data.registration_token);
+        toast.success("Email verified successfully!");
+        router.push("/register/complete-profile");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Invalid or expired verification code.");
+      setCode(""); // Clear the input on failure
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) return;
+    setIsResending(true);
+    try {
+      await axios.post(`${API_URL}/auth/send-otp`, { email });
+      toast.success("A new verification code has been sent to your email.");
+    } catch (error: any) {
+      toast.error("Failed to resend code. Please try again later.");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  if (!email) return null; // Prevent flash of content before redirect
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-[420px]">
-        {/* Brand header */}
-        <div className="mb-4 gap-2 flex items-center justify-center">
-          <Image src={Logo} width={35} height={35} alt="synlio" />
-          <span className="text-3xl font-bold text-gray-800 dark:text-gray-100 truncate tracking-widest">
-            Synlio
-          </span>
+    <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
+      
+      {/* Form Column (Left) */}
+      <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white overflow-y-auto">
+        
+        {/* Back Button (Absolute positioning for top-left) */}
+        <div className="absolute top-8 left-8 hidden lg:block">
+          <Link href="/register">
+            <Button variant="ghost" className="text-slate-500 hover:text-slate-900">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
         </div>
 
-        <Card className="gap-4">
-          <CardHeader className="items-center text-center">
-            {status === "verifying" && (
-              <>
-                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950 mb-2">
-                  <Loader2 className="h-7 w-7 text-blue-500 animate-spin" />
-                </div>
-                <CardTitle className="text-lg tracking-tight">
-                  Verifying your email…
-                </CardTitle>
-                <CardDescription>Please wait a moment.</CardDescription>
-              </>
-            )}
+        <div className="w-full max-w-[380px] flex flex-col items-center">
+          
+          {/* Brand header */}
+          {/* <div className="mb-8 gap-3 flex items-center justify-center">
+            <Image src={Logo} width={38} height={38} alt="synlio" />
+            <span className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-widest">
+              Synlio
+            </span>
+          </div> */}
 
-            {status === "success" && (
-              <div className="flex flex-col items-center justify-center text-center w-full py-4">
-                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-green-50 dark:bg-green-950 mb-4">
-                  <CheckCircle2 className="h-7 w-7 text-green-500" />
-                </div>
-                <CardTitle className="text-xl tracking-tight mb-2">
-                  Email verified!
-                </CardTitle>
-                <CardDescription>
-                  Your account is active. Redirecting you to set up your
-                  company…
-                </CardDescription>
-              </div>
-            )}
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              Check your email
+            </h1>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              We've sent a 6-digit verification code to <br/>
+              <span className="font-semibold text-slate-900">{email}</span>
+            </p>
+          </div>
 
-            {status === "error" && (
-              <>
-                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950 mb-2">
-                  <XCircle className="h-7 w-7 text-red-500" />
-                </div>
-                <CardTitle className="text-lg tracking-tight">
-                  Verification failed
-                </CardTitle>
-                <CardDescription>{errorMsg}</CardDescription>
-              </>
-            )}
-          </CardHeader>
-
-          {status === "error" && (
-            <CardContent className="flex flex-col gap-3">
-              <Button
-                className="w-full"
-                style={{ backgroundColor: "oklch(71.443% 0.12133 240.504)" }}
-                asChild
+          <div className="flex flex-col items-center w-full">
+            <div className="mb-8">
+              <InputOTP 
+                maxLength={6} 
+                value={code} 
+                onChange={(value) => {
+                  setCode(value);
+                  if (value.length === 6) handleVerify(value);
+                }}
+                disabled={isLoading}
               >
-                <Link href="/register">Register again</Link>
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/login">Back to login</Link>
-              </Button>
-            </CardContent>
-          )}
-        </Card>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} className="h-12 w-12 text-lg" />
+                  <InputOTPSlot index={1} className="h-12 w-12 text-lg" />
+                  <InputOTPSlot index={2} className="h-12 w-12 text-lg" />
+                </InputOTPGroup>
+                <InputOTPSeparator />
+                <InputOTPGroup>
+                  <InputOTPSlot index={3} className="h-12 w-12 text-lg" />
+                  <InputOTPSlot index={4} className="h-12 w-12 text-lg" />
+                  <InputOTPSlot index={5} className="h-12 w-12 text-lg" />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <Button
+              className="w-full h-11 bg-[#0073ea] hover:bg-[#0060c2] text-white rounded-lg font-medium mb-6"
+              disabled={isLoading || code.length !== 6}
+              onClick={() => handleVerify(code)}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying…
+                </>
+              ) : (
+                "Verify Email"
+              )}
+            </Button>
+
+            <div className="text-center space-y-4">
+              <p className="text-sm text-slate-500">
+                Didn't receive a code?{" "}
+                <button
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className="font-semibold text-[#0073ea] hover:underline inline-flex items-center"
+                >
+                  {isResending ? (
+                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                  ) : null}
+                  Resend code
+                </button>
+              </p>
+              
+              {/* Mobile back button equivalent */}
+              <div className="lg:hidden">
+                <Link href="/register" className="text-sm text-slate-500 hover:text-slate-900 underline underline-offset-2">
+                  Not your email? Change it here.
+                </Link>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+      
+      {/* Marketing Column (Right) - Subtle Inbox Visual */}
+      <div className="hidden lg:flex flex-col items-center justify-center w-1/2 p-8 xl:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 relative overflow-hidden select-none">
+        
+        {/* Scaling Wrapper */}
+        <div className="relative w-full max-w-[600px] aspect-square flex items-center justify-center animate-[float_8s_ease-in-out_infinite] scale-90 xl:scale-100">
+          
+          {/* Faint background elements for depth */}
+          <div className="absolute w-64 h-64 bg-indigo-300/20 rounded-full blur-3xl -top-10 -right-10"></div>
+          <div className="absolute w-64 h-64 bg-blue-300/20 rounded-full blur-3xl bottom-10 -left-10"></div>
+
+          {/* Email Notification Card */}
+          <div className="bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_25px_50px_rgb(0,0,0,0.08)] p-8 rounded-3xl w-[360px] relative z-20">
+            <div className="w-14 h-14 rounded-2xl bg-white text-indigo-200 flex items-center justify-center mb-8 shadow-sm border border-indigo-100">
+              <MailOpen className="w-7 h-7" />
+            </div>
+            
+            <div className="space-y-4 mb-10">
+              <div className="h-3 w-3/4 bg-slate-200/70 rounded-full"></div>
+              <div className="h-3 w-1/2 bg-slate-200/70 rounded-full"></div>
+            </div>
+            
+            {/* Visual OTP representation */}
+            <div className="flex gap-2.5 justify-center">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div 
+                  key={i} 
+                  className="w-10 h-12 bg-white/80 border border-slate-100 rounded-xl flex items-center justify-center text-slate-300 font-mono text-xl shadow-sm"
+                >
+                  *
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
