@@ -14,7 +14,8 @@ export const chatService = {
       { message },
       {
         responseType: 'stream',
-        adapter: 'fetch'
+        adapter: 'fetch',
+        timeout: 0 // Disable timeout for long-running stream connections
       }
     );
 
