@@ -188,7 +188,7 @@ const markdownComponents = {
   td: ({ node, children, ...props }: any) => {
     const text = extractText(children).trim();
 
-    const match = text.match(/^\{\{(.*?)::(.*?)::(.*?)::(.*?)\}\}$/);
+    const match = text.match(/^\{\{([^:]+)::([^:]+)(?:::([^:]*))?(?:::([^:]*))?\}\}$/);
 
     if (text.startsWith('{{') && !match) {
       return (
@@ -207,10 +207,22 @@ const markdownComponents = {
     let component = null;
 
     if (match) {
-      const [_, type, name, color, icon] = match;
+      const [_, type, name, colorRaw, icon] = match;
+      let color = colorRaw && colorRaw !== 'None' && colorRaw !== 'null' ? colorRaw : undefined;
+      
       if (type === 'Status') {
+        if (!color) {
+          if (['Completed', 'Finished', 'Closed'].includes(name)) color = "#22c55e";
+          else if (['In Progress', 'Processing'].includes(name)) color = "#3b82f6";
+          else color = "#9ca3af";
+        }
         component = <InlineEditableStatus status={{ name, color, icon }} statuses={[]} {...baseProps} />;
       } else if (type === 'Severity' || type === 'Priority') {
+        if (!color) {
+          if (name === 'Medium' || name === '70' || name === '50') color = "#eab308";
+          else if (['High', 'Critical', '100'].includes(name)) color = "#ef4444";
+          else color = "#22c55e";
+        }
         component = <InlineEditableSeverity severity={{ name, color, icon }} severities={[]} {...baseProps} />;
       } else if (type === 'Type') {
         component = <InlineEditableTicketType ticketType={{ name, color, icon }} types={[]} getIconComponent={() => null as any} {...baseProps} />;
