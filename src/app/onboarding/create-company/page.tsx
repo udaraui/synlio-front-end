@@ -25,10 +25,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Building2, ShieldCheck, CheckCircle2, ArrowRight, Camera, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
-import { API_URL } from "@/services/api";
 import { useAuth } from "@/contexts/auth.context";
 import Image from "next/image";
 import Logo from "../../../../public/logo.png";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -222,7 +222,10 @@ export default function OnboardingPage() {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background relative">
+      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-[460px]">
         {/* Brand */}
         <div className="mb-6 flex items-center justify-center gap-2">

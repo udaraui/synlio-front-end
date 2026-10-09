@@ -26,6 +26,7 @@ import { API_URL } from "@/services/api";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
 import * as React from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const loginFormSchema = z.object({
   email: z.string().toLowerCase().email({
@@ -122,7 +123,10 @@ export default function LoginPage() {
 
   return (
 
-    <div className="flex flex-col items-center justify-center w-full h-full p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-background dark:to-background overflow-y-auto h-screen">
+    <div className="relative flex flex-col items-center justify-center w-full h-full p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-background dark:to-background overflow-y-auto h-screen">
+      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-[480px]">
 
         {/* Brand header */}

@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../synlio-ai/.idea/synlio-ai.iml" filepath="$PROJECT_DIR$/../synlio-ai/.idea/synlio-ai.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../synlio-back-end/.idea/synlio-back-end.iml" filepath="$PROJECT_DIR$/../synlio-back-end/.idea/synlio-back-end.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/synlio-front-end.iml" filepath="$PROJECT_DIR$/.idea/synlio-front-end.iml" />
     </modules>
   </component>

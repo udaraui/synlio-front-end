@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import RegistrationMarketing from "@/components/registrationMarketing";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function VerifyEmailPage() {
   const [email, setEmail] = useState<string | null>(null);
@@ -79,7 +80,10 @@ export default function VerifyEmailPage() {
   if (!email) return null; // Prevent flash of content before redirect
 
   return (
-    <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
+    <div className="h-screen w-full flex flex-col lg:flex-row font-sans relative">
+      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+        <ThemeToggle />
+      </div>
 
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
@@ -115,6 +119,7 @@ export default function VerifyEmailPage() {
                 }}
                 disabled={isLoading}
                 containerClassName="w-full justify-between"
+                autoFocus
               >
                 <InputOTPGroup className="flex-1">
                   <InputOTPSlot index={0} className="h-12 flex-1 text-lg" />
@@ -169,6 +174,16 @@ export default function VerifyEmailPage() {
                   ) : null}
                   Resend code
                 </button>
+              </p>
+              
+              <p className="text-sm text-slate-500 dark:text-muted-foreground">
+                Changed your mind?{" "}
+                <Link
+                  href="/register"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Go back
+                </Link>
               </p>
             </div>
           </div>

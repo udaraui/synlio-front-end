@@ -18,16 +18,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
-import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, Building2, UserCircle, Replace, Camera, User as UserIcon, ShieldCheck, Key, Network, Settings2, Folder, Clock, Ticket } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Image from "next/image";
-import Logo from "../../../../public/logo.png";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
 import { API_URL } from "@/services/api";
 import { generatePrefix } from "@/lib/prefix-generator";
 import { useAuth } from "@/contexts/auth.context";
 import RegistrationMarketing from "@/components/registrationMarketing";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const PUBLIC_DOMAINS = [
   "gmail.com",
@@ -101,7 +100,7 @@ export default function CompleteProfilePage() {
 
   const getCompanyInitials = (name?: string) => {
     const n = (name || "").trim();
-    if (!n) return <Building2 className="w-10 h-10" />;
+    if (!n) return <BriefcaseBusiness className="w-10 h-10" />;
     const words = n.split(" ").filter(w => w.length > 0);
     if (words.length >= 2) {
       return (words[0][0] + words[1][0]).toUpperCase();
@@ -227,7 +226,11 @@ export default function CompleteProfilePage() {
   if (!email) return null;
 
   return (
-    <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
+    <div className="h-screen w-full flex flex-col lg:flex-row font-sans relative">
+      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
         <div className="w-full max-w-[480px]">
@@ -275,7 +278,7 @@ export default function CompleteProfilePage() {
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
                           {/* <FormLabel className="mb-2">Profile Picture</FormLabel> */}
                           <div className="relative">
-                            <Avatar className="h-24 w-24 border border-border shadow-sm rounded-full">
+                            <Avatar className="h-24 w-24 rounded-full">
                               <AvatarImage src={userPreviewUrl || undefined} className="object-cover rounded-full" />
                               <AvatarFallback className="text-2xl font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-white rounded-full">
                                 {getInitials(userForm.watch("first_name"), userForm.watch("last_name"))}
@@ -283,6 +286,7 @@ export default function CompleteProfilePage() {
                             </Avatar>
                             <button
                               type="button"
+                              title="Upload image"
                               onClick={() => document.getElementById("user-pic-upload")?.click()}
                               className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-background bg-primary text-white dark:text-black rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
                             >
@@ -421,7 +425,7 @@ export default function CompleteProfilePage() {
                         <div className="flex flex-col items-center gap-2 flex-shrink-0">
                           {/* <FormLabel className="text-sm font-medium text-gray-700">Company Logo</FormLabel> */}
                           <div className="relative">
-                            <Avatar className="h-24 w-24 border border-border shadow-sm rounded-full">
+                            <Avatar className="h-24 w-24 rounded-full">
                               <AvatarImage src={companyPreviewUrl || undefined} className="object-cover rounded-full" />
                               <AvatarFallback className="text-2xl font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-white rounded-full">
                                 {getCompanyInitials(companyForm.watch("company_name"))}
@@ -429,6 +433,7 @@ export default function CompleteProfilePage() {
                             </Avatar>
                             <button
                               type="button"
+                              title="Upload image"
                               onClick={() => document.getElementById("company-pic-upload")?.click()}
                               className="absolute cursor-pointer bottom-0 right-0 p-1.5 ring-2 ring-background bg-primary text-white dark:text-black rounded-full shadow-sm hover:bg-primary/90 transition-transform active:scale-95"
                             >

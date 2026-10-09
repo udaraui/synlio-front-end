@@ -23,6 +23,7 @@ import axios from "axios";
 import { API_URL } from "@/services/api";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import RegistrationMarketing from "@/components/registrationMarketing";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
 
@@ -107,7 +108,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col lg:flex-row font-sans">
+    <div className="h-screen w-full flex flex-col lg:flex-row font-sans relative">
+      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+        <ThemeToggle />
+      </div>
+      
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full h-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
         <div className="w-full max-w-[380px]">

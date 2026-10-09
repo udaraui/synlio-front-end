@@ -124,7 +124,7 @@ export default function RegistrationMarketing() {
         <div className="group absolute bottom-[10%] left-[-2%] w-[280px] bg-slate-200/50 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border border-white/60 dark:border-white/10 p-4 z-20 transition-transform duration-700 cursor-pointer">
           {/* Header */}
           <div className="flex items-center justify-between gap-3 relative h-6">
-             <div className="absolute inset-y-0 left-0 flex items-center w-24">
+            <div className="absolute inset-y-0 left-0 flex items-center w-24">
               <div className="w-full h-4 bg-slate-300 dark:bg-white/20 rounded-full transition-opacity duration-700"></div>
             </div>
             <div className="absolute inset-y-0 right-0 flex items-center justify-end w-8">
@@ -159,25 +159,51 @@ export default function RegistrationMarketing() {
           </div>
         </div>
 
-        {/* Foreground Layer: Card 2 (Missing Time) */}
-        <div className="group absolute top-[10%] right-[-2%] w-[220px] bg-slate-200/50 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border border-white/60 dark:border-white/10 p-5 z-20 transition-transform duration-700 cursor-pointer">
-          <div className="flex justify-between items-center mb-4 relative h-5">
-            <div className="absolute left-0 flex items-center w-20">
-              <div className="w-full h-3.5 bg-slate-300 dark:bg-white/20 rounded-full transition-opacity duration-700"></div>
+        {/* Foreground Layer: Card 2 (Ticket Space) */}
+        <div className="group absolute top-[10%] right-[-5%] w-[300px] bg-slate-200/50 dark:bg-white/10 backdrop-blur-md rounded-md shadow-md border border-white/60 dark:border-white/10 p-4 z-20 transition-transform duration-700 cursor-pointer">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 relative h-6 mb-2">
+            <div className="absolute inset-y-0 left-0 flex flex-col justify-center w-32">
+              <div className="w-full h-4 bg-slate-300 dark:bg-white/20 rounded-full transition-opacity duration-700"></div>
+              <div className="w-24 h-2 bg-slate-200 dark:bg-white/10 rounded-full mt-1.5 transition-opacity duration-700"></div>
             </div>
-            <div className="absolute right-0 flex items-center justify-end w-5">
-              <div className="w-5 h-5 bg-amber-300 dark:bg-amber-400/20 rounded-full transition-opacity duration-700"></div>
+            <div className="absolute inset-y-0 right-0 flex items-center justify-end w-10">
+              <div className="w-full h-5 bg-slate-200 dark:bg-white/10 border border-dashed border-slate-300 dark:border-white/20 rounded-md transition-opacity duration-700"></div>
             </div>
           </div>
 
-          <div className="relative mb-4 h-10 w-24">
-            <div className="absolute inset-0 bg-amber-200/50 dark:bg-amber-400/20 rounded-md transition-opacity duration-700"></div>
+          {/* Divider */}
+          <div className="border-t border-slate-300 dark:border-white/10 my-4" />
+
+          {/* Tickets Section */}
+          <div className="relative h-4 mb-1">
+            <div className="absolute left-0 flex items-center w-12">
+              <div className="w-full h-2.5 bg-slate-300 dark:bg-white/20 rounded-full transition-opacity duration-700"></div>
+            </div>
+          </div>
+          {/* Pills */}
+          <div className="flex gap-2 mb-2">
+            <div className="flex items-center justify-center w-14 h-5 rounded-md bg-slate-200 dark:bg-white/10 border border-dashed border-slate-300 dark:border-white/20 transition-opacity duration-700">
+              {/* <div className="w-6 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div> */}
+            </div>
+            <div className="flex items-center justify-center w-16 h-5 rounded-md bg-slate-200 dark:bg-white/10 border border-dashed border-slate-300 dark:border-white/20 transition-opacity duration-700">
+              {/* <div className="w-8 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div> */}
+            </div>
+            <div className="flex items-center justify-center w-20 h-5 rounded-md bg-slate-200 dark:bg-white/10 border border-dashed border-slate-300 dark:border-white/20 transition-opacity duration-700">
+              {/* <div className="w-12 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div> */}
+            </div>
           </div>
 
-          <div className="relative h-7 w-full">
-            <div className="absolute left-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-opacity duration-700">
-              <div className="w-2 h-2 rounded-full bg-amber-300 dark:bg-amber-400/40"></div>
-              <div className="w-16 h-2 bg-amber-300/50 dark:bg-amber-400/30 rounded-full"></div>
+          {/* Footer Actions */}
+          <div className="flex items-center justify-between relative h-7">
+            <div className="absolute inset-y-0 left-0 flex items-center w-[120px]">
+              <div className="w-full h-full bg-slate-300 dark:bg-white/10 rounded-md transition-opacity duration-700"></div>
+            </div>
+            <div className="absolute inset-y-0 right-0 flex items-center gap-1.5">
+              <div className="w-7 h-7 rounded-md bg-slate-300 dark:bg-white/20 transition-opacity duration-700"></div>
+              <div className="w-7 h-7 rounded-md bg-indigo-200 dark:bg-indigo-400/20 transition-opacity duration-700"></div>
+              <div className="w-7 h-7 rounded-md bg-blue-200 dark:bg-blue-400/20 transition-opacity duration-700"></div>
+              <div className="w-7 h-7 rounded-md bg-slate-200 dark:bg-white/5 transition-opacity duration-700"></div>
             </div>
           </div>
         </div>
