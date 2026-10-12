@@ -27,11 +27,15 @@ export function ThemeToggle() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={toggleTheme}
-            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+            className="cursor-pointer"
+            onPointerDown={(e) => e.currentTarget.blur()}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              toggleTheme();
+            }}
           >
-            <Sun className="h-5 w-5 hidden dark:block" />
-            <Moon className="h-5 w-5 block dark:hidden" />
+            <Sun className="h-4 w-4 hidden dark:block" />
+            <Moon className="h-4 w-4 block dark:hidden" />
             <span className="sr-only">Toggle theme</span>
           </Button>
         </TooltipTrigger>

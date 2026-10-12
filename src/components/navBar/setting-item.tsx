@@ -13,7 +13,6 @@ import {
   Folder,
   Lightbulb,
   Flag,
-  BotMessageSquare,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import insightsConfig from "@/lib/insights-config.json";
@@ -57,7 +56,7 @@ function SettingItem() {
   const [primaryColor, setPrimaryColor] = useState("default");
   const [sidebarColor, setSidebarColor] = useState("default");
   const [isHydrated, setIsHydrated] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const pathname = usePathname();
 
   // Find the best matching insight for the current path (longest match wins)
@@ -117,6 +116,12 @@ function SettingItem() {
         toast.error("Failed to save theme preference");
       }
     }
+  };
+
+  const toggleThemeShortcut = () => {
+    const currentMode = theme === "system" ? resolvedTheme : theme;
+    const nextTheme = currentMode === "dark" ? "light" : "dark";
+    handleThemeChange(nextTheme);
   };
 
   // Load task spaces for filter
@@ -990,6 +995,38 @@ function SettingItem() {
             </SheetContent>
           </Sheet>
 
+          {/* Theme Quick Toggle Shortcut */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-0 cursor-pointer"
+                onPointerDown={(e) => e.currentTarget.blur()}
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  toggleThemeShortcut();
+                }}
+              >
+                {isHydrated &&
+                (theme === "dark" || (theme === "system" && resolvedTheme === "dark")) ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {isHydrated &&
+                (theme === "dark" || (theme === "system" && resolvedTheme === "dark"))
+                  ? "Switch to Light Mode"
+                  : "Switch to Dark Mode"}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+
           {/* Insights button - 0px margin + 20px total ghost padding = 20px visual gap */}
           {currentInsight && (
             <Tooltip>
@@ -998,7 +1035,11 @@ function SettingItem() {
                   variant="ghost"
                   size="icon"
                   className="ml-0 cursor-pointer"
-                  onClick={() => window.open(currentInsight.link, "_blank")}
+                  onPointerDown={(e) => e.currentTarget.blur()}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    window.open(currentInsight.link, "_blank");
+                  }}
                 >
                   <Lightbulb className="h-4 w-4" />
                 </Button>

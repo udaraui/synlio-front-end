@@ -109,7 +109,7 @@ export default function RegisterPage() {
 
   return (
     <div className="h-screen w-full flex flex-col lg:flex-row font-sans relative">
-      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+      <div className="absolute bottom-4 right-6 lg:bottom-4 lg:right-8 z-50">
         <ThemeToggle />
       </div>
       

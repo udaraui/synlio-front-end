@@ -124,7 +124,7 @@ export default function LoginPage() {
   return (
 
     <div className="relative flex flex-col items-center justify-center w-full h-full p-6 lg:p-12 bg-gradient-to-br from-slate-50 to-indigo-50/30 dark:from-background dark:to-background overflow-y-auto h-screen">
-      <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-50">
+      <div className="absolute bottom-4 right-6 lg:bottom-4 lg:right-8 z-50">
         <ThemeToggle />
       </div>
       <div className="w-full max-w-[480px]">
@@ -224,7 +224,7 @@ export default function LoginPage() {
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Signing in…
                     </>
                   ) : (
