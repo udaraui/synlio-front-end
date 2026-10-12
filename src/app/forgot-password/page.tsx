@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
       // Network error or unexpected server error — show inline
       const msg =
         error.code === "ERR_NETWORK" || !error.response
-          ? "Unable to connect to the server. Please check your internet connection and try again."
+          ? "We couldn't connect, please try again in a moment."
           : error.response?.data?.message ||
           "Something went wrong. Please try again.";
       setErrorMessage(msg);

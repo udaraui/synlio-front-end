@@ -93,7 +93,7 @@ function ResetPasswordForm() {
 
       let msg: string;
       if (error.code === "ERR_NETWORK" || !error.response) {
-        msg = "Unable to connect to the server. Please check your internet connection and try again.";
+        msg = "We couldn't connect, please try again in a moment.";
       } else if (status === 400) {
         // Map known backend messages to friendlier copy
         if (serverMsg?.toLowerCase().includes("expired")) {

@@ -110,7 +110,7 @@ export default function LoginPage() {
       let errorMessage: string;
       if (!error.response) {
         errorMessage =
-          "Unable to connect to the server. Please try again later.";
+          "We couldn't connect, please try again in a moment.";
       } else {
         errorMessage =
           error.response?.data?.message ||

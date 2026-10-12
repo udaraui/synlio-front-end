@@ -137,3 +137,8 @@ dist
 
 # JetBrains IDEs
 .idea/
+
+# Local workspace config
+workspace.yml
+workspace.yaml
+*.workspace.yml
