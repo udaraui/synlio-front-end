@@ -778,10 +778,60 @@ function SettingItem() {
             )}
           </div>
 
-          {/* Notification dropdown trigger */}
-          <div className="ml-[5px]">
-            <Notification />
-          </div>
+          {/* Insights button */}
+          {currentInsight && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-[5px] cursor-pointer"
+                  onPointerDown={(e) => e.currentTarget.blur()}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    window.open(currentInsight.link, "_blank");
+                  }}
+                >
+                  <Lightbulb className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Click to get insights about {currentInsight.process}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Theme Quick Toggle Shortcut */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("cursor-pointer", !currentInsight ? "ml-[5px]" : "ml-0")}
+                onPointerDown={(e) => e.currentTarget.blur()}
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  toggleThemeShortcut();
+                }}
+              >
+                {isHydrated &&
+                (theme === "dark" || (theme === "system" && resolvedTheme === "dark")) ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {isHydrated &&
+                (theme === "dark" || (theme === "system" && resolvedTheme === "dark"))
+                  ? "Switch to Light Mode"
+                  : "Switch to Dark Mode"}
+              </p>
+            </TooltipContent>
+          </Tooltip>
 
           {/* Settings drawer trigger */}
           <Sheet modal={true}>
@@ -995,60 +1045,10 @@ function SettingItem() {
             </SheetContent>
           </Sheet>
 
-          {/* Theme Quick Toggle Shortcut */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-0 cursor-pointer"
-                onPointerDown={(e) => e.currentTarget.blur()}
-                onClick={(e) => {
-                  e.currentTarget.blur();
-                  toggleThemeShortcut();
-                }}
-              >
-                {isHydrated &&
-                (theme === "dark" || (theme === "system" && resolvedTheme === "dark")) ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                {isHydrated &&
-                (theme === "dark" || (theme === "system" && resolvedTheme === "dark"))
-                  ? "Switch to Light Mode"
-                  : "Switch to Dark Mode"}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Insights button - 0px margin + 20px total ghost padding = 20px visual gap */}
-          {currentInsight && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-0 cursor-pointer"
-                  onPointerDown={(e) => e.currentTarget.blur()}
-                  onClick={(e) => {
-                    e.currentTarget.blur();
-                    window.open(currentInsight.link, "_blank");
-                  }}
-                >
-                  <Lightbulb className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Click to get insights about {currentInsight.process}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {/* Notification dropdown trigger */}
+          <div className="ml-0">
+            <Notification />
+          </div>
 
           {/* Ask AI button */}
           {/* <Button
@@ -1062,7 +1062,7 @@ function SettingItem() {
             </span>
           </Button> */}
           {/* NavUser */}
-          <div className="ml-[5px]">
+          <div className="ml-3">
             <NavUser />
           </div>
         </div>
