@@ -5,6 +5,7 @@ import { BotMessageSquare, ArrowRight } from "lucide-react";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
+import { useAuth } from "@/contexts/auth.context";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ReactECharts from 'echarts-for-react';
@@ -41,8 +42,6 @@ import { Plus, X, FolderOpen, Check } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Atom, Eclipse } from "loading-dev";
 
-// Global limit for sample/preview records
-const SAMPLE_LIMIT = 200;
 
 // Helper to extract primary RGB values from CSS variable --primary
 const getPrimaryRgb = (): [number, number, number] => {
@@ -473,7 +472,25 @@ const markdownComponents = {
     const match = /language-(\w+)/.exec(className || '');
     if (!inline && match && match[1] === 'echarts') {
       try {
-        const chartOptions = JSON.parse(String(children).replace(/\n$/, ''));
+        let chartOptions = JSON.parse(String(children).replace(/\n$/, ''));
+
+        // Sanitize any {{Type::Name::Color::Icon}} template tags in chartOptions down to clean Name
+        const cleanTemplateTags = (obj: any): any => {
+          if (typeof obj === 'string') {
+            const tagMatch = obj.match(/^\{\{\w+::([^:]+)(?:::.*)?\}\}$/);
+            return tagMatch ? tagMatch[1] : obj;
+          }
+          if (Array.isArray(obj)) return obj.map(cleanTemplateTags);
+          if (obj && typeof obj === 'object') {
+            const cleaned: any = {};
+            for (const [k, v] of Object.entries(obj)) {
+              cleaned[k] = cleanTemplateTags(v);
+            }
+            return cleaned;
+          }
+          return obj;
+        };
+        chartOptions = cleanTemplateTags(chartOptions);
 
         // ---- FRONTEND STYLING INJECTIONS ----
         // 0. Modify chart grid to minimize whitespace (reduce bottom gap)
@@ -527,12 +544,16 @@ const markdownComponents = {
             if (!x.axisLine) x.axisLine = {};
             x.axisLine.lineStyle = { color: splitLineColor };
 
-            // Shorten YYYY-MM-DD to cleaner MM-DD format so dates fit neatly without clutter
+            // Shorten YYYY-MM-DD to cleaner MM-DD format and strip any leftover template tags
             if (!x.axisLabel.formatter) {
               x.axisLabel.formatter = (val: string) => {
-                if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-                  const parts = val.split('-');
-                  return `${parts[1]}-${parts[2]}`;
+                if (typeof val === 'string') {
+                  const tagMatch = val.match(/^\{\{\w+::([^:]+)(?:::.*)?\}\}$/);
+                  if (tagMatch) val = tagMatch[1];
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                    const parts = val.split('-');
+                    return `${parts[1]}-${parts[2]}`;
+                  }
                 }
                 return val;
               };
@@ -715,17 +736,17 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
   // Only show preview options AFTER the entire response and Key Findings have finished streaming
   const isFinished = !msg.isStreaming && !msg.isThinking;
   const previewMatch = msg.role === "ai" && isFinished
-    ? msg.content.match(/<!--preview_count:(\d+)-->/) || msg.content.match(/Found\s+(\d+)\s+records/i) || msg.content.match(/There are\s+(\d+)\s+records/i)
+    ? msg.content.match(/<!--preview_count:(\d+)-->/) ||
+    msg.content.match(/(?:out of|total of)\s+(\d+)\s+records/i) ||
+    msg.content.match(/Found\s+(\d+)\s+records/i) ||
+    msg.content.match(/There are\s+(\d+)\s+records/i)
     : null;
   const previewCount = previewMatch ? parseInt(previewMatch[1], 10) : null;
-  const hasChart = msg.content.includes("```echarts");
   const hasPreview = Boolean(
     isFinished &&
-    !hasChart &&
     previewCount &&
-    previewCount > SAMPLE_LIMIT &&
+    previewCount > 0 &&
     (
-      msg.content.includes(`preview of ${SAMPLE_LIMIT}`) ||
       msg.content.includes("preview of") ||
       msg.content.includes("sample records") ||
       msg.content.includes("example records") ||
@@ -826,6 +847,22 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
 });
 
 export default function ChatPage() {
+  const { user } = useAuth();
+  const [localUser, setLocalUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          setLocalUser(JSON.parse(stored));
+        }
+      } catch (e) { }
+    }
+  }, []);
+
+  const currentUser = user || localUser;
+  const displayName = (currentUser?.first_name || currentUser?.name || currentUser?.email?.split('@')[0] || "").trim();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -950,7 +987,9 @@ export default function ChatPage() {
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <BotMessageSquare className="w-16 h-16 mb-4 opacity-50" />
-            <p className="text-lg">How can I help you today?</p>
+            <p className="text-lg">
+              {displayName ? `How can I help you today, ${displayName}?` : "How can I help you today?"}
+            </p>
           </div>
         ) : (
           messages.map((msg) => (
