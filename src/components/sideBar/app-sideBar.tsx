@@ -140,12 +140,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, []);
 
   const aiData = React.useMemo(() => {
+    if (isSystemUser) return [];
+
     const items = [
-      { title: "Ask Synlio", url: "/chat", icon: BotMessageSquare, privilege_codes: [], isUnderConstruction: true },
+      {
+        title: "Ask Synlio",
+        url: "/chat",
+        icon: BotMessageSquare,
+        privilege_codes: ["120"],
+        alwaysShow: true,
+        unauthorizedMessage: "You are not authorized to use Ask Synlio.",
+      },
       { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
       { title: "Synalytics", url: "/synalytics", icon: ChartNoAxesCombined, privilege_codes: [], isUnderConstruction: true },
     ];
-    return isSystemUser ? items.filter(i => i.title !== "Synalytics") : items;
+    return items;
   }, [isSystemUser]);
 
   const resourceData = React.useMemo(() => [
@@ -164,7 +173,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const filterItems = React.useCallback((list: any[]): any[] =>
     list.map((item): any => {
       const hasSubs = Array.isArray(item.items) && item.items.length > 0;
-      const allowed = canAccess(item.privilege_codes);
+      const allowed = item.alwaysShow || canAccess(item.privilege_codes);
       const subs: any[] = hasSubs ? filterItems(item.items) : [];
       if (!hasSubs) return allowed ? { ...item, items: [] } : null;
       return subs.length > 0 || allowed ? { ...item, items: subs } : null;

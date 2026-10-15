@@ -52,6 +52,8 @@ function Page() {
           setLevelCategory(cat);
           setSelectedCategory(null);
         }}
+        selectedCategory={selectedCategory}
+        levelCategory={levelCategory}
         panel={panel}
         panelOpen={panelOpen}
       />

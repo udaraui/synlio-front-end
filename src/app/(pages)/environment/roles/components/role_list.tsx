@@ -15,6 +15,7 @@ import {
   ArrowUpDown,
   ArrowDown,
   ShieldUser,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,7 +37,6 @@ import { usePrivilegeGuard } from '@/hooks/use-privilege-guard';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -319,9 +319,10 @@ function RoleList({
                             <Skeleton className="h-5 w-16 rounded-full" />
                           </TableCell>
                           <TableCell className="py-2 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Skeleton className="h-5 w-9 rounded-full" />
-                              <Skeleton className="h-8 w-8 rounded-md" />
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Skeleton className="h-5 w-9 rounded-full mr-1.5" />
+                              <Skeleton className="h-7 w-7 rounded-md" />
+                              <Skeleton className="h-7 w-7 rounded-md" />
                               <Skeleton className="h-7 w-7 rounded-md" />
                               <Skeleton className="h-7 w-7 rounded-md" />
                             </div>
@@ -381,11 +382,11 @@ function RoleList({
                             className="py-2 px-4 text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
                               <TooltipProvider delayDuration={0}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="flex items-center justify-center h-7 cursor-pointer">
+                                    <div className="flex items-center justify-center h-7 pr-1.5 cursor-pointer">
                                       <Switch
                                         checked={role.active_status}
                                         onCheckedChange={async () => {
@@ -418,6 +419,23 @@ function RoleList({
                                   updatedBy={role.updatedBy || 'Unknown'}
                                   updatedAt={role.updatedAt || ''}
                                 />
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={`h-7 w-7 p-0 ${role.id === selectedRole ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRoleClick?.(role.id, role.role);
+                                      }}
+                                    >
+                                      <ShieldCheck className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Privileges</TooltipContent>
+                                </Tooltip>
 
                                 <Tooltip>
                                   <TooltipTrigger asChild>

@@ -5,18 +5,21 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { InfoIcon, User, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function Info_button({
   createdBy,
   createdAt,
   updatedBy,
   updatedAt,
+  className,
 }: {
   id: number;
   createdBy: string;
   createdAt: Date | string;
   updatedBy: string;
   updatedAt: Date | string;
+  className?: string;
 }) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Not available";
@@ -50,7 +53,7 @@ function Info_button({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 hover:bg-muted/50 transition-colors"
+          className={cn("h-7 w-7 p-0 hover:bg-muted/50 transition-colors", className)}
         >
           <InfoIcon className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
         </Button>

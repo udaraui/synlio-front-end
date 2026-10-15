@@ -49,20 +49,19 @@ import {
   RefreshCw,
   Pencil,
   Trash,
-  Layers,
   BarChart2,
   ArrowUp,
   ArrowDown,
   X,
-  ChevronDown,
   ArrowUpDown,
   Shapes,
-  Folders
 } from "lucide-react";
 
 interface SkillCategoryTableProps {
   onCategoryClick: (category: SkillCategory) => void;
   onSkillLevelsClick: (category: SkillCategory) => void;
+  selectedCategory?: SkillCategory | null;
+  levelCategory?: SkillCategory | null;
   panel?: React.ReactNode;
   panelOpen?: boolean;
 }
@@ -70,6 +69,8 @@ interface SkillCategoryTableProps {
 const Skill_categories_list: React.FC<SkillCategoryTableProps> = ({
   onCategoryClick,
   onSkillLevelsClick,
+  selectedCategory,
+  levelCategory,
   panel,
   panelOpen = false,
 }) => {
@@ -347,10 +348,17 @@ const Skill_categories_list: React.FC<SkillCategoryTableProps> = ({
                         </TableCell>
                       </TableRow>
                     ) : (
-                      categories.map((cat) => (
+                      categories.map((cat) => {
+                        const isSelected = cat.id === selectedCategory?.id || cat.id === levelCategory?.id;
+                        return (
                         <TableRow
                           key={cat.id}
-                          className="group border-b border-border transition-colors hover:bg-muted/30"
+                          onClick={() => onCategoryClick(cat)}
+                          className={`group border-b border-border cursor-pointer transition-colors ${
+                            isSelected
+                              ? "bg-primary/5 border-l-2 border-l-primary"
+                              : "hover:bg-muted/30"
+                          }`}
                         >
                           <TableCell className="py-2 px-4">
                             <p className="text-sm font-medium truncate">{cat.name}</p>
@@ -426,13 +434,17 @@ const Skill_categories_list: React.FC<SkillCategoryTableProps> = ({
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 cursor-pointer"
+                                      className={`h-7 w-7 p-0 cursor-pointer ${
+                                        selectedCategory?.id === cat.id
+                                          ? "text-primary"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         onCategoryClick(cat);
                                       }}
                                     >
-                                      <Shapes className="h-4 w-4 text-muted-foreground" />
+                                      <Shapes className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top">View Skills</TooltipContent>
@@ -443,13 +455,17 @@ const Skill_categories_list: React.FC<SkillCategoryTableProps> = ({
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 cursor-pointer"
+                                      className={`h-7 w-7 p-0 cursor-pointer ${
+                                        levelCategory?.id === cat.id
+                                          ? "text-primary"
+                                          : "text-muted-foreground hover:text-foreground"
+                                      }`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         onSkillLevelsClick(cat);
                                       }}
                                     >
-                                      <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                                      <BarChart2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top">View Skill Levels</TooltipContent>
@@ -502,7 +518,8 @@ const Skill_categories_list: React.FC<SkillCategoryTableProps> = ({
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

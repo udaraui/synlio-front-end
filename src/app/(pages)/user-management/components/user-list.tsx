@@ -353,9 +353,9 @@ const UserList: React.FC<UserListProps> = ({
                             </TableCell>
                           )}
                           <TableCell className="py-2 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Skeleton className="h-5 w-9 rounded-full" />
-                              <Skeleton className="h-8 w-8 rounded-md" />
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Skeleton className="h-5 w-9 rounded-full mr-1.5" />
+                              <Skeleton className="h-7 w-7 rounded-md" />
                               <Skeleton className="h-7 w-7 rounded-md" />
                               <Skeleton className="h-7 w-7 rounded-md" />
                             </div>
@@ -499,11 +499,11 @@ const UserList: React.FC<UserListProps> = ({
                             className="py-2 px-4 text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
                               <TooltipProvider delayDuration={0}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="flex items-center justify-center h-7 cursor-pointer">
+                                    <div className="flex items-center justify-center h-7 pr-1.5 cursor-pointer">
                                       <Switch
                                         checked={user.isActive}
                                         onCheckedChange={async () => {

@@ -6,6 +6,8 @@ import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { useAuth } from "@/contexts/auth.context";
+import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ReactECharts from 'echarts-for-react';
@@ -720,9 +722,9 @@ const markdownComponents = {
 
 interface ChatMessageItemProps {
   msg: Message;
-  onSelectAction?: (actionText: string) => void;
+  onSelectAction?: (actionText: string, msgId?: string) => void;
   onDismissAction?: (msgId: string) => void;
-  isActionDismissed?: boolean;
+  actionState?: 'dismissed' | 'full_list' | null;
   isLoading?: boolean;
 }
 
@@ -730,7 +732,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
   msg,
   onSelectAction,
   onDismissAction,
-  isActionDismissed = false,
+  actionState = null,
   isLoading = false,
 }: ChatMessageItemProps) {
   // Only show preview options AFTER the entire response and Key Findings have finished streaming
@@ -794,9 +796,9 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                       <span>There are <strong>{previewCount}</strong> records in total. Would you like to view the full list?</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {isActionDismissed ? (
+                      {actionState ? (
                         <span className="text-xs text-muted-foreground italic flex items-center gap-1">
-                          <Check size={13} /> Kept preview
+                          <Check size={13} /> {actionState === 'dismissed' ? 'Kept preview' : 'Showed full list'}
                         </span>
                       ) : (
                         <>
@@ -805,7 +807,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                             variant="default"
                             size="sm"
                             disabled={isLoading}
-                            onClick={() => onSelectAction?.(`View complete list of all ${previewCount} records`)}
+                            onClick={() => onSelectAction?.(`View complete list of all ${previewCount} records`, msg.id)}
                             className="h-8 gap-1.5 text-xs font-medium cursor-pointer"
                           >
                             <FolderOpen size={13} />
@@ -841,14 +843,21 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
     prevProps.msg.content === nextProps.msg.content &&
     prevProps.msg.isThinking === nextProps.msg.isThinking &&
     prevProps.msg.isStreaming === nextProps.msg.isStreaming &&
-    prevProps.isActionDismissed === nextProps.isActionDismissed &&
+    prevProps.actionState === nextProps.actionState &&
     prevProps.isLoading === nextProps.isLoading
   );
 });
 
 export default function ChatPage() {
+  const router = useRouter();
+  const canAccessChat = usePrivilegeGuard("120");
+  const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const [localUser, setLocalUser] = useState<any>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -866,7 +875,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [dismissedActions, setDismissedActions] = useState<Set<string>>(new Set());
+  const [actionStates, setActionStates] = useState<Record<string, 'dismissed' | 'full_list'>>({});
   const [conversationId] = useState<string>(() => {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -881,8 +890,15 @@ export default function ChatPage() {
     setBreadcrumbs([{ label: "Ask Synlio", href: "/chat", isCurrentPage: true }]);
   }, [setBreadcrumbs]);
 
+  const handleSelectAction = (actionText: string, msgId?: string) => {
+    if (msgId) {
+      setActionStates((prev) => ({ ...prev, [msgId]: 'full_list' }));
+    }
+    sendMessage(actionText);
+  };
+
   const handleDismissAction = (msgId: string) => {
-    setDismissedActions((prev) => new Set(prev).add(msgId));
+    setActionStates((prev) => ({ ...prev, [msgId]: 'dismissed' }));
   };
 
   // Auto-scroll to bottom
@@ -980,6 +996,23 @@ export default function ChatPage() {
     sendMessage(input);
   };
 
+  if (mounted && !canAccessChat) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] w-full text-muted-foreground p-8 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+          <BotMessageSquare className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground max-w-md mb-6">
+          You are not authorized to use Ask Synlio. Please contact your organization administrator if you need access.
+        </p>
+        <Button variant="outline" onClick={() => router.push("/home")} className="cursor-pointer">
+          Return to Home
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-1rem)] w-full bg-background pt-8">
       {/* Messages Area */}
@@ -992,16 +1025,27 @@ export default function ChatPage() {
             </p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <ChatMessageItem
-              key={msg.id}
-              msg={msg}
-              onSelectAction={sendMessage}
-              onDismissAction={handleDismissAction}
-              isActionDismissed={dismissedActions.has(msg.id)}
-              isLoading={isLoading}
-            />
-          ))
+          messages.map((msg, index) => {
+            const hasFollowingFullList =
+              index < messages.length - 1 &&
+              messages[index + 1]?.role === "user" &&
+              messages[index + 1]?.content.toLowerCase().includes("view complete list");
+
+            const actionState =
+              actionStates[msg.id] ||
+              (hasFollowingFullList ? "full_list" : null);
+
+            return (
+              <ChatMessageItem
+                key={msg.id}
+                msg={msg}
+                onSelectAction={handleSelectAction}
+                onDismissAction={handleDismissAction}
+                actionState={actionState}
+                isLoading={isLoading}
+              />
+            );
+          })
         )}
 
         {/* Loading Indicator */}

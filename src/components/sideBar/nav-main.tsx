@@ -25,7 +25,16 @@ export function NavMain({
     privilege_codes: string[]
     activePaths?: string[]
     isUnderConstruction?: boolean
-    items?: { title: string; url: string; privilege_codes: string[]; isUnderConstruction?: boolean }[]
+    alwaysShow?: boolean
+    unauthorizedMessage?: string
+    items?: {
+      title: string
+      url: string
+      privilege_codes: string[]
+      isUnderConstruction?: boolean
+      alwaysShow?: boolean
+      unauthorizedMessage?: string
+    }[]
   }[]
   label?: string
 }) {
@@ -56,12 +65,21 @@ export function NavMain({
     return allPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))
   }
 
-  const handleClick = (url?: string, codes?: string[], isUnderConstruction?: boolean) => {
+  const handleClick = (
+    url?: string,
+    codes?: string[],
+    isUnderConstruction?: boolean,
+    unauthorizedMessage?: string,
+    title?: string
+  ) => {
     if (isUnderConstruction) {
       toast.info("Under construction. Check back soon")
       return
     }
-    if (!canAccess(codes)) return
+    if (!canAccess(codes)) {
+      toast.error(unauthorizedMessage || (title ? `You are not authorized to use ${title}.` : "You are not authorized to access this feature."))
+      return
+    }
     if (url && url !== "#" && url !== "") route.push(url)
   }
 
@@ -103,7 +121,7 @@ export function NavMain({
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton asChild
                           className={isPathActive(subItem.url) ? "cursor-pointer ps-4 text-primary" : "cursor-pointer ps-4 text-sidebar-foreground/80 hover:text-primary"}>
-                          <a onClick={() => handleClick(subItem.url, subItem.privilege_codes, subItem.isUnderConstruction)}
+                          <a onClick={() => handleClick(subItem.url, subItem.privilege_codes, subItem.isUnderConstruction, subItem.unauthorizedMessage, subItem.title)}
                             className="flex items-center rounded-md min-h-6 mt-2 cursor-pointer">
                             <span className="leading-tight">{subItem.title}</span>
                           </a>
@@ -119,7 +137,7 @@ export function NavMain({
               <SidebarMenuButton 
                 className={isActiveMain ? "cursor-pointer bg-primary !text-white dark:!text-black rounded-md hover:bg-primary/90" : "cursor-pointer text-sidebar-foreground hover:bg-foreground/14 rounded-md"} 
                 tooltip={item.title} asChild>
-                <a className="cursor-pointer flex items-center" onClick={() => handleClick(item.url, item.privilege_codes, item.isUnderConstruction)}>
+                <a className="cursor-pointer flex items-center" onClick={() => handleClick(item.url, item.privilege_codes, item.isUnderConstruction, item.unauthorizedMessage, item.title)}>
                   {iconEl}
                   <span className="text-md leading-normal text-current group-data-[collapsible=icon]:hidden">{item.title}</span>
                 </a>
