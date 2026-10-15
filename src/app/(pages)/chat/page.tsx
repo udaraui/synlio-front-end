@@ -247,12 +247,27 @@ const CustomEChartsRenderer = ({ chartOptions }: { chartOptions: any }) => {
   const onChartEvents = {
     mouseover: (params: any) => {
       if (params.componentType === 'xAxis' && chartRef.current) {
-        chartRef.current.getEchartsInstance().dispatchAction({
-          type: 'showTip',
-          x: params.event?.offsetX,
-          y: params.event?.offsetY,
-          formatter: () => `<div style="font-weight: 500;">${params.value}</div>`
-        });
+        const echartsInstance = chartRef.current.getEchartsInstance();
+        let targetIndex = params.dataIndex ?? params.tickIndex;
+        if ((targetIndex === undefined || targetIndex < 0) && chartOptions?.xAxis) {
+          const firstX = Array.isArray(chartOptions.xAxis) ? chartOptions.xAxis[0] : chartOptions.xAxis;
+          if (Array.isArray(firstX?.data)) {
+            targetIndex = firstX.data.indexOf(params.value);
+          }
+        }
+        if (targetIndex !== undefined && targetIndex >= 0) {
+          echartsInstance.dispatchAction({
+            type: 'showTip',
+            seriesIndex: 0,
+            dataIndex: targetIndex,
+          });
+        } else {
+          echartsInstance.dispatchAction({
+            type: 'showTip',
+            x: params.event?.offsetX,
+            y: params.event?.offsetY,
+          });
+        }
       }
     },
     mouseout: (params: any) => {
@@ -300,6 +315,65 @@ const CustomEChartsRenderer = ({ chartOptions }: { chartOptions: any }) => {
       )}
     </div>
   );
+};
+
+const renderTemplateBadge = (rawText: string, primaryFallback: string, key?: any): React.ReactNode => {
+  const text = rawText.trim();
+  const match = text.match(/^\{\{([^:]+)::([^:]+)(?:::([^:]*))?(?:::([^:]*))?\}\}$/);
+  if (!match) return null;
+  const [_, type, name, colorRaw, icon] = match;
+  const color = colorRaw && colorRaw !== 'None' && colorRaw !== 'null' && colorRaw !== '' ? colorRaw : primaryFallback;
+  const baseProps = {
+    readonly: true,
+    ticketId: 0,
+    taskId: 0,
+  };
+
+  if (type === 'Status') {
+    return <InlineEditableStatus key={key} status={{ name, color, icon }} statuses={[]} {...baseProps} />;
+  } else if (type === 'Severity' || type === 'Priority') {
+    return <InlineEditableSeverity key={key} severity={{ name, color, icon }} severities={[]} {...baseProps} />;
+  } else if (type === 'Type') {
+    return <InlineEditableTicketType key={key} ticketType={{ name, color, icon }} types={[]} getIconComponent={() => null as any} {...baseProps} />;
+  } else if (type === 'Queue') {
+    return <InlineEditableQueue key={key} queue={{ name, color, icon }} queues={[]} {...baseProps} />;
+  } else if (type === 'Hierarchy') {
+    return <InlineEditableTaskHierarchyLevel key={key} hierarchyLevel={{ name, color, icon }} hierarchyLevels={[]} {...baseProps} />;
+  }
+  return null;
+};
+
+const renderWithTemplateBadges = (children: React.ReactNode, primaryFallback: string): React.ReactNode => {
+  if (typeof children === 'string') {
+    if (!children.includes('{{')) return children;
+    const parts = children.split(/(\{\{[^}]+:[^}]+\}\})/g);
+    if (parts.length === 1) return children;
+
+    return parts.map((part, idx) => {
+      const badge = renderTemplateBadge(part, primaryFallback, idx);
+      if (badge) {
+        return (
+          <span key={idx} className="inline-flex mx-1 align-middle">
+            {badge}
+          </span>
+        );
+      }
+      return part;
+    });
+  }
+
+  if (Array.isArray(children)) {
+    return React.Children.map(children, child => renderWithTemplateBadges(child, primaryFallback));
+  }
+
+  if (React.isValidElement(children)) {
+    const props: any = children.props;
+    if (props && props.children) {
+      return React.cloneElement(children as React.ReactElement<any>, undefined, renderWithTemplateBadges(props.children, primaryFallback));
+    }
+  }
+
+  return children;
 };
 
 const markdownComponents = {
@@ -355,20 +429,7 @@ const markdownComponents = {
     let component = null;
 
     if (match) {
-      const [_, type, name, colorRaw, icon] = match;
-      const color = colorRaw && colorRaw !== 'None' && colorRaw !== 'null' && colorRaw !== '' ? colorRaw : primaryFallback;
-
-      if (type === 'Status') {
-        component = <InlineEditableStatus status={{ name, color, icon }} statuses={[]} {...baseProps} />;
-      } else if (type === 'Severity' || type === 'Priority') {
-        component = <InlineEditableSeverity severity={{ name, color, icon }} severities={[]} {...baseProps} />;
-      } else if (type === 'Type') {
-        component = <InlineEditableTicketType ticketType={{ name, color, icon }} types={[]} getIconComponent={() => null as any} {...baseProps} />;
-      } else if (type === 'Queue') {
-        component = <InlineEditableQueue queue={{ name, color, icon }} queues={[]} {...baseProps} />;
-      } else if (type === 'Hierarchy') {
-        component = <InlineEditableTaskHierarchyLevel hierarchyLevel={{ name, color, icon }} hierarchyLevels={[]} {...baseProps} />;
-      }
+      component = renderTemplateBadge(text, primaryFallback);
     } else {
       // Guess column content by column header label (value labels)
       const { headers } = React.useContext(TableContext);
@@ -452,7 +513,8 @@ const markdownComponents = {
         .replace(/^(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/i, '');
       return <h3 className="text-lg font-medium mt-5 mb-2 text-foreground" {...props}>{cleanText}</h3>;
     }
-    return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{children}</p>;
+    const primaryFallback = getPrimaryColorString();
+    return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderWithTemplateBadges(children, primaryFallback)}</p>;
   },
   strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
   h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-foreground" {...props} />,
@@ -466,7 +528,10 @@ const markdownComponents = {
   },
   ul: ({ node, ...props }: any) => <ul className="list-disc list-outside mb-4 pl-5 space-y-2" {...props} />,
   ol: ({ node, ...props }: any) => <ol className="list-decimal list-outside mb-4 pl-5 space-y-2" {...props} />,
-  li: ({ node, ...props }: any) => <li className="leading-relaxed" {...props} />,
+  li: ({ node, children, ...props }: any) => {
+    const primaryFallback = getPrimaryColorString();
+    return <li className="leading-relaxed" {...props}>{renderWithTemplateBadges(children, primaryFallback)}</li>;
+  },
   a: ({ node, ...props }: any) => <a className="text-primary hover:underline" {...props} />,
   code: ({ node, inline, className, children, ...props }: any) => {
     const { resolvedTheme } = useTheme();
@@ -495,10 +560,14 @@ const markdownComponents = {
         chartOptions = cleanTemplateTags(chartOptions);
 
         // ---- FRONTEND STYLING INJECTIONS ----
+        // Remove any in-chart titles or graphic watermarks (headings are rendered outside the canvas in Markdown)
+        delete chartOptions.title;
+        delete chartOptions.graphic;
+
         // 0. Modify chart grid to minimize whitespace (reduce bottom gap)
         if (!chartOptions.grid) chartOptions.grid = {};
         chartOptions.grid.top = 20;
-        chartOptions.grid.bottom = 10;
+        chartOptions.grid.bottom = 15;
         chartOptions.grid.left = 20;
         chartOptions.grid.right = 20;
         chartOptions.grid.containLabel = true;
@@ -509,18 +578,78 @@ const markdownComponents = {
         const axisColor = isDark ? '#94a3b8' : '#64748b'; // Slate 400 (dark) vs Slate 500 (light)
         const splitLineColor = isDark ? '#334155' : '#e2e8f0'; // Slate 700 (dark) vs Slate 200 (light)
         const textColor = isDark ? '#f8fafc' : '#0f172a'; // Slate 50 (dark) vs Slate 900 (light)
+        const primaryRgb = getPrimaryRgb();
+        const primaryColor = getPrimaryColorString();
+        const primaryPalette = getPrimaryPalette(12);
 
         // 1. Force Tooltip styles (Mimic Shadcn UI Popover)
         const firstType = chartOptions.series?.[0]?.type;
         const isLine = firstType === 'line';
+        const isBar = firstType === 'bar';
         if (!chartOptions.tooltip) chartOptions.tooltip = {};
-        chartOptions.tooltip.trigger = isLine ? 'axis' : 'item';
+        chartOptions.tooltip.trigger = (isLine || isBar) ? 'axis' : 'item';
         chartOptions.tooltip.backgroundColor = isDark ? '#020817' : '#ffffff';
         chartOptions.tooltip.borderColor = isDark ? '#1e293b' : '#e2e8f0';
         chartOptions.tooltip.textStyle = { color: textColor, fontWeight: 'normal', fontSize: 13 };
         chartOptions.tooltip.borderWidth = 1;
         chartOptions.tooltip.borderRadius = 8;
         chartOptions.tooltip.extraCssText = 'box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); font-weight: normal !important; border-radius: 8px !important;';
+
+        if (isLine || isBar) {
+          chartOptions.tooltip.axisPointer = {
+            type: 'shadow',
+            shadowStyle: {
+              color: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)'
+            }
+          };
+        }
+
+        // Custom Tooltip Formatter to display Full Name and Value prominently
+        chartOptions.tooltip.formatter = (params: any) => {
+          const items = Array.isArray(params) ? params : [params];
+          if (!items || items.length === 0) return '';
+
+          const first = items[0];
+          let title = '';
+          if (typeof first.name === 'string' && first.name.trim() !== '') {
+            title = first.name;
+          } else if (typeof first.axisValue === 'string' && first.axisValue.trim() !== '') {
+            title = first.axisValue;
+          } else if (first.axisValueLabel) {
+            title = first.axisValueLabel;
+          }
+
+          if (typeof title === 'string') {
+            const tagMatch = title.match(/^\{\{\w+::([^:]+)(?:::.*)?\}\}$/);
+            if (tagMatch) title = tagMatch[1];
+          }
+
+          let html = `<div style="padding: 2px 4px; font-family: inherit;">`;
+          if (title) {
+            html += `<div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: ${textColor};">${title}</div>`;
+          }
+
+          items.forEach((item: any) => {
+            const color = item.color || (item.itemStyle && item.itemStyle.color) || primaryColor;
+            const seriesName = item.seriesName && !item.seriesName.startsWith('series') ? item.seriesName : '';
+            let val = item.value;
+            if (typeof val === 'object' && val !== null) {
+              val = val.value ?? JSON.stringify(val);
+            }
+            const percentStr = item.percent !== undefined ? ` (${item.percent}%)` : '';
+
+            html += `<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 1.5; color: ${axisColor};">`;
+            html += `<span style="display: inline-flex; align-items: center; gap: 6px;">`;
+            html += `<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${color}; flex-shrink: 0;"></span>`;
+            html += `<span>${seriesName || 'Total'}</span>`;
+            html += `</span>`;
+            html += `<span style="font-weight: 600; font-family: monospace; color: ${textColor};">${val}${percentStr}</span>`;
+            html += `</div>`;
+          });
+
+          html += `</div>`;
+          return html;
+        };
 
         // 2. Hide ECharts native legend (React handles it now)
         if (!chartOptions.legend) chartOptions.legend = {};
@@ -533,33 +662,74 @@ const markdownComponents = {
           delete chartOptions.yAxis;
         }
 
+        // Count number of bars/data points to adaptively format category labels
+        let barCount = 0;
+        if (chartOptions.dataset?.source && Array.isArray(chartOptions.dataset.source) && chartOptions.dataset.source.length > 1) {
+          barCount = chartOptions.dataset.source.length - 1;
+        } else if (chartOptions.xAxis) {
+          const firstX = Array.isArray(chartOptions.xAxis) ? chartOptions.xAxis[0] : chartOptions.xAxis;
+          if (Array.isArray(firstX?.data)) barCount = firstX.data.length;
+        }
+        if (!barCount && chartOptions.series?.[0]?.data && Array.isArray(chartOptions.series[0].data)) {
+          barCount = chartOptions.series[0].data.length;
+        }
+
+        const formatCategoryLabel = (rawVal: string, count: number): string => {
+          if (typeof rawVal !== 'string') return String(rawVal ?? '');
+
+          let val = rawVal;
+          const tagMatch = val.match(/^\{\{\w+::([^:]+)(?:::.*)?\}\}$/);
+          if (tagMatch) val = tagMatch[1];
+
+          // Format ISO dates: YYYY-MM-DD -> MM-DD
+          if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            const parts = val.split('-');
+            return `${parts[1]}-${parts[2]}`;
+          }
+
+          // If very few bars (<= 3) and label is short, display full name
+          if (count <= 3 && val.length <= 12) {
+            return val;
+          }
+
+          const words = val.trim().split(/\s+/).filter(Boolean);
+
+          // For any multi-word category (e.g. "Project Planning" -> "PP", "Frontend Development" -> "FD", "Ruchira Perera" -> "RP"):
+          // Return clean uppercase initials so labels never collide or truncate awkwardly
+          if (words.length >= 2) {
+            if (count <= 4 && val.length <= 8) {
+              return val;
+            }
+            return words.map(w => w[0]).join('').substring(0, 4).toUpperCase();
+          }
+
+          // Single word: if too long (> 6 chars) and more than 4 bars, shorten it with a dot (e.g. "Archit." -> "Arch.")
+          if (count > 4 && val.length > 6) {
+            return `${val.slice(0, 5)}.`;
+          }
+
+          return val;
+        };
+
         if (chartOptions.xAxis && !isNonCartesian) {
           const xAxes = Array.isArray(chartOptions.xAxis) ? chartOptions.xAxis : [chartOptions.xAxis];
           xAxes.forEach((x: any) => {
+            delete x.name;
             if (!x.axisLabel) x.axisLabel = {};
             x.axisLabel.color = axisColor;
-            x.axisLabel.hideOverlap = true; // Never allow labels to collide or overlap
-            x.axisLabel.interval = isLine ? 'auto' : 0; // Auto-space continuous time-series, show categories on bar charts
-            x.axisLabel.overflow = 'truncate'; // Truncate long names with ellipsis (...)
-            x.axisLabel.width = 75; // Set label width limit so truncation kicks in
+            x.axisLabel.rotate = 0; // Force horizontal labels, eliminate any ugly 45-degree angle
+            x.axisLabel.hideOverlap = false; // Never drop or skip bar labels
+            x.axisLabel.interval = isLine ? 'auto' : 0; // Show all categories on bar charts
+            x.axisLabel.overflow = 'truncate';
+            x.axisLabel.width = barCount > 6 ? 40 : 80;
+            x.axisLabel.align = 'center';
+            x.axisLabel.fontSize = barCount > 10 ? 11 : 12;
+            x.axisLabel.margin = 10;
             x.triggerEvent = true; // Enable hover event on axis labels for tooltip
             if (!x.axisLine) x.axisLine = {};
             x.axisLine.lineStyle = { color: splitLineColor };
 
-            // Shorten YYYY-MM-DD to cleaner MM-DD format and strip any leftover template tags
-            if (!x.axisLabel.formatter) {
-              x.axisLabel.formatter = (val: string) => {
-                if (typeof val === 'string') {
-                  const tagMatch = val.match(/^\{\{\w+::([^:]+)(?:::.*)?\}\}$/);
-                  if (tagMatch) val = tagMatch[1];
-                  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-                    const parts = val.split('-');
-                    return `${parts[1]}-${parts[2]}`;
-                  }
-                }
-                return val;
-              };
-            }
+            x.axisLabel.formatter = (val: string) => formatCategoryLabel(val, barCount);
           });
         }
 
@@ -574,10 +744,6 @@ const markdownComponents = {
             y.splitLine.lineStyle.color = splitLineColor;
           });
         }
-
-        const primaryRgb = getPrimaryRgb();
-        const primaryColor = getPrimaryColorString();
-        const primaryPalette = getPrimaryPalette(12);
 
         if (!chartOptions.color || !Array.isArray(chartOptions.color) || chartOptions.color.length === 0) {
           chartOptions.color = primaryPalette;
@@ -675,7 +841,7 @@ const markdownComponents = {
                 const newXAxis = { ...xAxisObj, type: 'category', data: newData.map(d => d.name) };
                 chartOptions.xAxis = Array.isArray(chartOptions.xAxis) ? [newXAxis, ...chartOptions.xAxis.slice(1)] : newXAxis;
 
-                chartOptions.series[0].data = newData.map(d => ({ value: d.value, itemStyle: d.itemStyle }));
+                chartOptions.series[0].data = newData.map(d => ({ name: d.name, value: d.value, itemStyle: d.itemStyle }));
               } else {
                 chartOptions.series[0].data = newData;
                 if (firstSeriesType === 'treemap') {
@@ -712,6 +878,13 @@ const markdownComponents = {
         );
       }
     }
+    const codeText = extractText(children).trim();
+    const primaryFallback = getPrimaryColorString();
+    const badge = renderTemplateBadge(codeText, primaryFallback);
+    if (badge) {
+      return <span className="inline-flex mx-1 align-middle">{badge}</span>;
+    }
+
     return inline ? (
       <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary" {...props}>{children}</code>
     ) : (
@@ -784,6 +957,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                 >
                   {msg.content
                     .replace(/<!--preview_count:\d+-->/g, '')
+                    .replace(/\n\s+(\{\{[^}]+:[^}]+\}\})/g, ' $1 ')
                     .replace(/\n*###\s/g, '\n\n### ')
                     .replace(/###\s*(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/gi, '### ')
                     .replace(/###\s*\d+\.\s*/g, '### ')}
