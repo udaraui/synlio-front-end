@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
-import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon, UserCircle, Building2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
@@ -62,6 +62,7 @@ const userSchema = z.object({
     .or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   user_profile_picture: z.instanceof(File).optional(),
+  accountType: z.enum(["personal", "organization"]).default("organization"),
 });
 
 const companySchema = z.object({
@@ -115,6 +116,7 @@ export default function CompleteProfilePage() {
       last_name: "",
       mobile_number: "",
       password: "",
+      accountType: "organization",
     },
     mode: "onTouched",
   });
@@ -155,8 +157,66 @@ export default function CompleteProfilePage() {
     }
   }, [router, companyForm]);
 
-  const onUserSubmit = () => {
-    setStep(2);
+  const onUserSubmit = async (values: UserFormValues) => {
+    if (values.accountType === "organization") {
+      setStep(2);
+      return;
+    }
+
+    // Personal account: auto-generate company details and register immediately
+    setIsSubmitting(true);
+    setStep(3);
+
+    const formData = new FormData();
+    formData.append("first_name", values.first_name);
+    formData.append("last_name", values.last_name);
+    formData.append("email", email);
+    if (values.mobile_number) formData.append("mobile_number", values.mobile_number);
+    formData.append("password", values.password);
+
+    formData.append("company_name", `Workspace`);
+    formData.append("company_code", `${values.first_name.charAt(0).toUpperCase()}WS`);
+    formData.append("company_type", "PERSONAL");
+    formData.append("registration_token", token);
+
+    if (userProfilePicture) formData.append("userProfilePicture", userProfilePicture);
+
+    try {
+      const response = await axiosInstance.post(`${API_URL}/auth/complete`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      const { access_token, return_user } = response.data;
+      if (access_token && return_user) {
+        login(access_token, return_user);
+
+        // Fetch and setup companies in localStorage
+        const effectiveUserId = return_user.id;
+        if (effectiveUserId) {
+          const companiesResponse = await axiosInstance.get(
+            `/authorization/getCompanyByUserId/${effectiveUserId}`
+          );
+          const userCompanies: any[] = companiesResponse.data ?? [];
+          localStorage.setItem("companies", JSON.stringify(userCompanies));
+
+          let defaultCompany = userCompanies.find((c: any) => c.is_default === true);
+          if (!defaultCompany) {
+            defaultCompany = userCompanies[0];
+          }
+          if (defaultCompany) {
+            localStorage.setItem("active_company", JSON.stringify(defaultCompany));
+          }
+        }
+      }
+
+      setTimeout(() => {
+        router.replace("/home?welcome=true");
+      }, 3000);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to complete registration");
+      setIsSubmitting(false);
+      setStep(1); // Go back to form
+    }
   };
 
   const onCompanySubmit = async (values: CompanyFormValues) => {
@@ -234,16 +294,16 @@ export default function CompleteProfilePage() {
       {/* Form Column (Left) */}
       <div className="flex flex-col items-center justify-center w-full lg:w-1/2 p-6 lg:p-12 bg-white dark:bg-background overflow-y-auto">
         <div className="w-full max-w-[480px]">
-            <div className="flex flex-col items-center text-center mb-8">
-              {/* <Image src={Logo} width={48} height={48} alt="synlio" className="mb-6" /> */}
-              {/* <h1 className="text-[32px] font-light text-gray-900 tracking-tight leading-tight">
+          <div className="flex flex-col items-center text-center mb-8">
+            {/* <Image src={Logo} width={48} height={48} alt="synlio" className="mb-6" /> */}
+            {/* <h1 className="text-[32px] font-light text-gray-900 tracking-tight leading-tight">
                 Complete your profile
               </h1> */}
-              {/* <p className="text-sm text-gray-500 mt-2">
+            {/* <p className="text-sm text-gray-500 mt-2">
                 Almost there! Let's get to know you and your company.
               </p> */}
 
-              {/* <div className="flex items-center gap-3 mt-8">
+            {/* <div className="flex items-center gap-3 mt-8">
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${step === 1 ? 'bg-[#0073ea]/10 text-[#0073ea]' : 'bg-gray-100 text-gray-400'}`}>
                   <UserCircle className="w-4 h-4" />
                   Your Details
@@ -256,10 +316,10 @@ export default function CompleteProfilePage() {
                   Company Details
                 </div>
               </div> */}
-            </div>
+          </div>
 
-            <div className="relative grid w-full">
-              <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 1 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
+          <div className="relative grid w-full">
+            <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 1 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
               <Form {...userForm}>
                 <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-5 flex flex-col h-full">
                   <div className="flex items-center justify-between mb-8">
@@ -392,11 +452,50 @@ export default function CompleteProfilePage() {
                     )}
                   />
 
+                  <FormField
+                    control={userForm.control}
+                    name="accountType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select your account type</FormLabel>
+                        <FormControl>
+                          <div role="radiogroup" aria-label="Account type" className="grid grid-cols-2 gap-3">
+                            {[
+                              { value: "personal", label: "Personal", description: "Just for you, set up instantly", Icon: UserCircle },
+                              { value: "organization", label: "Organization", description: "For teams, with company details", Icon: Building2 },
+                            ].map(({ value, label, description, Icon }) => {
+                              const selected = field.value === value;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={selected}
+                                  onClick={() => field.onChange(value)}
+                                  className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+                                    selected ? "border-[#0073ea] bg-blue-50/50 text-[#0073ea]" : ""
+                                  }`}
+                                >
+                                  <Icon className="w-4 h-4 shrink-0" />
+                                  <span className="flex flex-col text-left">
+                                    <span>{label}</span>
+                                    {/* <span className="text-xs font-normal opacity-70">{description}</span> */}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="flex mt-auto pt-2">
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full group"
-                      disabled={Object.keys(userForm.formState.errors).length > 0}
+                      disabled={isSubmitting || Object.keys(userForm.formState.errors).length > 0}
                     >
                       Continue
                       <ArrowRight className="w-4 h-4" />
@@ -555,8 +654,8 @@ export default function CompleteProfilePage() {
                 </form>
               </Form>
             </div>
-            </div>
           </div>
+        </div>
       </div>
 
       {/* Marketing Column (Right) */}
