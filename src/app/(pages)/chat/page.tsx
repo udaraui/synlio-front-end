@@ -343,33 +343,20 @@ const renderTemplateBadge = (rawText: string, primaryFallback: string, key?: any
   return null;
 };
 
-const renderWithTemplateBadges = (children: React.ReactNode, primaryFallback: string): React.ReactNode => {
+const renderCleanProseText = (children: React.ReactNode): React.ReactNode => {
   if (typeof children === 'string') {
     if (!children.includes('{{')) return children;
-    const parts = children.split(/(\{\{[^}]+:[^}]+\}\})/g);
-    if (parts.length === 1) return children;
-
-    return parts.map((part, idx) => {
-      const badge = renderTemplateBadge(part, primaryFallback, idx);
-      if (badge) {
-        return (
-          <span key={idx} className="inline-flex mx-1 align-middle">
-            {badge}
-          </span>
-        );
-      }
-      return part;
-    });
+    return children.replace(/\{\{[^:]+::([^:}]+)(?:::.*?)?\}\}/g, '$1');
   }
 
   if (Array.isArray(children)) {
-    return React.Children.map(children, child => renderWithTemplateBadges(child, primaryFallback));
+    return React.Children.map(children, child => renderCleanProseText(child));
   }
 
   if (React.isValidElement(children)) {
     const props: any = children.props;
     if (props && props.children) {
-      return React.cloneElement(children as React.ReactElement<any>, undefined, renderWithTemplateBadges(props.children, primaryFallback));
+      return React.cloneElement(children as React.ReactElement<any>, undefined, renderCleanProseText(props.children));
     }
   }
 
@@ -513,8 +500,7 @@ const markdownComponents = {
         .replace(/^(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/i, '');
       return <h3 className="text-lg font-medium mt-5 mb-2 text-foreground" {...props}>{cleanText}</h3>;
     }
-    const primaryFallback = getPrimaryColorString();
-    return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderWithTemplateBadges(children, primaryFallback)}</p>;
+    return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderCleanProseText(children)}</p>;
   },
   strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
   h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-foreground" {...props} />,
@@ -529,8 +515,7 @@ const markdownComponents = {
   ul: ({ node, ...props }: any) => <ul className="list-disc list-outside mb-4 pl-5 space-y-2" {...props} />,
   ol: ({ node, ...props }: any) => <ol className="list-decimal list-outside mb-4 pl-5 space-y-2" {...props} />,
   li: ({ node, children, ...props }: any) => {
-    const primaryFallback = getPrimaryColorString();
-    return <li className="leading-relaxed" {...props}>{renderWithTemplateBadges(children, primaryFallback)}</li>;
+    return <li className="leading-relaxed" {...props}>{renderCleanProseText(children)}</li>;
   },
   a: ({ node, ...props }: any) => <a className="text-primary hover:underline" {...props} />,
   code: ({ node, inline, className, children, ...props }: any) => {
@@ -879,10 +864,9 @@ const markdownComponents = {
       }
     }
     const codeText = extractText(children).trim();
-    const primaryFallback = getPrimaryColorString();
-    const badge = renderTemplateBadge(codeText, primaryFallback);
-    if (badge) {
-      return <span className="inline-flex mx-1 align-middle">{badge}</span>;
+    const tagMatch = codeText.match(/^\{\{[^:]+::([^:}]+)(?:::.*)?\}\}$/);
+    if (tagMatch) {
+      return <strong className="font-semibold text-foreground">{tagMatch[1]}</strong>;
     }
 
     return inline ? (
@@ -957,7 +941,12 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                 >
                   {msg.content
                     .replace(/<!--preview_count:\d+-->/g, '')
-                    .replace(/\n\s+(\{\{[^}]+:[^}]+\}\})/g, ' $1 ')
+                    .replace(/(###\s*(?:Key Findings|Overview)[\s\S]*?)(?=\n###|$)/gi, (section) => {
+                      return section
+                        .replace(/\n\s*\*{0,2}\{\{[^:]+::([^:}]+)(?:::.*?)?\}\}\*{0,2}\s*(?:\n\s*)?\./g, ' **$1**.')
+                        .replace(/\*{0,2}\{\{[^:]+::([^:}]+)(?:::.*?)?\}\}\*{0,2}/g, '**$1**');
+                    })
+                    .replace(/\n\s+(\{\{[^}]+::[^}]+\}\})/g, ' $1 ')
                     .replace(/\n*###\s/g, '\n\n### ')
                     .replace(/###\s*(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/gi, '### ')
                     .replace(/###\s*\d+\.\s*/g, '### ')}
@@ -1229,7 +1218,7 @@ export default function ChatPage() {
               <div className="flex-1 overflow-hidden">
                 <div className="flex items-center gap-2 pt-1 pb-1">
                   <Eclipse size={18} className="text-primary shrink-0" />
-                  <span className="text-sm text-muted-foreground">Synlio is thinking</span>
+                  <span className="text-sm text-muted-foreground">Checking what you need...</span>
                 </div>
               </div>
             </div>
