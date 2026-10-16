@@ -210,19 +210,21 @@ export default function Page() {
       {/* ── Welcome Popup ── */}
       <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
         <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader className="flex flex-col items-center gap-2 pt-4">
-            <div className="w-12 h-12 flex items-center justify-center mb-2">
+          <DialogHeader className="flex flex-col items-center gap-1.5 pt-1">
+            <div className="w-12 h-12 flex items-center justify-center mb-1">
               <Image src={Logo} width={40} height={40} alt="Synlio" />
             </div>
             <DialogTitle className="text-xl font-semibold text-center">
               Welcome to Synlio
             </DialogTitle>
             <DialogDescription className="text-center text-gray-500">
-              Your company and admin account have been successfully set up. You are ready.
+              Your account has been successfully set up.
+              <br />
+              You're ready to get started!
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="mt-4 sm:justify-center w-full">
+          <DialogFooter className="mt-2 sm:justify-center w-full">
             <Button
               onClick={() => setShowWelcome(false)}
               className="w-full"
