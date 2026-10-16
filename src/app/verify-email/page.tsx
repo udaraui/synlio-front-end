@@ -54,7 +54,7 @@ export default function VerifyEmailPage() {
       if (response.data.registration_token) {
         sessionStorage.setItem("registration_token", response.data.registration_token);
         toast.success("Your email is verified");
-        router.push("/register/complete-profile");
+        router.replace("/register/complete-profile");
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Invalid or expired verification code.");
@@ -164,25 +164,25 @@ export default function VerifyEmailPage() {
             <div className="text-center space-y-4">
               <p className="text-sm text-slate-500 dark:text-muted-foreground">
                 Didn't receive a code?{" "}
-                <button
-                  onClick={handleResend}
-                  disabled={isResending}
-                  className="font-semibold text-primary hover:underline inline-flex items-center"
+                <Link
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!isResending) handleResend();
+                  }}
+                  className="font-semibold text-primary hover:underline"
                 >
-                  {isResending ? (
-                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                  ) : null}
-                  Resend code
-                </button>
+                  {isResending ? "Sending..." : "Resend code"}
+                </Link>
               </p>
-              
+
               <p className="text-sm text-slate-500 dark:text-muted-foreground">
                 Changed your mind?{" "}
                 <Link
-                  href="/register"
+                  href="/login"
                   className="font-semibold text-primary hover:underline"
                 >
-                  Go back
+                  Go Back
                 </Link>
               </p>
             </div>

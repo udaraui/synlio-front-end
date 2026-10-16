@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +28,16 @@ import { generatePrefix } from "@/lib/prefix-generator";
 import { useAuth } from "@/contexts/auth.context";
 import RegistrationMarketing from "@/components/registrationMarketing";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PUBLIC_DOMAINS = [
   "gmail.com",
@@ -87,6 +97,70 @@ export default function CompleteProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [prefixManuallyEdited, setPrefixManuallyEdited] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const showExitConfirmRef = useRef(showExitConfirm);
+  useEffect(() => {
+    showExitConfirmRef.current = showExitConfirm;
+  }, [showExitConfirm]);
+
+  const isSubmittingRef = useRef(isSubmitting);
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    if (!window.history.state || window.history.state.step === undefined) {
+      window.history.replaceState({ step: 0 }, "", window.location.href);
+      window.history.pushState({ step: 1 }, "", window.location.href);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (isSubmittingRef.current) return;
+
+      const targetStep = event.state?.step;
+
+      if (targetStep === 2) {
+        setStep(2);
+      } else if (targetStep === 1) {
+        setStep(1);
+      } else {
+        if (showExitConfirmRef.current) {
+          window.history.pushState({ step: 1 }, "", window.location.href);
+          return;
+        }
+
+        window.history.pushState({ step: 1 }, "", window.location.href);
+        setShowExitConfirm(true);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [token]);
+
+  const handleConfirmExit = () => {
+    showExitConfirmRef.current = false;
+    sessionStorage.removeItem("registration_token");
+    setShowExitConfirm(false);
+    router.replace("/login");
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setShowExitConfirm(open);
+  };
+
+  const handleStep2Back = () => {
+    if (window.history.state?.step === 2) {
+      window.history.back();
+    } else {
+      setStep(1);
+    }
+  };
 
   const [userProfilePicture, setUserProfilePicture] = useState<File | null>(null);
   const [userPreviewUrl, setUserPreviewUrl] = useState<string | null>(null);
@@ -166,6 +240,7 @@ export default function CompleteProfilePage() {
 
   const onUserSubmit = async (values: UserFormValues) => {
     if (values.accountType === "company") {
+      window.history.pushState({ step: 2 }, "", window.location.href);
       setStep(2);
       return;
     }
@@ -781,7 +856,7 @@ export default function CompleteProfilePage() {
                       type="button"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => setStep(1)}
+                      onClick={handleStep2Back}
                     >
                       <ArrowLeft className="w-4 h-4" /> Back
                     </Button>
@@ -809,6 +884,29 @@ export default function CompleteProfilePage() {
 
       {/* Marketing Column (Right) */}
       <RegistrationMarketing />
+
+      {/* Confirmation Dialog on Back Navigation */}
+      <AlertDialog open={showExitConfirm} onOpenChange={handleOpenChange}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave profile setup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave? Your profile setup progress will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleOpenChange(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmExit}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
