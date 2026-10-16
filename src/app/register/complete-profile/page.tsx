@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
-import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon, UserCircle, Building2 } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
@@ -62,7 +63,7 @@ const userSchema = z.object({
     .or(z.literal("")),
   password: z.string().min(6, "Password must be at least 6 characters long"),
   user_profile_picture: z.instanceof(File).optional(),
-  accountType: z.enum(["personal", "organization"]).default("organization"),
+  accountType: z.enum(["personal", "company"]).default("company"),
 });
 
 const companySchema = z.object({
@@ -116,7 +117,7 @@ export default function CompleteProfilePage() {
       last_name: "",
       mobile_number: "",
       password: "",
-      accountType: "organization",
+      accountType: "company",
     },
     mode: "onTouched",
   });
@@ -158,14 +159,13 @@ export default function CompleteProfilePage() {
   }, [router, companyForm]);
 
   const onUserSubmit = async (values: UserFormValues) => {
-    if (values.accountType === "organization") {
+    if (values.accountType === "company") {
       setStep(2);
       return;
     }
 
     // Personal account: auto-generate company details and register immediately
     setIsSubmitting(true);
-    setStep(3);
 
     const formData = new FormData();
     formData.append("first_name", values.first_name);
@@ -215,7 +215,6 @@ export default function CompleteProfilePage() {
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to complete registration");
       setIsSubmitting(false);
-      setStep(1); // Go back to form
     }
   };
 
@@ -456,49 +455,95 @@ export default function CompleteProfilePage() {
                     control={userForm.control}
                     name="accountType"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select your account type</FormLabel>
-                        <FormControl>
-                          <div role="radiogroup" aria-label="Account type" className="grid grid-cols-2 gap-3">
-                            {[
-                              { value: "personal", label: "Personal", description: "Just for you, set up instantly", Icon: UserCircle },
-                              { value: "organization", label: "Organization", description: "For teams, with company details", Icon: Building2 },
-                            ].map(({ value, label, description, Icon }) => {
-                              const selected = field.value === value;
-                              return (
+                      <FormItem className="space-y-1 py-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <FormLabel className="text-sm font-medium">What will you use Synlio for?</FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <button
-                                  key={value}
                                   type="button"
-                                  role="radio"
-                                  aria-checked={selected}
-                                  onClick={() => field.onChange(value)}
-                                  className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all text-sm font-medium text-gray-700 hover:bg-gray-50 ${
-                                    selected ? "border-[#0073ea] bg-blue-50/50 text-[#0073ea]" : ""
-                                  }`}
+                                  className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                  aria-label="Account type information"
                                 >
-                                  <Icon className="w-4 h-4 shrink-0" />
-                                  <span className="flex flex-col text-left">
-                                    <span>{label}</span>
-                                    {/* <span className="text-xs font-normal opacity-70">{description}</span> */}
-                                  </span>
+                                  <Info className="w-3.5 h-3.5" />
                                 </button>
-                              );
-                            })}
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start" className="max-w-[290px] p-3 text-left space-y-2.5">
+                                <div className="flex items-start gap-2.5">
+                                  <div className="p-1 rounded-md text-primary shrink-0">
+                                    <UserIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                  </div>
+                                  <div className="space-y-1 text-sm">
+                                    <p className="font-semibold text-foreground">Personal</p>
+                                    <p className="text-muted-foreground leading-relaxed">
+                                      Sets up a default workspace instantly. Edit details anytime later.
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="border-t border-border/50 pt-2 flex items-start gap-2.5">
+                                  <div className="p-1 rounded-md text-primary shrink-0">
+                                    <BriefcaseBusiness className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                  </div>
+                                  <div className="space-y-1 text-sm">
+                                    <p className="font-semibold text-foreground">Company</p>
+                                    <p className="text-muted-foreground leading-relaxed">
+                                      Configure your own company profile and address in the next step.
+                                    </p>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
-                        </FormControl>
+                          <FormControl>
+                            <div className="flex h-9 w-fit items-center gap-1 rounded-md border border-input bg-transparent shrink-0">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-full text-sm px-3 gap-2.5 cursor-pointer"
+                                variant={field.value === "personal" ? "default" : "ghost"}
+                                onClick={() => field.onChange("personal")}
+                              >
+                                <UserIcon className="w-4 h-4 shrink-0" />
+                                Personal
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-full text-sm px-3 gap-2.5 cursor-pointer"
+                                variant={field.value === "company" ? "default" : "ghost"}
+                                onClick={() => field.onChange("company")}
+                              >
+                                <BriefcaseBusiness className="w-4 h-4 shrink-0" />
+                                Company
+                              </Button>
+                            </div>
+                          </FormControl>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="flex mt-auto pt-2">
+                  <div className="flex">
                     <Button
                       type="submit"
                       className="w-full group"
                       disabled={isSubmitting || Object.keys(userForm.formState.errors).length > 0}
                     >
-                      Continue
-                      <ArrowRight className="w-4 h-4" />
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Setting up your profile...
+                        </>
+                      ) : userForm.watch("accountType") === "personal" ? (
+                        "Complete Profile"
+                      ) : (
+                        <>
+                          Company Details
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>
