@@ -52,11 +52,11 @@ function suggestCompanyName(email: string): string {
 }
 
 const userSchema = z.object({
-  first_name: z.string().min(1, "First name is required").max(100),
-  last_name: z.string().min(1, "Last name is required").max(100),
+  first_name: z.string().trim().min(1, "First name is required").max(100),
+  last_name: z.string().trim().min(1, "Last name is required").max(100),
   mobile_number: z
     .string()
-    .refine((v) => !v || isValidPhoneNumber(v), {
+    .refine((v) => !v || /^\+\d{1,4}$/.test(v) || isValidPhoneNumber(v), {
       message: "Please enter a valid mobile number.",
     })
     .optional()
@@ -67,8 +67,8 @@ const userSchema = z.object({
 });
 
 const companySchema = z.object({
-  company_name: z.string().min(1, "Company name is required"),
-  company_code: z.string().min(1, "Company code is required"),
+  company_name: z.string().trim().min(1, "Company name is required"),
+  company_code: z.string().trim().min(1, "Company code is required"),
   company_address: z.string().optional(),
   company_address_2: z.string().optional(),
   company_address_3: z.string().optional(),
@@ -119,7 +119,7 @@ export default function CompleteProfilePage() {
       password: "",
       accountType: "company",
     },
-    mode: "onTouched",
+    mode: "onSubmit",
   });
 
   const companyForm = useForm<CompanyFormValues>({
@@ -131,8 +131,14 @@ export default function CompleteProfilePage() {
       company_address_2: "",
       company_address_3: "",
     },
-    mode: "onTouched",
+    mode: "onSubmit",
   });
+
+  const userValues = userForm.watch();
+  const isUserFormValid = userSchema.safeParse(userValues).success;
+
+  const companyValues = companyForm.watch();
+  const isCompanyFormValid = companySchema.safeParse(companyValues).success;
 
   useEffect(() => {
     const storedToken = sessionStorage.getItem("registration_token");
@@ -380,7 +386,30 @@ export default function CompleteProfilePage() {
                         <FormItem>
                           <FormLabel>First name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Jane" {...field} />
+                            <Input
+                              placeholder="Jane"
+                              autoComplete="off"
+                              className="border-input"
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                userForm.clearErrors("first_name");
+                              }}
+                              onBlur={() => {
+                                field.onBlur();
+                                const val = userForm.getValues("first_name")?.trim();
+                                if (!val) {
+                                  userForm.clearErrors("first_name");
+                                } else if (val.length > 100) {
+                                  userForm.setError("first_name", {
+                                    type: "manual",
+                                    message: "First name is too long",
+                                  });
+                                } else {
+                                  userForm.clearErrors("first_name");
+                                }
+                              }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -393,7 +422,30 @@ export default function CompleteProfilePage() {
                         <FormItem>
                           <FormLabel>Last name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Doe" {...field} />
+                            <Input
+                              placeholder="Doe"
+                              autoComplete="off"
+                              className="border-input"
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                userForm.clearErrors("last_name");
+                              }}
+                              onBlur={() => {
+                                field.onBlur();
+                                const val = userForm.getValues("last_name")?.trim();
+                                if (!val) {
+                                  userForm.clearErrors("last_name");
+                                } else if (val.length > 100) {
+                                  userForm.setError("last_name", {
+                                    type: "manual",
+                                    message: "Last name is too long",
+                                  });
+                                } else {
+                                  userForm.clearErrors("last_name");
+                                }
+                              }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -405,19 +457,39 @@ export default function CompleteProfilePage() {
                     control={userForm.control}
                     name="mobile_number"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Mobile <span className="text-muted-foreground font-normal">(optional)</span>
-                        </FormLabel>
-                        <FormControl>
-                          <PhoneInput
-                            defaultCountry="LK"
-                            placeholder="77 123 4567"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                        <FormItem>
+                          <FormLabel>
+                            Mobile <span className="text-muted-foreground font-normal">(optional)</span>
+                          </FormLabel>
+                          <FormControl>
+                            <PhoneInput
+                              defaultCountry="LK"
+                              placeholder="77 123 4567"
+                              {...field}
+                              onChange={(val) => {
+                                field.onChange(val);
+                                if (!val || /^\+\d{1,4}$/.test(val) || isValidPhoneNumber(val)) {
+                                  userForm.clearErrors("mobile_number");
+                                }
+                              }}
+                              onBlur={() => {
+                                field.onBlur();
+                                const val = userForm.getValues("mobile_number");
+                                if (!val || /^\+\d{1,4}$/.test(val)) {
+                                  userForm.clearErrors("mobile_number");
+                                } else if (!isValidPhoneNumber(val)) {
+                                  userForm.setError("mobile_number", {
+                                    type: "manual",
+                                    message: "Please enter a valid mobile number.",
+                                  });
+                                } else {
+                                  userForm.clearErrors("mobile_number");
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                     )}
                   />
 
@@ -435,6 +507,27 @@ export default function CompleteProfilePage() {
                               className="pr-10"
                               aria-invalid={!!fieldState.error}
                               {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                const val = e.target.value;
+                                if (!val || val.length >= 6) {
+                                  userForm.clearErrors("password");
+                                }
+                              }}
+                              onBlur={() => {
+                                field.onBlur();
+                                const val = userForm.getValues("password");
+                                if (!val) {
+                                  userForm.clearErrors("password");
+                                } else if (val.length < 6) {
+                                  userForm.setError("password", {
+                                    type: "manual",
+                                    message: "Password must be at least 6 characters long",
+                                  });
+                                } else {
+                                  userForm.clearErrors("password");
+                                }
+                              }}
                             />
                             <button
                               type="button"
@@ -529,14 +622,14 @@ export default function CompleteProfilePage() {
                     <Button
                       type="submit"
                       className="w-full group"
-                      disabled={isSubmitting || Object.keys(userForm.formState.errors).length > 0}
+                      disabled={isSubmitting || !isUserFormValid}
                     >
                       {isSubmitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           Setting up your profile...
                         </>
-                      ) : userForm.watch("accountType") === "personal" ? (
+                      ) : userValues.accountType === "personal" ? (
                         "Complete Profile"
                       ) : (
                         <>
@@ -616,10 +709,21 @@ export default function CompleteProfilePage() {
                             {...field}
                             onChange={(e) => {
                               field.onChange(e);
+                              const val = e.target.value.trim();
+                              if (!val) {
+                                companyForm.clearErrors("company_name");
+                              } else {
+                                companyForm.clearErrors("company_name");
+                              }
                               if (!prefixManuallyEdited) {
-                                companyForm.setValue("company_code", generatePrefix(e.target.value), {
-                                  shouldValidate: true,
-                                });
+                                companyForm.setValue("company_code", generatePrefix(e.target.value));
+                              }
+                            }}
+                            onBlur={() => {
+                              field.onBlur();
+                              const val = companyForm.getValues("company_name")?.trim();
+                              if (!val) {
+                                companyForm.clearErrors("company_name");
                               }
                             }}
                           />
@@ -684,7 +788,7 @@ export default function CompleteProfilePage() {
                     <Button
                       type="submit"
                       className="flex-1"
-                      disabled={isSubmitting || Object.keys(companyForm.formState.errors).length > 0}
+                      disabled={isSubmitting || !isCompanyFormValid}
                     >
                       {isSubmitting ? (
                         <>

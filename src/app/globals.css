@@ -320,6 +320,17 @@ body {
   height: 0;
 }
 
+/* Ensure browser autofill does not override input border color */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--foreground) !important;
+  border-color: var(--input) !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* styles/globals.css */
 
 ::selection {

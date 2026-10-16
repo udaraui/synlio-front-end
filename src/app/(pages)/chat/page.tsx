@@ -1061,7 +1061,7 @@ export default function ChatPage() {
   const { setBreadcrumbs } = useBreadcrumb();
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Ask Synlio", href: "/chat", isCurrentPage: true }]);
+    setBreadcrumbs([{ label: "Co-Pilot", href: "/chat", isCurrentPage: true }]);
   }, [setBreadcrumbs]);
 
   const handleSelectAction = (actionText: string, msgId?: string) => {
@@ -1178,7 +1178,7 @@ export default function ChatPage() {
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">Access Restricted</h2>
         <p className="text-sm text-muted-foreground max-w-md mb-6">
-          You are not authorized to use Ask Synlio. Please contact your organization administrator if you need access.
+          You are not authorized to use Synlio Co-Pilot. Please contact your organization administrator if you need access.
         </p>
         <Button variant="outline" onClick={() => router.push("/home")} className="cursor-pointer">
           Return to Home

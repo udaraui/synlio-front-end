@@ -98,10 +98,10 @@ function Page() {
         notificationEmail: company.notificationEmail,
         emailProvider: company.emailProvider,
         weekEndDay: company.weekEndDay,
-        createdAt: company.createdAt || undefined,
-        updatedAt: company.updatedAt || undefined,
-        createdBy: company.created_by || "",
-        updatedBy: company.updated_by || "",
+        createdAt: company.createdAt || company.created_at || undefined,
+        updatedAt: company.updatedAt || company.updated_at || undefined,
+        createdBy: company.createdBy || company.created_by || "",
+        updatedBy: company.updatedBy || company.updated_by || "",
       });
 
       // Priority 1: System users always fetch all

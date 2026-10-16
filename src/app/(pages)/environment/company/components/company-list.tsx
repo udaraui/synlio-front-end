@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Info_button from '@/components/Info_button';
 import { Company } from '@/interfaces/company';
 import { ActiveStatus } from '@/interfaces/common/status.enum';
 import { Label } from '@/components/ui/label';
@@ -130,6 +131,25 @@ const CompanyList: React.FC<CompanyListProps> = ({
   const canEditCompany = usePrivilegeGuard('2') as boolean;
   const canDeleteCompany = usePrivilegeGuard('3') as boolean;
   const canEditCompanySpaceEmailCredentials = usePrivilegeGuard('108') as boolean;
+
+  const isAdminUser = React.useMemo(() => {
+    if (isSystemUser || canEditCompany || canDeleteCompany || canCreateCompany) {
+      return true;
+    }
+    try {
+      const rawUser = localStorage.getItem("user");
+      if (!rawUser) return false;
+      const user = JSON.parse(rawUser);
+      if (user.roles && Array.isArray(user.roles)) {
+        return user.roles.some((r: any) =>
+          (r?.role || r?.name || "").toLowerCase().includes("admin")
+        );
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }, [isSystemUser, canEditCompany, canDeleteCompany, canCreateCompany]);
 
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : '';
   const statusTerm = externalStatusTerm !== undefined ? externalStatusTerm : '';
@@ -591,6 +611,16 @@ const CompanyList: React.FC<CompanyListProps> = ({
                               </TooltipTrigger>
                               <TooltipContent side="top">View Divisions</TooltipContent>
                             </Tooltip>
+
+                            {isAdminUser && (
+                              <Info_button
+                                id={company.id}
+                                createdBy={company.createdBy || (company as any).created_by || 'Unknown'}
+                                createdAt={company.createdAt || (company as any).created_at || ''}
+                                updatedBy={company.updatedBy || (company as any).updated_by || 'Unknown'}
+                                updatedAt={company.updatedAt || (company as any).updated_at || ''}
+                              />
+                            )}
 
                             {canEditCompany && (
                               <Tooltip>

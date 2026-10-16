@@ -131,8 +131,11 @@ export default function OnboardingPage() {
       company_name: "",
       company_code: "",
     },
-    mode: "onTouched",
+    mode: "onSubmit",
   });
+
+  const companyValues = form.watch();
+  const isFormValid = companySchema.safeParse(companyValues).success;
 
   // ─── Step 1: Create Company ─────────────────────────────────────────────
 
@@ -359,7 +362,7 @@ export default function OnboardingPage() {
                   <Button
                     type="submit"
                     className="mt-1 w-full"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isFormValid}
                   >
                     {isSubmitting ? (
                       <>

@@ -144,12 +144,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const items = [
       {
-        title: "Ask Synlio",
+        title: "Co-Pilot",
         url: "/chat",
         icon: BotMessageSquare,
         privilege_codes: ["120"],
         alwaysShow: true,
-        unauthorizedMessage: "You are not authorized to use Ask Synlio.",
+        unauthorizedMessage: "You are not authorized to use Synlio Co-Pilot",
       },
       { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
       { title: "Synalytics", url: "/synalytics", icon: ChartNoAxesCombined, privilege_codes: [], isUnderConstruction: true },

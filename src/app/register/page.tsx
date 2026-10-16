@@ -49,19 +49,33 @@ export default function RegisterPage() {
     defaultValues: {
       email: "",
     },
-    mode: "onTouched",
+    mode: "onSubmit",
   });
+
+  const emailValue = form.watch("email");
+  const trimmedEmail = emailValue?.trim().toLowerCase() || "";
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+  const isEmailEmpty = !trimmedEmail;
 
   const checkEmail = useCallback((value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     const trimmed = value.trim().toLowerCase();
 
-    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    if (!trimmed) {
+      setEmailStatus("idle");
+      form.clearErrors("email");
+      return;
+    }
+
+    const isValidFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+
+    if (!isValidFormat) {
       setEmailStatus("idle");
       return;
     }
 
+    form.clearErrors("email");
     setEmailStatus("checking");
 
     debounceRef.current = setTimeout(async () => {
@@ -74,7 +88,25 @@ export default function RegisterPage() {
         setEmailStatus("idle");
       }
     }, 600);
-  }, []);
+  }, [form]);
+
+  const handleEmailBlur = useCallback(() => {
+    const trimmed = form.getValues("email")?.trim().toLowerCase() || "";
+    if (!trimmed) {
+      form.clearErrors("email");
+      return;
+    }
+    const isValidFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+    if (!isValidFormat) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      form.setError("email", {
+        type: "manual",
+        message: "Please enter a valid email address.",
+      });
+    } else {
+      form.clearErrors("email");
+    }
+  }, [form]);
 
   async function onSubmit(values: RegisterFormValues) {
     if (emailStatus === "taken") {
@@ -152,7 +184,17 @@ export default function RegisterPage() {
                           {...field}
                           onChange={(e) => {
                             field.onChange(e);
+                            const val = e.target.value.trim();
+                            if (!val) {
+                              form.clearErrors("email");
+                            } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.toLowerCase())) {
+                              form.clearErrors("email");
+                            }
                             checkEmail(e.target.value);
+                          }}
+                          onBlur={(e) => {
+                            field.onBlur();
+                            handleEmailBlur();
                           }}
                           className={cn(
                             "pr-9",
@@ -184,7 +226,7 @@ export default function RegisterPage() {
 
               <Button
                 className="w-full"
-                disabled={isLoading || emailStatus === "taken" || !!form.formState.errors.email}
+                disabled={isLoading || emailStatus === "taken" || emailStatus === "checking" || !isEmailValid || !!form.formState.errors.email}
                 type="submit"
               >
                 {isLoading ? (
