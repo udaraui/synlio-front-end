@@ -1268,7 +1268,7 @@ export default function ChatPage() {
         </form>
         <div className="text-center mt-2">
           <span className="text-xs text-muted-foreground">
-            Synlio AI can make mistakes. Consider verifying important information.
+            Co-Pilot can make mistakes. Consider verifying important information.
           </span>
         </div>
       </div>
