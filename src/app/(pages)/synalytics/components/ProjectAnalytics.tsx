@@ -403,7 +403,7 @@ export default function ProjectAnalytics({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline" className={`h-7 text-xs px-2 ${selectedStatuses.length > 0 ? "bg-primary/10 dark:bg-primary/20 border-primary" : ""}`} disabled={loading || statusOptions.length === 0}>
-              Status {selectedStatuses.length > 0 && <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">{selectedStatuses.length}</span>}
+              Status {selectedStatuses.length > 0 && <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">{selectedStatuses.length}</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[180px]">
@@ -425,7 +425,7 @@ export default function ProjectAnalytics({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline" className={`h-7 text-xs px-2 ${selectedSeverities.length > 0 ? "bg-primary/10 dark:bg-primary/20 border-primary" : ""}`} disabled={loading || severityOptions.length === 0}>
-              Severity {selectedSeverities.length > 0 && <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">{selectedSeverities.length}</span>}
+              Severity {selectedSeverities.length > 0 && <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">{selectedSeverities.length}</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[180px]">
@@ -447,7 +447,7 @@ export default function ProjectAnalytics({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline" className={`h-7 text-xs px-2 ${selectedAssigneeIds.length > 0 ? "bg-primary/10 dark:bg-primary/20 border-primary" : ""}`} disabled={loading || assigneeOptions.length === 0}>
-              Assignee {selectedAssigneeIds.length > 0 && <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">{selectedAssigneeIds.length}</span>}
+              Assignee {selectedAssigneeIds.length > 0 && <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">{selectedAssigneeIds.length}</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[220px]">

@@ -17,8 +17,8 @@ import {
   Activity,
   ShieldUser,
   ChartNoAxesCombined,
-  BotMessageSquare,
-  Brain,
+  Sparkles,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../../public/logo.png";
@@ -146,12 +146,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Co-Pilot",
         url: "/chat",
-        icon: BotMessageSquare,
+        icon: Sparkles,
         privilege_codes: ["120"],
         alwaysShow: true,
         unauthorizedMessage: "You are not authorized to use Synlio Co-Pilot",
       },
-      { title: "Insights", url: "/ai-insights", icon: Brain, privilege_codes: [], isUnderConstruction: true },
+      { title: "Insights", url: "/ai-insights", icon: Lightbulb, privilege_codes: [], isUnderConstruction: true },
       { title: "Synalytics", url: "/synalytics", icon: ChartNoAxesCombined, privilege_codes: [], isUnderConstruction: true },
     ];
     return items;

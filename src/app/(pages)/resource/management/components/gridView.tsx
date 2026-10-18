@@ -38,7 +38,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from "@/components/ui/avatar";
 
 // --- Interface Definitions ---
 interface Resource {
@@ -265,6 +265,13 @@ const GridView: React.FC<GridViewProps> = ({
                     <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
                       {initials}
                     </AvatarFallback>
+                    <AvatarBadge
+                      className={
+                        resource.active_status
+                          ? "bg-green-600 dark:bg-green-800"
+                          : "bg-gray-400 dark:bg-gray-600"
+                      }
+                    />
                   </Avatar>
                 </div>
 
@@ -274,15 +281,6 @@ const GridView: React.FC<GridViewProps> = ({
                       <h4 className="text-base font-semibold text-gray-900 dark:text-gray-50 truncate group-hover:text-blue-600 transition-colors">
                         {fullName}
                       </h4>
-                      {/* 2. Status Dot */}
-                      <div
-                        className="flex items-center"
-                        title={resource.active_status ? "Active" : "Inactive"}
-                      >
-                        <span
-                          className={`h-2 w-2 rounded-full ${resource.active_status ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-400"}`}
-                        />
-                      </div>
                     </div>
                     {resource.email && (
                       <p className="text-xs text-muted-foreground truncate">

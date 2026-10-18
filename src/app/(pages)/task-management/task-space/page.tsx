@@ -13,10 +13,12 @@ import {
   Search,
   TableProperties,
   ClipboardXIcon,
-  Pointer
+  Pointer,
+  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TaskSpaceForm } from "./components/TaskSpaceForm";
 import TaskSpaceGridView from "./components/TaskSpaceGridView";
@@ -342,6 +344,10 @@ function Page() {
                 />
               </div>
             </div>
+
+            <CopilotToolbarButton
+              onClick={() => toast.info("Project Analyst will be available soon!")}
+            />
           </div>
         </div>
       </div>

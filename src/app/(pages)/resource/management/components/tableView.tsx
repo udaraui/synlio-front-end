@@ -37,7 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import ResponsiveSkillRow from "@/components/common/ResponsiveSkillRow";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -344,15 +344,28 @@ const TableView: React.FC<TableViewProps> = ({
         const isEditingLast =
           editingCell?.id === r.id && editingCell?.field === "last_name";
         return (
-          <div className="flex items-center gap-2">
-            {/* Status Dot */}
+          <div className="flex items-center gap-2.5">
             <TooltipProvider>
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center flex-shrink-0 cursor-help">
-                    <span
-                      className={`h-2 w-2 rounded-full ${r.active_status ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-400"}`}
-                    />
+                  <div className="relative flex-shrink-0 group/avatar cursor-pointer">
+                    <Avatar className="w-7 h-7 rounded-full border border-gray-100 dark:border-gray-700 bg-primary">
+                      <AvatarImage
+                        src={(r.profile_pic && !r.profile_pic.includes("ui-avatars.com")) ? r.profile_pic : undefined}
+                        alt={fullName}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                      <AvatarBadge
+                        className={
+                          r.active_status
+                            ? "bg-green-600 dark:bg-green-800"
+                            : "bg-gray-400 dark:bg-gray-600"
+                        }
+                      />
+                    </Avatar>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs px-2 py-1">
@@ -360,41 +373,6 @@ const TableView: React.FC<TableViewProps> = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
-            <div className="relative flex-shrink-0 group/avatar w-7 h-7 flex items-center justify-center">
-              {/*
-              <svg className="absolute -rotate-90 w-10 h-10">
-                <circle
-                  cx="20"
-                  cy="20"
-                  r={radius}
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  fill="transparent"
-                  className="text-gray-200 dark:text-gray-700"
-                />
-                <circle
-                  cx="20"
-                  cy="20"
-                  r={radius}
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  fill="transparent"
-                  strokeDasharray={circumference}
-                  style={{ strokeDashoffset: offset }}
-                  strokeLinecap="round"
-                  className={`transition-all duration-500 ${utilizationInfo.gradientClasses} text-blue-500`}
-                />
-              </svg>
-              */}
-
-              <Avatar className="w-7 h-7 rounded-full border border-gray-100 dark:border-gray-700 bg-primary">
-                <AvatarImage src={(r.profile_pic && !r.profile_pic.includes("ui-avatars.com")) ? r.profile_pic : undefined} alt={fullName} className="object-cover" />
-                <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </div>
 
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">

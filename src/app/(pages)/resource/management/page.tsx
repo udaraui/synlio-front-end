@@ -10,8 +10,11 @@ import {
   Pin,
   Contact,
   Globe,
-  Coffee,
+  Sparkles,
+  Search,
 } from "lucide-react";
+import { CopilotDrawer } from "@/components/common/CopilotDrawer";
+import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +58,7 @@ function page() {
   const [resources, setResources] = useState<any[]>([]);
   const [resourcePools, setResourcePools] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [individualSkillLoading, setIndividualSkillLoading] = useState<{
     [key: number]: boolean;
   }>({});
@@ -891,6 +895,66 @@ function page() {
   );
 
   const renderPinnedFilter = (filterType: FilterType) => {
+    if (filterType === "name") {
+      return (
+        <div key="name" className="relative w-[130px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+          <Input
+            placeholder="Name"
+            value={debouncedResourceTerm}
+            onChange={(e) => {
+              setDebouncedResourceTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-7 pl-7 pr-7 text-xs border border-border shadow-none placeholder:text-xs"
+          />
+          {debouncedResourceTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 p-0"
+              onClick={() => {
+                setDebouncedResourceTerm("");
+                setCurrentPage(1);
+              }}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    if (filterType === "email") {
+      return (
+        <div key="email" className="relative w-[140px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
+          <Input
+            placeholder="Email"
+            value={debouncedResourceEmailTerm}
+            onChange={(e) => {
+              setDebouncedResourceEmailTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-7 pl-7 pr-7 text-xs border border-border shadow-none placeholder:text-xs"
+          />
+          {debouncedResourceEmailTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 p-0"
+              onClick={() => {
+                setDebouncedResourceEmailTerm("");
+                setCurrentPage(1);
+              }}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      );
+    }
+
     const config = {
       group: { label: "Group", badgeCount: debouncedResourcePoolTerms.length, isActive: debouncedResourcePoolTerms.length > 0, onClear: () => { setDebouncedResourcePoolTerms([]); setCurrentPage(1); } },
       status: { label: "Status", badgeCount: debouncedResourceStatusTerms.length, isActive: debouncedResourceStatusTerms.length > 0, onClear: () => { setDebouncedResourceStatusTerms([]); setCurrentPage(1); } },
@@ -944,7 +1008,7 @@ function page() {
           <Button size="sm" variant="outline" className={`h-7 text-xs px-2 shadow-none gap-1.5 border-border ${config.isActive ? "text-foreground" : ""}`}>
             {config.label}
             {config.badgeCount > 0 && (
-              <span className="bg-primary text-primary-foreground rounded-full min-w-4 h-4 flex items-center justify-center text-[10px] px-1">
+              <span className="bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                 {config.badgeCount}
               </span>
             )}
@@ -1049,14 +1113,13 @@ function page() {
 
             <div className="h-3.5 w-px bg-gray-300 dark:bg-gray-600 mx-1 shrink-0" />
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs px-2 border-border shadow-none"
-                    title="Filter Options"
                   >
                     <Filter className="w-3.5 h-3.5 mr-1.5" />
                     Filters
@@ -1070,7 +1133,7 @@ function page() {
                       debouncedUnassignedTerm,
                       debouncedSkillTerms.length > 0
                     ].filter(Boolean).length > 0) && (
-                        <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                        <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                           {[
                             debouncedResourceTerm,
                             debouncedResourceEmailTerm,
@@ -1122,6 +1185,9 @@ function page() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+
+            {/* <CopilotToolbarButton onClick={() => setIsCopilotOpen(true)} /> */}
+            <CopilotToolbarButton onClick={() => toast.info("Resource Analyst will be available soon!")} />
           </div>
         </div>
       </div>
@@ -1301,6 +1367,30 @@ function page() {
           resourceId={editingResource}
         />
       )}
+
+      <CopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        agent="resource_analytics"
+        pageScopeKey={
+          debouncedResourcePoolTerms.length > 0
+            ? `resource_group_${debouncedResourcePoolTerms[0]}`
+            : "resource_management"
+        }
+        pageTitle={
+          debouncedResourcePoolTerms.length > 0
+            ? `Group: ${resourcePools.find(p => String(p.resource_pool_id) === String(debouncedResourcePoolTerms[0]))?.resource_pool_name || "Resource Group"}`
+            : "Resources"
+        }
+        context={
+          debouncedResourcePoolTerms.length > 0 && debouncedResourcePoolTerms[0] !== "none"
+            ? {
+              resourceGroupId: debouncedResourcePoolTerms[0],
+              resourceGroupName: resourcePools.find(p => String(p.resource_pool_id) === String(debouncedResourcePoolTerms[0]))?.resource_pool_name,
+            }
+            : undefined
+        }
+      />
     </div>
   );
 }

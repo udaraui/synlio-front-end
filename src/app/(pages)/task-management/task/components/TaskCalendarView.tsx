@@ -293,7 +293,7 @@ function UnscheduledPanel({
               >
                 Status
                 {statusFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {statusFilter.length}
                   </span>
                 )}
@@ -1269,7 +1269,7 @@ export default function TaskCalendarView({
           <CalendarOff className="h-3.5 w-3.5" />
           Unscheduled
           {unscheduledTasks.length >= 0 && (
-            <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+            <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
               {unscheduledTasks.length}
             </span>
           )}

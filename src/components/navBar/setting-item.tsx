@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import {
-  Palette,
   Sun,
   Moon,
   Monitor,
@@ -22,7 +21,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { useTheme } from "next-themes";
 import { NavUser } from "./nav-user";
@@ -73,6 +71,7 @@ function SettingItem() {
   } = useAuth();
   const [openColorPicker, setOpenColorPicker] = useState(false);
   const [openSidebarColorPicker, setOpenSidebarColorPicker] = useState(false);
+  const [isThemeSettingsOpen, setIsThemeSettingsOpen] = useState(false);
 
   const sidebarColorOptions = [
     { name: "Default", value: "default" },
@@ -454,9 +453,9 @@ function SettingItem() {
   return (
     <>
       <div className="flex-1">
-        <div className="flex justify-end items-center">
+        <div className="flex justify-end items-center gap-1">
           {/* Search Bar with Dropdown */}
-          <div className="relative" ref={searchRef}>
+          <div className="relative mr-1.5" ref={searchRef}>
             <div className="relative flex items-center">
               <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
               <input
@@ -778,83 +777,74 @@ function SettingItem() {
             )}
           </div>
 
-          {/* Insights button */}
-          {currentInsight && (
+          {/* Action Icons Cluster */}
+          <div className="flex items-center gap-1">
+            {/* Insights button */}
+            {currentInsight && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                    onPointerDown={(e) => e.currentTarget.blur()}
+                    onClick={(e) => {
+                      e.currentTarget.blur();
+                      window.open(currentInsight.link, "_blank");
+                    }}
+                  >
+                    <Lightbulb className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Click to get insights about {currentInsight.process}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Theme Quick Toggle Shortcut */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="ml-[5px] cursor-pointer"
+                  className="h-8 w-8 cursor-pointer"
                   onPointerDown={(e) => e.currentTarget.blur()}
                   onClick={(e) => {
                     e.currentTarget.blur();
-                    window.open(currentInsight.link, "_blank");
+                    toggleThemeShortcut();
                   }}
                 >
-                  <Lightbulb className="h-4 w-4" />
+                  {isHydrated &&
+                  (theme === "dark" || (theme === "system" && resolvedTheme === "dark")) ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Toggle theme</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Click to get insights about {currentInsight.process}</p>
+                <p>
+                  {isHydrated &&
+                  (theme === "dark" || (theme === "system" && resolvedTheme === "dark"))
+                    ? "Switch to Light Mode"
+                    : "Switch to Dark Mode"}
+                </p>
               </TooltipContent>
             </Tooltip>
-          )}
 
-          {/* Theme Quick Toggle Shortcut */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn("cursor-pointer", !currentInsight ? "ml-[5px]" : "ml-0")}
-                onPointerDown={(e) => e.currentTarget.blur()}
-                onClick={(e) => {
-                  e.currentTarget.blur();
-                  toggleThemeShortcut();
-                }}
-              >
-                {isHydrated &&
-                (theme === "dark" || (theme === "system" && resolvedTheme === "dark")) ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                {isHydrated &&
-                (theme === "dark" || (theme === "system" && resolvedTheme === "dark"))
-                  ? "Switch to Light Mode"
-                  : "Switch to Dark Mode"}
-              </p>
-            </TooltipContent>
-          </Tooltip>
+            {/* Notification dropdown trigger */}
+            <Notification />
 
-          {/* Settings drawer trigger */}
-          <Sheet modal={true}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <SheetTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-0 cursor-pointer"
-                    onPointerDown={(e) => e.currentTarget.blur()}
-                    onClick={(e) => e.currentTarget.blur()}
-                  >
-                    <Palette className="h-4 w-4" />
-                  </Button>
-                </SheetTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Theme Settings</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* NavUser */}
+            <NavUser onOpenThemeSettings={() => setIsThemeSettingsOpen(true)} />
+          </div>
+
+          {/* Theme Settings drawer */}
+          <Sheet modal={true} open={isThemeSettingsOpen} onOpenChange={setIsThemeSettingsOpen}>
             <SheetContent onCloseAutoFocus={(e) => e.preventDefault()}>
-              <div className="mx-auto w-full max-w-sm p-4">
+              <div className="mx-auto w-full max-w-sm px-4">
                 <SheetHeader className="px-0">
                   <SheetTitle className="font-xl">Theme Settings</SheetTitle>
                   <SheetDescription>Customize your synlio experience</SheetDescription>
@@ -1044,27 +1034,6 @@ function SettingItem() {
               </div>
             </SheetContent>
           </Sheet>
-
-          {/* Notification dropdown trigger */}
-          <div className="ml-0">
-            <Notification />
-          </div>
-
-          {/* Ask AI button */}
-          {/* <Button
-            variant="outline"
-            size="sm"
-            className="text-sm ml-[5px] cursor-pointer rounded-md hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
-          >
-            <BotMessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span className="font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Ask AI
-            </span>
-          </Button> */}
-          {/* NavUser */}
-          <div className="ml-3">
-            <NavUser />
-          </div>
         </div>
       </div>
     </>

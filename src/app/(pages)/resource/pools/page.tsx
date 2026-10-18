@@ -9,7 +9,10 @@ import {
   TableProperties,
   LayoutGrid,
   X,
+  Sparkles,
 } from "lucide-react";
+import { CopilotDrawer } from "@/components/common/CopilotDrawer";
+import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +40,7 @@ function Page() {
   const { setBreadcrumbs } = useBreadcrumb();
   const { logout, user } = useAuth();
   const [resourcePool, setResourcePool] = useState<any[]>([]);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasDataFetched, setHasDataFetched] = useState(false);
   const [changeView, setChangeView] = useViewPreference(
@@ -281,6 +285,9 @@ function Page() {
                 </Select>
               </div>
             </div>
+
+            {/* <CopilotToolbarButton onClick={() => setIsCopilotOpen(true)} /> */}
+            <CopilotToolbarButton onClick={() => toast.info("Resource Analyst will be available soon!")} />
           </div>
         </div>
       </div>
@@ -454,6 +461,14 @@ function Page() {
           id={selectedResourcePool}
         />
       )}
+
+      <CopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        agent="resource_analytics"
+        pageScopeKey="resource_pools"
+        pageTitle="Resource Groups"
+      />
     </div>
   );
 }

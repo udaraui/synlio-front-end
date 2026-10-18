@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Lock } from "lucide-react";
+import { LogOut, Lock, Palette } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -20,7 +20,11 @@ import { Button } from "../ui/button";
 import { PasswordResetDialog } from '@/components/common/PasswordResetDialog';
 import { safeParse } from "@/services/auth/auth-service";
 
-export function NavUser() {
+interface NavUserProps {
+  onOpenThemeSettings?: () => void;
+}
+
+export function NavUser({ onOpenThemeSettings }: NavUserProps = {}) {
   const [user, setUser] = useState<User | null>(null);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const { logout } = useAuth();
@@ -50,7 +54,7 @@ export function NavUser() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-9 w-9 cursor-pointer rounded-full p-0 hover:bg-accent/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="ml-2 h-8 w-8 cursor-pointer rounded-full hover:bg-accent/10 focus-visible:ring-0 focus-visible:ring-offset-0"
         >
           <Avatar className="h-8 w-8 !ring-0 !border-0">
             <AvatarImage
@@ -85,6 +89,12 @@ export function NavUser() {
             <Lock strokeWidth={1.5} className="h-4 w-4 text-current" />
             <span>Change Password</span>
           </DropdownMenuItem>
+          {onOpenThemeSettings && (
+            <DropdownMenuItem onClick={onOpenThemeSettings} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800">
+              <Palette strokeWidth={1.5} className="h-4 w-4 text-current" />
+              <span>Theme Settings</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-destructive focus:text-destructive hover:text-destructive hover:bg-destructive/10 focus:bg-destructive/10">

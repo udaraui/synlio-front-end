@@ -185,7 +185,7 @@ export default function StatsCards({ myCounts, loading = false, canTasks = true,
       {/* Card 3 — Next Meeting (placeholder) */}
       <InfoCard
         title="Next Meeting"
-        subtitle="Your next meeting feature coming soon"
+        subtitle="Your next meeting feature coming soon!"
         className="cursor-not-allowed opacity-50"
         titleIcon={''}
         childrenClassName="flex flex-1 items-center justify-center mt-0 pt-0 pb-5"

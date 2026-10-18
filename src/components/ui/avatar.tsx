@@ -13,7 +13,7 @@ function Avatar({
     <AvatarPrimitive.Root
       data-slot="avatar"
       className={cn(
-        "relative flex size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-border transition-all",
+        "relative flex size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-border transition-all has-[>[data-slot=avatar-badge]]:overflow-visible",
         className
       )}
       {...props}
@@ -28,7 +28,7 @@ function AvatarImage({
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full rounded-full", className)}
       {...props}
     />
   )
@@ -43,6 +43,22 @@ function AvatarFallback({
       data-slot="avatar-fallback"
       className={cn(
         "bg-primary text-white dark:text-black text-xs flex size-full items-center justify-center rounded-full",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AvatarBadge({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="avatar-badge"
+      className={cn(
+        "absolute bottom-0 right-0 z-10 size-2.5 rounded-full ring-2 ring-background select-none",
         className
       )}
       {...props}
@@ -70,4 +86,4 @@ function AvatarGroupCount({ className, ...props }: React.ComponentProps<"div">) 
   )
 }
 
-export { Avatar, AvatarImage, AvatarFallback, AvatarGroup, AvatarGroupCount }
+export { Avatar, AvatarImage, AvatarFallback, AvatarBadge, AvatarGroup, AvatarGroupCount }

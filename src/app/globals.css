@@ -176,7 +176,7 @@ body {
   --popover-foreground: oklch(0.141 0.005 285.823);
   --primary: oklch(71.443% 0.12133 240.504);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary:oklch(71.367% 0.09007 210.436);
+  --secondary: oklch(71.367% 0.09007 210.436);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
   --muted-foreground: oklch(0.552 0.016 285.938);
@@ -203,7 +203,8 @@ body {
   --sidebar-ring: oklch(0.705 0.015 286.067);
   /* Solid equivalents of bg-primary/15 and bg-primary/20 for sticky table cells */
   --special-sticky-bg: color-mix(in oklch, var(--primary) 15%, white);
-  --special-sticky-bg-hover: color-mix(in oklch, var(--primary) 22%, white); /* Solid equivalents of bg-primary/5 and bg-primary/8 for inline creator row sticky cells */
+  --special-sticky-bg-hover: color-mix(in oklch, var(--primary) 22%, white);
+  /* Solid equivalents of bg-primary/5 and bg-primary/8 for inline creator row sticky cells */
   --creator-sticky-bg: color-mix(in oklch, var(--primary) 5%, white);
 }
 
@@ -294,6 +295,7 @@ body {
     @apply border-border outline-ring/50;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
@@ -312,10 +314,13 @@ body {
 }
 
 .hidden-input {
-  appearance: none; /* Hide default styling */
+  appearance: none;
+  /* Hide default styling */
   position: relative;
-  opacity: 0; /* Completely hide the input */
-  z-index: -1; /* Ensure it is not visible */
+  opacity: 0;
+  /* Completely hide the input */
+  z-index: -1;
+  /* Ensure it is not visible */
   width: 0;
   height: 0;
 }
@@ -334,42 +339,55 @@ input:-webkit-autofill:active {
 /* styles/globals.css */
 
 ::selection {
-  background-color: oklch(0.85 0.02 285); /* Light selection for light mode */
-  color: oklch(0.15 0.005 285); /* Dark text when selected */
+  background-color: oklch(0.85 0.02 285);
+  /* Light selection for light mode */
+  color: oklch(0.15 0.005 285);
+  /* Dark text when selected */
 }
 
 .dark ::selection {
-  background-color: oklch(0.35 0.02 285); /* Dark selection for dark mode */
-  color: oklch(0.95 0.005 285); /* Light text when selected */
+  background-color: oklch(0.35 0.02 285);
+  /* Dark selection for dark mode */
+  color: oklch(0.95 0.005 285);
+  /* Light text when selected */
 }
 
 /* Scrollbar width */
 ::-webkit-scrollbar {
-  width: 5px;   /* vertical scrollbar */
+  width: 5px;
+  /* vertical scrollbar */
   /* height: 8px;  horizontal scrollbar */
 }
 
 /* Hide scrollbar utility */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
 }
 
 /* Small scrollbar utility */
 .scrollbar-thin::-webkit-scrollbar {
   height: 4px;
 }
+
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
+  background: #cbd5e1;
+  /* slate-300 */
   border-radius: 10px;
 }
+
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
+  background: #94a3b8;
+  /* slate-400 */
 }
+
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -426,8 +444,10 @@ input:-webkit-autofill:active {
 
 /* Target the cell containing the day name (Sun, Mon, etc.) */
 .fc .fc-col-header-cell {
-  padding: 1px 0 !important; /* Adjust vertical padding */
-  background-color: #f8fafc;   /* Matching your slate-50 theme */
+  padding: 1px 0 !important;
+  /* Adjust vertical padding */
+  background-color: #f8fafc;
+  /* Matching your slate-50 theme */
 }
 
 /* Alternatively, set a fixed height */
@@ -450,7 +470,8 @@ input:-webkit-autofill:active {
 .fc-popover {
   background: white !important;
   border-radius: 12px !important;
-  border: 1px solid #e2e8f0 !important; /* border-slate-200 */
+  border: 1px solid #e2e8f0 !important;
+  /* border-slate-200 */
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
   overflow: hidden;
   width: 280px !important;
@@ -458,10 +479,12 @@ input:-webkit-autofill:active {
 
 /* The header (where the date and X button are) */
 .fc-popover-header {
-  background: #f8fafc !important; /* slate-50 */
+  background: #f8fafc !important;
+  /* slate-50 */
   padding: 12px 16px !important;
   display: flex;
-  flex-direction: row-reverse; /* Puts X on the right */
+  flex-direction: row-reverse;
+  /* Puts X on the right */
   justify-content: space-between;
   align-items: center;
 }
@@ -470,7 +493,8 @@ input:-webkit-autofill:active {
 .fc-popover-title {
   font-size: 14px !important;
   /* font-weight: 800 !important; */
-  color: #1e293b !important; /* slate-900 */
+  color: #1e293b !important;
+  /* slate-900 */
   font-family: inherit;
 }
 
@@ -494,12 +518,13 @@ input:-webkit-autofill:active {
 }
 
 /* Style the "all-day" and Time axis cells */
-.fc .fc-timegrid-slot-label, 
+.fc .fc-timegrid-slot-label,
 .fc .fc-timegrid-axis-cushion {
   font-size: 11px !important;
   /* font-weight: 700 !important; */
   text-transform: capitalize !important;
-  color: #64748b !important; /* slate-500 */
+  color: #64748b !important;
+  /* slate-500 */
   letter-spacing: 0.05em;
 }
 
@@ -510,12 +535,14 @@ input:-webkit-autofill:active {
 
 /* Remove the harsh borders on the time axis */
 .fc .fc-timegrid-slot {
-  border-bottom: 1px solid #f1f5f9 !important; /* slate-100 */
+  border-bottom: 1px solid #f1f5f9 !important;
+  /* slate-100 */
 }
 
 /* Make the "all-day" row background slightly different */
 .fc .fc-timegrid-allday {
-  background-color: #f8fafc !important; /* slate-50 */
+  background-color: #f8fafc !important;
+  /* slate-50 */
 }
 
 
@@ -722,17 +749,17 @@ input:-webkit-autofill:active {
 
 /* Fix browser autofill background inconsistency */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px white inset !important;
-    -webkit-text-fill-color: black !important;
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: black !important;
 }
 
 .dark input:-webkit-autofill,
-.dark input:-webkit-autofill:hover, 
-.dark input:-webkit-autofill:focus, 
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
 .dark input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px oklch(15.952% 0.0021 286.039) inset !important;
-    -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0 30px oklch(15.952% 0.0021 286.039) inset !important;
+  -webkit-text-fill-color: white !important;
 }

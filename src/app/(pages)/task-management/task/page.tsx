@@ -26,8 +26,10 @@ import {
   AlertTriangle,
   Star,
   Download,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -753,7 +755,7 @@ function Page() {
               >
                 Status
                 {statusFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {statusFilter.length}
                   </span>
                 )}
@@ -816,7 +818,7 @@ function Page() {
               >
                 Severity
                 {severityFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {severityFilter.length}
                   </span>
                 )}
@@ -897,7 +899,7 @@ function Page() {
               >
                 Assignee
                 {assigneeFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {assigneeFilter.length}
                   </span>
                 )}
@@ -986,7 +988,7 @@ function Page() {
               >
                 Created By
                 {createdByFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {createdByFilter.length}
                   </span>
                 )}
@@ -1060,7 +1062,7 @@ function Page() {
               >
                 Co-Assignee
                 {coAssigneeFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {coAssigneeFilter.length}
                   </span>
                 )}
@@ -2555,7 +2557,7 @@ function Page() {
                     <Filter className="w-3.5 h-3.5 mr-1.5" />
                     Filters
                     {(hasActiveFilters || !!selectedSpaceId) && (
-                      <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                      <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                         {activeFilterCount}
                       </span>
                     )}
@@ -3384,6 +3386,9 @@ function Page() {
                 onRefresh={fetchTaskFilterTemplates}
               />
             </div>
+            <CopilotToolbarButton
+              onClick={() => toast.info("Project Analyst will be available soon!")}
+            />
           </div>
         </div>
       </div>

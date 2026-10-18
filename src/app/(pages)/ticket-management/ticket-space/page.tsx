@@ -13,9 +13,11 @@ import {
   Search,
   TableProperties,
   ClipboardXIcon,
+  Sparkles,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { CopilotToolbarButton } from '@/components/common/CopilotToolbarButton';
 import { TicketSpaceForm } from './components/TicketSpaceForm';
 import {
   Select,
@@ -348,6 +350,10 @@ function Page() {
                 />
               </div>
             </div>
+
+            <CopilotToolbarButton
+              onClick={() => toast.info("Ticket Analyst will be available soon!")}
+            />
           </div>
         </div>
       </div>

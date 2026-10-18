@@ -266,7 +266,7 @@ function Notification() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="relative cursor-pointer"
+                            className="h-8 w-8 relative cursor-pointer"
                             onPointerDown={(e) => e.currentTarget.blur()}
                             onClick={(e) => e.currentTarget.blur()}
                         >

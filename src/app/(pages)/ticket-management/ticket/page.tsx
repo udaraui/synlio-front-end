@@ -33,8 +33,10 @@ import {
   ArrowRight,
   Flag,
   Download,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import {
   Select,
   SelectContent,
@@ -1362,7 +1364,7 @@ function TicketPage() {
           } catch {
             /* ignore */
           }
-          
+
           if (needsDefaultStatusFilterRef.current) {
             const defaultStatusIds = (statusRes.statuses ?? [])
               .filter((s: any) => s.base === 'To Start' || s.base === 'Processing')
@@ -1761,7 +1763,7 @@ function TicketPage() {
               >
                 Status
                 {statusFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {statusFilter.length}
                   </span>
                 )}
@@ -1832,7 +1834,7 @@ function TicketPage() {
               >
                 Severity
                 {severityFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {severityFilter.length}
                   </span>
                 )}
@@ -1904,7 +1906,7 @@ function TicketPage() {
               >
                 Type
                 {ticketTypeFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {ticketTypeFilter.length}
                   </span>
                 )}
@@ -1977,7 +1979,7 @@ function TicketPage() {
               >
                 Queue/Dept.
                 {queueFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {queueFilter.length}
                   </span>
                 )}
@@ -2053,7 +2055,7 @@ function TicketPage() {
               >
                 Assignee
                 {assigneeFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {assigneeFilter.length}
                   </span>
                 )}
@@ -2144,7 +2146,7 @@ function TicketPage() {
               >
                 Created By
                 {createdByFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {createdByFilter.length}
                   </span>
                 )}
@@ -2297,7 +2299,7 @@ function TicketPage() {
               >
                 Participant
                 {participantFilter.length > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                     {participantFilter.length}
                   </span>
                 )}
@@ -2683,7 +2685,7 @@ function TicketPage() {
                       slaResolutionDeadlineRange.end ||
                       createdDateRange.start ||
                       createdDateRange.end) && (
-                        <span className="ml-1.5 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                        <span className="ml-1.5 bg-primary text-primary-foreground rounded-full min-w-4 h-4 inline-flex items-center justify-center text-[10px] px-1 font-medium">
                           {
                             [
                               selectedTicketSpaceFilter,
@@ -3779,6 +3781,9 @@ function TicketPage() {
                 onRefresh={fetchTicketFilterTemplates}
               />
             </div>
+            <CopilotToolbarButton
+              onClick={() => toast.info("Ticket Analyst will be available soon!")}
+            />
           </div>
         </div>
       </div>

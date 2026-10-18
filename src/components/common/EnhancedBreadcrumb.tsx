@@ -6,7 +6,8 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Home, LayoutDashboard, Ticket,
   Users, Contact, Shapes, Calendar, User, BriefcaseBusiness, LucideIcon,
-  Activity, ShieldUser, ChartNoAxesCombined, MousePointerClick, BotMessageSquare
+  Activity, ShieldUser, ChartNoAxesCombined, MousePointerClick,
+  Sparkles
 } from 'lucide-react';
 import { BreadcrumbItem as BreadcrumbItemType, useBreadcrumb } from '@/contexts/breadcrumb.context';
 import {
@@ -38,7 +39,7 @@ const PAGE_ICONS: { match: (p: string) => boolean; icon: LucideIcon | React.Elem
   { match: (p) => p.startsWith('/user-management'),          icon: User,              color: PRIMARY },
   { match: (p) => p.startsWith('/environment/company'),      icon: BriefcaseBusiness, color: PRIMARY },
   { match: (p) => p.startsWith('/environment/roles'),        icon: ShieldUser,        color: PRIMARY },
-  { match: (p) => p.startsWith('/chat'),                     icon: BotMessageSquare,  color: PRIMARY },
+  { match: (p) => p.startsWith('/chat'),                     icon: Sparkles,          color: PRIMARY },
 ];
 
 export function EnhancedBreadcrumb({ items }: EnhancedBreadcrumbProps) {
@@ -138,7 +139,7 @@ export function EnhancedBreadcrumb({ items }: EnhancedBreadcrumbProps) {
                 <PageIcon.icon
                   className="size-4"
                   style={{ color: PageIcon.color ?? undefined, ...(!PageIcon.color ? {} : {}) }}
-                  {...(PageIcon.icon !== MousePointerClick ? { strokeWidth: 3 } : {})}
+                  {...(PageIcon.icon !== MousePointerClick ? { strokeWidth: 2 } : {})}
                 />
               </span>
             </BreadcrumbItem>

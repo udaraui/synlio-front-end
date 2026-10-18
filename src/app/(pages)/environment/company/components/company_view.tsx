@@ -165,7 +165,6 @@ const CompanyView: React.FC<CompanyViewProps> = ({
                   className="rounded-r-none"
                   size="sm"
                   variant="outline"
-                // onClick={() => setShowFilters(!showFilters)}
                 >
                   <Filter className="h-4 w-4" />
                 </Button>
