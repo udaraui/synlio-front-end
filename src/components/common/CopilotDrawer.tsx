@@ -194,7 +194,7 @@ export function CopilotDrawer({
         </div>
 
         {/* Panel Header */}
-        <div className="px-4 pt-5 pb-4 border-b border-border bg-muted/20 flex flex-col gap-2 shrink-0">
+        <div className="px-4 pt-4 pb-3.5 border-b border-border bg-muted/20 flex flex-col gap-2 shrink-0">
           <div className="flex items-center justify-between">
             <Breadcrumb>
               <BreadcrumbList className="select-none">

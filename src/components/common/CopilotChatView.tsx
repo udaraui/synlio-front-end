@@ -1668,7 +1668,7 @@ export function CopilotChatView({
                 <>
                   Pick a prompt below or type a question to get insights across
                   <br />
-                  Resources, Projects & Tickets.
+                  Resources, Projects and Tickets.
                 </>
               )}
             </p>
