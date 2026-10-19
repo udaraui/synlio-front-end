@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import Image from "next/image";
-import Logo from "../../../public/logo.png";
-import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Layers, Folder, CheckSquare, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Layers, Folder, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { useAuth } from "@/contexts/auth.context";
 import { useTheme } from "next-themes";
@@ -63,8 +62,11 @@ function ContinuousAnimatedAnalystIcon({
     return SparklesIcon;
   }, [agent, mode]);
 
+  const isSparkles = IconComponent === SparklesIcon;
+
   const animationDuration = useMemo(() => {
     if (IconComponent === UsersIcon) return 1.5; // 50% slower, smoother motion for Users
+    if (IconComponent === SparklesIcon) return 1.3; // Tuned for a slightly faster, energetic cadence
     return 1;
   }, [IconComponent]);
 
@@ -73,7 +75,7 @@ function ContinuousAnimatedAnalystIcon({
 
     const runLoop = async () => {
       // Small initial delay on mount / component change
-      await new Promise((r) => setTimeout(r, 350));
+      await new Promise((r) => setTimeout(r, 380));
 
       while (isMounted) {
         if (!iconRef.current) break;
@@ -91,8 +93,8 @@ function ContinuousAnimatedAnalystIcon({
         // Reset to normal state cleanly
         iconRef.current?.stopAnimation();
 
-        // Brief natural breathing pause before the next iteration
-        await new Promise((r) => setTimeout(r, 250));
+        // Breathing pause before next iteration (850ms for sparkles, 250ms for others)
+        await new Promise((r) => setTimeout(r, isSparkles ? 850 : 250));
       }
     };
 
@@ -101,22 +103,74 @@ function ContinuousAnimatedAnalystIcon({
     return () => {
       isMounted = false;
     };
-  }, [IconComponent]);
+  }, [IconComponent, animationDuration, isSparkles]);
 
   return (
     <div
-      className="flex items-center justify-center mb-4 text-primary cursor-pointer"
+      className={cn(
+        "flex items-center justify-center mb-4 cursor-pointer",
+        isSparkles ? "copilot-chat-sparkles-icon" : "text-primary"
+      )}
       onClick={() => iconRef.current?.startAnimation()}
       onMouseEnter={() => iconRef.current?.startAnimation()}
       title="Synlio Co-Pilot"
     >
+      {isSparkles && (
+        <svg
+          width="0"
+          height="0"
+          className="absolute pointer-events-none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient
+              id="synlio-chat-logo-gradient"
+              gradientUnits="userSpaceOnUse"
+              x1="6"
+              y1="2"
+              x2="18"
+              y2="22"
+            >
+              <stop offset="0%" stopColor="#2DD4BF" />
+              <stop offset="25%" stopColor="#06B6D4" />
+              <stop offset="55%" stopColor="#2563EB" />
+              <stop offset="80%" stopColor="#7C3AED" />
+              <stop offset="100%" stopColor="#A855F7" />
+            </linearGradient>
+          </defs>
+        </svg>
+      )}
+
       <IconComponent
         ref={iconRef}
         size={40}
         duration={animationDuration}
-        className="text-primary"
+        className={isSparkles ? "" : "text-primary"}
         isAnimated={false}
       />
+
+      {isSparkles && (
+        <style>{`
+          .copilot-chat-sparkles-icon svg {
+            overflow: visible !important;
+          }
+          .copilot-chat-sparkles-icon svg,
+          .copilot-chat-sparkles-icon path,
+          .copilot-chat-sparkles-icon circle,
+          .copilot-chat-sparkles-icon g {
+            stroke: url(#synlio-chat-logo-gradient) !important;
+          }
+          .copilot-chat-sparkles-icon path:first-child {
+            fill: url(#synlio-chat-logo-gradient);
+            fill-opacity: 0.22;
+          }
+          .copilot-chat-sparkles-icon circle {
+            fill: url(#synlio-chat-logo-gradient);
+            fill-opacity: 0.9;
+          }
+        `}</style>
+      )}
     </div>
   );
 }
@@ -699,7 +753,7 @@ const markdownComponents = {
           items.forEach((item: any) => {
             const color = item.color || (item.itemStyle && item.itemStyle.color) || primaryColor;
             const seriesName = item.seriesName && !item.seriesName.startsWith('series') ? item.seriesName : '';
-            
+
             // Extract the scalar value for this specific series from dataset row
             let val = item.value;
             if (typeof val === 'object' && val !== null) {
@@ -1021,7 +1075,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
   const hasPreview = Boolean(
     isFinished &&
     previewCount &&
-    previewCount > 0 &&
+    previewCount > 1 &&
     (
       msg.content.includes("preview of") ||
       msg.content.includes("sample records") ||
@@ -1230,7 +1284,7 @@ export function CopilotChatView({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [actionStates, setActionStates] = useState<Record<string, 'dismissed' | 'full_list'>>({});
-  
+
   const [internalConvId, setInternalConvId] = useState<string>(() => {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -1593,8 +1647,8 @@ export function CopilotChatView({
                 agent === "project_analytics"
                   ? "Project Analyst is ready to help"
                   : agent === "ticket_analytics"
-                  ? "Ticket Analyst is ready to help"
-                  : "Resource Analyst is ready to help"
+                    ? "Ticket Analyst is ready to help"
+                    : "Resource Analyst is ready to help"
               ) : displayName ? (
                 `How can I help you today, ${displayName}?`
               ) : (
@@ -1626,8 +1680,8 @@ export function CopilotChatView({
                   question.domain === "Resource"
                     ? Users
                     : question.domain === "Project"
-                    ? LayoutDashboard
-                    : Ticket;
+                      ? LayoutDashboard
+                      : Ticket;
 
                 return (
                   <button
@@ -1745,10 +1799,8 @@ export function CopilotChatView({
             </Button>
           </div>
         </form>
-        <div className="text-center mt-2 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            Co-Pilot can make mistakes. Consider verifying important information.
-          </span>
+        <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-2">
+          <span>Co-Pilot is AI and can make mistakes.</span>
           {mode === "full" && (
             <button
               type="button"

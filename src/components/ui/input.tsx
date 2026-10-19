@@ -34,7 +34,7 @@ function Input({
       data-slot="input"
       className={cn(
         inputVariants({ inputSize }),
-        isToolbar && "focus-visible:border-primary focus:border-primary focus-visible:ring-0 focus:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none",
+        isToolbar && "rounded-sm focus-visible:border-primary focus:border-primary focus-visible:ring-0 focus:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none",
         className
       )}
       {...props}
