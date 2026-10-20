@@ -286,8 +286,8 @@ function Page() {
               </div>
             </div>
 
-            <CopilotToolbarButton onClick={() => setIsCopilotOpen(true)} />
-            {/* <CopilotToolbarButton onClick={() => toast.info("Resource Analyst will be available soon!")} /> */}
+            {/* <CopilotToolbarButton onClick={() => setIsCopilotOpen(true)} /> */}
+            <CopilotToolbarButton onClick={() => toast.info("Resource Analyst will be available soon!")} />
           </div>
         </div>
       </div>
