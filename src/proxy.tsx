@@ -10,10 +10,15 @@ export function proxy(request: NextRequest) {
  
   // 2. Get the path the user is trying to access
   const { pathname } = request.nextUrl;
- 
+
+  // Allow email-preview sandbox to be accessed directly without auth redirect
+  // if (pathname.startsWith('/email-preview')) {
+  //   return NextResponse.next();
+  // }
+
   // 3. Define public paths that do not require authentication
-  const publicPaths = ['/login', '/forgot-password', '/reset-password', '/register', '/check-email', '/verify-email'];
- 
+  const publicPaths = ['/login', '/forgot-password', '/reset-password', '/register', '/verify-email'];
+
   // Check if the current path is a public path
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
  
