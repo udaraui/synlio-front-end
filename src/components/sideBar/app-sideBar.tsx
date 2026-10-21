@@ -185,8 +185,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const visibleResourceItems = React.useMemo(() => filterItems(resourceData), [resourceData, filterItems]);
   const visibleMastersItems = React.useMemo(() => filterItems(mastersData), [mastersData, filterItems]);
 
+  const handleEmptyAreaClick = React.useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      // Ignore if user is selecting text
+      const selection = window.getSelection();
+      if (selection && selection.toString().length > 0) {
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // Ignore clicks on buttons, links, form inputs, or interactive menu items
+      if (
+        target.closest("button") ||
+        target.closest("a") ||
+        target.closest("input, textarea, select") ||
+        target.closest("[role='button']") ||
+        target.closest("[data-sidebar='menu-button']") ||
+        target.closest("[data-sidebar='menu-sub-button']") ||
+        target.closest("[data-sidebar='menu-action']") ||
+        target.closest("[data-slot='sidebar-menu-button']") ||
+        target.closest("[data-radix-collection-item]")
+      ) {
+        return;
+      }
+
+      // Ignore clicks on vertical scrollbar
+      const currentTarget = e.currentTarget;
+      if (currentTarget) {
+        const rect = currentTarget.getBoundingClientRect();
+        if (e.clientX > rect.left + currentTarget.clientWidth) {
+          return;
+        }
+      }
+
+      toggleSidebar();
+    },
+    [toggleSidebar]
+  );
+
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" onClick={handleEmptyAreaClick} {...props}>
       <SidebarHeader>
         <CompanySwitcher companies={companies as Company[]} fistActiveCompany={activeCompany} />
       </SidebarHeader>
@@ -196,6 +236,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {visibleSpacesItems.length > 0 && (<NavMain items={visibleSpacesItems} label="Spaces" />)}
         {visibleResourceItems.length > 0 && <NavMain items={visibleResourceItems} label="Team" />}
         <NavMasters masters={visibleMastersItems} />
+        {/* Clickable empty area that fills the remaining vertical space */}
+        <div className="flex-1 min-h-12 cursor-pointer" />
       </SidebarContent>
       <SidebarFooter className="">
         {/* Expanded */}

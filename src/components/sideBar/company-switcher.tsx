@@ -146,7 +146,7 @@ export function CompanySwitcher({
         <SidebarMenuItem>
           <SidebarMenuButton
             size="lg"
-            className="py-5 group-data-[collapsible=icon]:!py-5.5 bg-sidebar-accent/50 hover:bg-sidebar-accent/50 cursor-pointer group-data-[collapsible=icon]:!bg-transparent"
+            className="rounded-lg py-5 group-data-[collapsible=icon]:!py-5.5 bg-sidebar-accent/50 hover:bg-sidebar-accent/50 cursor-pointer group-data-[collapsible=icon]:!bg-transparent"
           >
             <div className="flex aspect-square size-8 items-center justify-center">
               <Avatar className="h-8 w-8 !ring-0 !border-0 bg-transparent">
@@ -178,7 +178,7 @@ export function CompanySwitcher({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer py-5 group-data-[collapsible=icon]:!py-6 bg-sidebar-accent/50 hover:bg-sidebar-accent/70 group-data-[collapsible=icon]:!bg-transparent"
+              className="rounded-lg data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer py-5 group-data-[collapsible=icon]:!py-6 bg-sidebar-accent/50 hover:bg-sidebar-accent/70 group-data-[collapsible=icon]:!bg-transparent"
             >
               <div className="flex aspect-square size-8 items-center justify-center">
                 <Avatar className="h-8 w-8 !ring-0 !border-0">
