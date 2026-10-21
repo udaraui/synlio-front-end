@@ -284,18 +284,14 @@ function UserMultiSelect({
           </button>
         ))}
 
-        {/* Plus avatar to open search popover */}
+        {/* Plus button to open search popover */}
         <button
           type="button"
-          className="focus:outline-none relative z-0 -ml-2"
+          className="relative z-0 -ml-2 flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 bg-transparent text-muted-foreground hover:border-foreground/60 hover:text-foreground hover:bg-muted/50 ring-2 ring-background transition-colors focus:outline-none cursor-pointer"
           title={placeholder}
           onClick={() => setPopoverOpen(true)}
         >
-          <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:opacity-80 transition-opacity">
-            <AvatarFallback className="bg-transparent border border-dashed border-primary text-primary hover:bg-primary/5 transition-colors">
-              <Plus className="w-3.5 h-3.5" />
-            </AvatarFallback>
-          </Avatar>
+          <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
 
