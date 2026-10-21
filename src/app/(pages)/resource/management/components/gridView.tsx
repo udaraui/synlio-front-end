@@ -331,7 +331,7 @@ const GridView: React.FC<GridViewProps> = ({
                             </TooltipTrigger>
                             <TooltipContent
                               side="right"
-                              className="p-2 min-w-[120px] bg-white dark:bg-gray-800 border border-border shadow-md"
+                              className="p-2 min-w-[120px] bg-white dark:bg-gray-900 border border-border dark:border-gray-700 shadow-md"
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 capitalize">
@@ -364,7 +364,7 @@ const GridView: React.FC<GridViewProps> = ({
                           <HoverCardContent
                             side="top"
                             align="start"
-                            className="w-max min-w-[224px] p-2 bg-white dark:bg-gray-800 border-border shadow-md"
+                            className="w-max min-w-[224px] p-2 bg-white dark:bg-gray-900 border-border dark:border-gray-700 shadow-md"
                           >
                             <div className="flex flex-col max-h-52 overflow-y-auto">
                               {resource.skills.slice(3).map((skill, i) => (
@@ -439,7 +439,7 @@ const GridView: React.FC<GridViewProps> = ({
                             {resource.reportingPerson.first_name} {resource.reportingPerson.last_name}
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="flex flex-col px-2.5 py-2 bg-white dark:bg-gray-800 border-border shadow-md">
+                        <TooltipContent side="top" className="flex flex-col px-2.5 py-2 bg-white dark:bg-gray-900 border border-border dark:border-gray-700 shadow-lg">
                           <span className="text-xs text-muted-foreground pb-2">{resource.first_name} reports to,</span>
                           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {resource.reportingPerson.first_name} {resource.reportingPerson.last_name}
