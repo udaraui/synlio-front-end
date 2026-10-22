@@ -1221,75 +1221,6 @@ export function CopilotChatView({
 }: CopilotChatViewProps) {
   const pathname = usePathname() || "";
 
-  // Compute dynamic placeholder based on the active screen / domain context
-  const inputPlaceholder = useMemo(() => {
-    // 1. Task Management Domain
-    const subtaskName =
-      context?.parentTaskName ||
-      context?.subtaskName;
-
-    const taskSpaceName =
-      context?.taskSpaceName ||
-      ((agent === "project_analytics" || pathname.includes("/task")) ? context?.spaceName : undefined) ||
-      (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined);
-
-    const isTaskDomain =
-      agent === "project_analytics" ||
-      Boolean(pathname.includes("/task-management") || pathname.includes("/task")) ||
-      Boolean(subtaskName || taskSpaceName || context?.taskSpaceId || context?.parentTaskId);
-
-    if (isTaskDomain) {
-      if (subtaskName) {
-        return `Ask about ${subtaskName} subtasks or progress...`;
-      }
-      if (taskSpaceName) {
-        return `Ask about tasks or status in ${taskSpaceName}...`;
-      }
-      return "Ask about tasks, deadlines, or project progress...";
-    }
-
-    // 2. Ticket Management Domain
-    const ticketSpaceName =
-      context?.ticketSpaceName ||
-      ((agent === "ticket_analytics" || pathname.includes("/ticket")) ? context?.spaceName : undefined) ||
-      (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined);
-
-    const isTicketDomain =
-      agent === "ticket_analytics" ||
-      Boolean(pathname.includes("/ticket-management") || pathname.includes("/ticket")) ||
-      Boolean(ticketSpaceName || context?.ticketSpaceId);
-
-    if (isTicketDomain) {
-      if (ticketSpaceName) {
-        return `Ask about ${ticketSpaceName} tickets or SLAs...`;
-      }
-      return "Ask about tickets, queues, or SLA deadlines...";
-    }
-
-    // 3. Resource Management Domain
-    const poolName =
-      context?.resourceGroupName ||
-      context?.resourcePoolName ||
-      context?.poolName ||
-      (pageTitle?.startsWith("Group: ") && pageTitle !== "Group: Resource Group"
-        ? pageTitle.replace("Group: ", "").trim()
-        : undefined);
-
-    const isResourceDomain =
-      agent === "resource_analytics" ||
-      Boolean(pathname.includes("/resource")) ||
-      Boolean(poolName || context?.resourceGroupId || context?.resourcePoolId || context?.poolId);
-
-    if (isResourceDomain) {
-      if (poolName && String(poolName).trim() && String(poolName).trim() !== "none") {
-        return `Ask about ${poolName}'s capacity or workload...`;
-      }
-      return "Ask about team capacity, workloads, or allocation...";
-    }
-
-    // 4. General Co-Pilot Chat (/chat) & Fallback
-    return "Ask anything about tasks, tickets, or resources...";
-  }, [context, agent, pathname, pageTitle]);
   const { user } = useAuth();
   const [localUser, setLocalUser] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1351,6 +1282,85 @@ export function CopilotChatView({
   useEffect(() => {
     setActiveContext(context || {});
   }, [context]);
+
+  // Compute dynamic placeholder based on active context / space selections
+  const inputPlaceholder = useMemo(() => {
+    // 1. Task Management Domain
+    const subtaskName = !activeContext?._unselected_parent_task
+      ? (activeContext?.parentTaskName || activeContext?.subtaskName)
+      : undefined;
+
+    const taskSpaceName = !activeContext?._unselected_task_space
+      ? (
+          activeContext?.taskSpaceName ||
+          ((agent === "project_analytics" || pathname.includes("/task")) ? activeContext?.spaceName : undefined) ||
+          (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined)
+        )
+      : undefined;
+
+    const isTaskDomain =
+      agent === "project_analytics" ||
+      Boolean(pathname.includes("/task-management") || pathname.includes("/task")) ||
+      Boolean(subtaskName || taskSpaceName || activeContext?.taskSpaceId || activeContext?.parentTaskId);
+
+    if (isTaskDomain) {
+      if (subtaskName) {
+        return `Ask about ${subtaskName} subtasks or progress...`;
+      }
+      if (taskSpaceName) {
+        return `Ask about tasks or status in ${taskSpaceName}...`;
+      }
+      return "Ask about tasks, deadlines, or project progress...";
+    }
+
+    // 2. Ticket Management Domain
+    const ticketSpaceName = !activeContext?._unselected_ticket_space
+      ? (
+          activeContext?.ticketSpaceName ||
+          ((agent === "ticket_analytics" || pathname.includes("/ticket")) ? activeContext?.spaceName : undefined) ||
+          (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined)
+        )
+      : undefined;
+
+    const isTicketDomain =
+      agent === "ticket_analytics" ||
+      Boolean(pathname.includes("/ticket-management") || pathname.includes("/ticket")) ||
+      Boolean(ticketSpaceName || activeContext?.ticketSpaceId);
+
+    if (isTicketDomain) {
+      if (ticketSpaceName) {
+        return `Ask about ${ticketSpaceName} tickets or SLAs...`;
+      }
+      return "Ask about tickets, queues, or SLA deadlines...";
+    }
+
+    // 3. Resource Management Domain
+    const poolName = !activeContext?._unselected_resource_group
+      ? (
+          activeContext?.resourceGroupName ||
+          activeContext?.resourcePoolName ||
+          activeContext?.poolName ||
+          (pageTitle?.startsWith("Group: ") && pageTitle !== "Group: Resource Group"
+            ? pageTitle.replace("Group: ", "").trim()
+            : undefined)
+        )
+      : undefined;
+
+    const isResourceDomain =
+      agent === "resource_analytics" ||
+      Boolean(pathname.includes("/resource")) ||
+      Boolean(poolName || activeContext?.resourceGroupId || activeContext?.resourcePoolId || activeContext?.poolId);
+
+    if (isResourceDomain) {
+      if (poolName && String(poolName).trim() && String(poolName).trim() !== "none") {
+        return `Ask about ${poolName}'s capacity or workload...`;
+      }
+      return "Ask about team capacity, workloads, or allocation...";
+    }
+
+    // 4. General Co-Pilot Chat (/chat) & Fallback
+    return "Ask anything about tasks, tickets, or resources...";
+  }, [activeContext, agent, pathname, pageTitle]);
 
   const fetchSpacesForType = async (type: "resource_group" | "task_space" | "ticket_space") => {
     if (availableSpaces[type] && availableSpaces[type].length > 0) return;
@@ -1598,12 +1608,20 @@ export function CopilotChatView({
       }));
     }
 
-    const group = context?.resourceGroupName || context?.resourcePoolName || context?.poolName;
-    const space = context?.taskSpaceName || context?.spaceName;
-    const parentTask = context?.parentTaskName;
-    const ticketSpace = context?.ticketSpaceName;
+    const group = !activeContext?._unselected_resource_group
+      ? (activeContext?.resourceGroupName || activeContext?.resourcePoolName || activeContext?.poolName)
+      : undefined;
+    const space = !activeContext?._unselected_task_space
+      ? (activeContext?.taskSpaceName || activeContext?.spaceName)
+      : undefined;
+    const parentTask = !activeContext?._unselected_parent_task
+      ? (activeContext?.parentTaskName)
+      : undefined;
+    const ticketSpace = !activeContext?._unselected_ticket_space
+      ? (activeContext?.ticketSpaceName)
+      : undefined;
 
-    if (agent === "resource_analytics") {
+    if (agent === "resource_analytics" || (!agent && group)) {
       if (group) {
         return [
           { text: `Who is currently overloaded in ${group} this week?`, domain: "Resource", isClickable: true },
@@ -1620,7 +1638,7 @@ export function CopilotChatView({
       ];
     }
 
-    if (agent === "project_analytics") {
+    if (agent === "project_analytics" || (!agent && (space || parentTask))) {
       if (parentTask) {
         return [
           { text: `Show subtasks and progress for "${parentTask}"`, domain: "Project", isClickable: false },
@@ -1645,7 +1663,7 @@ export function CopilotChatView({
       ];
     }
 
-    if (agent === "ticket_analytics") {
+    if (agent === "ticket_analytics" || (!agent && ticketSpace)) {
       if (ticketSpace) {
         return [
           { text: `Show open tickets in ${ticketSpace} by priority`, domain: "Ticket", isClickable: false },
@@ -1662,8 +1680,7 @@ export function CopilotChatView({
       ];
     }
 
-    // In full chat page: give questions for project, task, and resource.
-    // Resource questions are clickable; other questions show "under construction" on click.
+    // In full chat page or general mode: give questions for resource, project, and ticket
     return [
       { text: "Who is currently overloaded this week?", domain: "Resource", isClickable: true },
       { text: "Show team workload distribution in a chart", domain: "Resource", isClickable: true },
@@ -1672,7 +1689,7 @@ export function CopilotChatView({
       { text: "Show open tickets by priority", domain: "Ticket", isClickable: false },
       { text: "Which tickets are currently high severity?", domain: "Ticket", isClickable: false },
     ];
-  }, [agent, customPrompts, context]);
+  }, [agent, customPrompts, activeContext]);
 
   const handleQuestionClick = (q: SampleQuestion) => {
     if (q.isClickable) {
