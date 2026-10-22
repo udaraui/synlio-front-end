@@ -1,11 +1,23 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Layers, Folder, CheckSquare } from "lucide-react";
+import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Layers, Folder, CheckSquare, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { searchTaskSpaces } from "@/services/task-management/task-space.service";
+import { searchTicketSpaces } from "@/services/ticket-management/ticket-space.service";
+import { loadResourcePools } from "@/services/resource-management/resource-pool-service";
 import { cn } from "@/lib/utils";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { useAuth } from "@/contexts/auth.context";
@@ -1330,67 +1342,251 @@ export function CopilotChatView({
   const currentUser = user || localUser;
   const displayName = (currentUser?.first_name || currentUser?.name || currentUser?.email?.split('@')[0] || "").trim();
 
+  // Dynamic context state: allows switching spaces or unchecking them
+  const [activeContext, setActiveContext] = useState<Record<string, any>>(() => context || {});
+  const [openPopoverBadgeId, setOpenPopoverBadgeId] = useState<string | null>(null);
+  const [availableSpaces, setAvailableSpaces] = useState<Record<string, { id: string | number; name: string }[]>>({});
+  const [loadingSpaces, setLoadingSpaces] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setActiveContext(context || {});
+  }, [context]);
+
+  const fetchSpacesForType = async (type: "resource_group" | "task_space" | "ticket_space") => {
+    if (availableSpaces[type] && availableSpaces[type].length > 0) return;
+    setLoadingSpaces((prev) => ({ ...prev, [type]: true }));
+    try {
+      if (type === "resource_group") {
+        const res = await loadResourcePools({ first: 0, rows: 100 });
+        const items = (res?.data || []).map((p: any) => ({
+          id: p.resource_pool_id ?? p.id,
+          name: p.resource_pool_name ?? p.name,
+        })).filter((x: any) => Boolean(x.name));
+        setAvailableSpaces((prev) => ({ ...prev, [type]: items }));
+      } else if (type === "task_space") {
+        const res = await searchTaskSpaces({ rows: 100 });
+        const items = (res?.data || []).map((s: any) => ({
+          id: s.task_space_id ?? s.taskSpaceId ?? s.id,
+          name: s.task_space_name ?? s.taskSpaceName ?? s.space_name ?? s.name,
+        })).filter((x: any) => Boolean(x.name));
+        setAvailableSpaces((prev) => ({ ...prev, [type]: items }));
+      } else if (type === "ticket_space") {
+        const res = await searchTicketSpaces({ rows: 100 });
+        const items = (res?.data || []).map((s: any) => ({
+          id: s.ticket_space_id ?? s.ticketSpaceId ?? s.id,
+          name: s.ticket_space_name ?? s.ticketSpaceName ?? s.name,
+        })).filter((x: any) => Boolean(x.name));
+        setAvailableSpaces((prev) => ({ ...prev, [type]: items }));
+      }
+    } catch (err) {
+      console.error(`Error loading spaces for ${type}:`, err);
+    } finally {
+      setLoadingSpaces((prev) => ({ ...prev, [type]: false }));
+    }
+  };
+
+  const handleSelectSpace = (badgeType: string, space: { id: string | number; name: string }, currentId?: string | number) => {
+    const isAlreadySelected = currentId !== undefined && String(currentId) === String(space.id);
+    setActiveContext((prev) => {
+      const next = { ...prev };
+      if (isAlreadySelected) {
+        // User clicked the currently selected item again -> uncheck it (set to All)
+        if (badgeType === "resource_group") {
+          delete next.resourceGroupId;
+          delete next.resourceGroupName;
+          delete next.resourcePoolId;
+          delete next.resourcePoolName;
+          delete next.poolId;
+          delete next.poolName;
+          next._unselected_resource_group = true;
+        } else if (badgeType === "task_space") {
+          delete next.taskSpaceId;
+          delete next.taskSpaceName;
+          delete next.spaceId;
+          delete next.spaceName;
+          next._unselected_task_space = true;
+        } else if (badgeType === "ticket_space") {
+          delete next.ticketSpaceId;
+          delete next.ticketSpaceName;
+          next._unselected_ticket_space = true;
+        }
+      } else {
+        // Select the clicked space
+        if (badgeType === "resource_group") {
+          delete next._unselected_resource_group;
+          next.resourceGroupId = space.id;
+          next.resourceGroupName = space.name;
+          next.resourcePoolId = space.id;
+          next.resourcePoolName = space.name;
+          next.poolId = space.id;
+          next.poolName = space.name;
+        } else if (badgeType === "task_space") {
+          delete next._unselected_task_space;
+          next.taskSpaceId = space.id;
+          next.taskSpaceName = space.name;
+          next.spaceId = space.id;
+          next.spaceName = space.name;
+        } else if (badgeType === "ticket_space") {
+          delete next._unselected_ticket_space;
+          next.ticketSpaceId = space.id;
+          next.ticketSpaceName = space.name;
+        }
+      }
+      return next;
+    });
+  };
+
   // Extract scoped parameters to display as dashed badges inside the input area
   const contextBadges = useMemo(() => {
-    if (!context) return [];
-    const items: { label: string; value: string; icon: React.ReactNode }[] = [];
+    if (!activeContext) return [];
+    const items: {
+      id: string;
+      type: "resource_group" | "task_space" | "ticket_space" | "parent_task" | "ticket" | "task";
+      label: string;
+      value: string;
+      currentId?: string | number;
+      isUnselected?: boolean;
+      icon?: React.ReactNode;
+    }[] = [];
 
     // 1. Resource Group / Pool
-    const rgName = context.resourceGroupName || context.resourcePoolName || context.poolName;
-    const rgId = context.resourceGroupId || context.resourcePoolId || context.poolId;
-    if (rgName) {
-      items.push({ label: "Resource Group", value: String(rgName), icon: <Layers className="w-3 h-3 text-primary" /> });
-    } else if (rgId && rgId !== "none") {
-      items.push({ label: "Resource Group", value: `ID: ${rgId}`, icon: <Layers className="w-3 h-3 text-primary" /> });
+    const isResourceDomain =
+      agent === "resource_analytics" ||
+      Boolean(pathname.includes("/resource")) ||
+      Boolean(activeContext.resourceGroupName || activeContext.resourceGroupId);
+
+    const rgName = activeContext.resourceGroupName || activeContext.resourcePoolName || activeContext.poolName;
+    const rgId = activeContext.resourceGroupId || activeContext.resourcePoolId || activeContext.poolId;
+
+    if (isResourceDomain && mode === "panel") {
+      const isSelected = Boolean(rgName || (rgId && rgId !== "none")) && !activeContext._unselected_resource_group;
+      items.push({
+        id: "resource_group",
+        type: "resource_group",
+        label: "Resource Group",
+        value: isSelected ? String(rgName || `ID: ${rgId}`) : "All Resource Groups Selected",
+        currentId: isSelected ? rgId : undefined,
+        isUnselected: !isSelected,
+      });
+    } else if (rgName || (rgId && rgId !== "none")) {
+      items.push({
+        id: "resource_group",
+        type: "resource_group",
+        label: "Resource Group",
+        value: String(rgName || `ID: ${rgId}`),
+        currentId: rgId,
+        isUnselected: false,
+      });
     }
 
     // 2. Task Space
-    const tsName = context.taskSpaceName || context.spaceName;
-    const tsId = context.taskSpaceId || context.spaceId;
-    if (tsName) {
-      items.push({ label: "Task Space", value: String(tsName), icon: <Folder className="w-3 h-3 text-primary" /> });
-    } else if (tsId && tsId !== "none") {
-      items.push({ label: "Task Space", value: `ID: ${tsId}`, icon: <Folder className="w-3 h-3 text-primary" /> });
+    const isTaskDomain =
+      agent === "project_analytics" ||
+      Boolean(pathname.includes("/task")) ||
+      Boolean(activeContext.taskSpaceName || activeContext.taskSpaceId);
+
+    const tsName = activeContext.taskSpaceName || activeContext.spaceName;
+    const tsId = activeContext.taskSpaceId || activeContext.spaceId;
+
+    if (isTaskDomain && mode === "panel") {
+      const isSelected = Boolean(tsName || (tsId && tsId !== "none")) && !activeContext._unselected_task_space;
+      items.push({
+        id: "task_space",
+        type: "task_space",
+        label: "Task Space",
+        value: isSelected ? String(tsName || `ID: ${tsId}`) : "All Task Spaces Selected",
+        currentId: isSelected ? tsId : undefined,
+        isUnselected: !isSelected,
+        icon: <Folder className="w-3 h-3 text-primary shrink-0" />,
+      });
+    } else if (tsName || (tsId && tsId !== "none")) {
+      items.push({
+        id: "task_space",
+        type: "task_space",
+        label: "Task Space",
+        value: String(tsName || `ID: ${tsId}`),
+        currentId: tsId,
+        isUnselected: false,
+        icon: <Folder className="w-3 h-3 text-primary shrink-0" />,
+      });
     }
 
     // 3. Parent Task
-    const ptName = context.parentTaskName;
-    const ptId = context.parentTaskId;
-    if (ptName) {
-      items.push({ label: "Parent Task", value: String(ptName), icon: <CheckSquare className="w-3 h-3 text-primary" /> });
-    } else if (ptId && ptId !== "none") {
-      items.push({ label: "Parent Task", value: `ID: ${ptId}`, icon: <CheckSquare className="w-3 h-3 text-primary" /> });
+    const ptName = activeContext.parentTaskName;
+    const ptId = activeContext.parentTaskId;
+    if (ptName || (ptId && ptId !== "none")) {
+      items.push({
+        id: "parent_task",
+        type: "parent_task",
+        label: "Parent Task",
+        value: String(ptName || `ID: ${ptId}`),
+        currentId: ptId,
+        icon: <CheckSquare className="w-3 h-3 text-primary shrink-0" />,
+      });
     }
 
     // 4. Ticket Space
-    const tksName = context.ticketSpaceName;
-    const tksId = context.ticketSpaceId;
-    if (tksName) {
-      items.push({ label: "Ticket Space", value: String(tksName), icon: <Ticket className="w-3 h-3 text-primary" /> });
-    } else if (tksId && tksId !== "none") {
-      items.push({ label: "Ticket Space", value: `ID: ${tksId}`, icon: <Ticket className="w-3 h-3 text-primary" /> });
+    const isTicketDomain =
+      agent === "ticket_analytics" ||
+      Boolean(pathname.includes("/ticket")) ||
+      Boolean(activeContext.ticketSpaceName || activeContext.ticketSpaceId);
+
+    const tksName = activeContext.ticketSpaceName;
+    const tksId = activeContext.ticketSpaceId;
+
+    if (isTicketDomain && mode === "panel") {
+      const isSelected = Boolean(tksName || (tksId && tksId !== "none")) && !activeContext._unselected_ticket_space;
+      items.push({
+        id: "ticket_space",
+        type: "ticket_space",
+        label: "Ticket Space",
+        value: isSelected ? String(tksName || `ID: ${tksId}`) : "All Ticket Spaces Selected",
+        currentId: isSelected ? tksId : undefined,
+        isUnselected: !isSelected,
+        icon: <Ticket className="w-3 h-3 text-primary shrink-0" />,
+      });
+    } else if (tksName || (tksId && tksId !== "none")) {
+      items.push({
+        id: "ticket_space",
+        type: "ticket_space",
+        label: "Ticket Space",
+        value: String(tksName || `ID: ${tksId}`),
+        currentId: tksId,
+        isUnselected: false,
+        icon: <Ticket className="w-3 h-3 text-primary shrink-0" />,
+      });
     }
 
     // 5. Specific Ticket
-    const ticketTitle = context.ticketName || context.ticketTitle;
-    const ticketId = context.ticketId;
-    if (ticketTitle) {
-      items.push({ label: "Ticket", value: String(ticketTitle), icon: <Ticket className="w-3 h-3 text-primary" /> });
-    } else if (ticketId && ticketId !== "none") {
-      items.push({ label: "Ticket", value: `ID: ${ticketId}`, icon: <Ticket className="w-3 h-3 text-primary" /> });
+    const ticketTitle = activeContext.ticketName || activeContext.ticketTitle;
+    const ticketId = activeContext.ticketId;
+    if (ticketTitle || (ticketId && ticketId !== "none")) {
+      items.push({
+        id: "ticket",
+        type: "ticket",
+        label: "Ticket",
+        value: String(ticketTitle || `ID: ${ticketId}`),
+        currentId: ticketId,
+        icon: <Ticket className="w-3 h-3 text-primary shrink-0" />,
+      });
     }
 
     // 6. Specific Task
-    const taskName = context.taskName || context.taskTitle;
-    const taskId = context.taskId;
-    if (taskName) {
-      items.push({ label: "Task", value: String(taskName), icon: <Check className="w-3 h-3 text-primary" /> });
-    } else if (taskId && taskId !== "none") {
-      items.push({ label: "Task", value: `ID: ${taskId}`, icon: <Check className="w-3 h-3 text-primary" /> });
+    const taskName = activeContext.taskName || activeContext.taskTitle;
+    const taskId = activeContext.taskId;
+    if (taskName || (taskId && taskId !== "none")) {
+      items.push({
+        id: "task",
+        type: "task",
+        label: "Task",
+        value: String(taskName || `ID: ${taskId}`),
+        currentId: taskId,
+        icon: <Check className="w-3 h-3 text-primary shrink-0" />,
+      });
     }
 
     return items;
-  }, [context]);
+  }, [activeContext]);
 
   // Screen-specific vs full-chat sample questions (dynamically tailored to selected context parameters)
   const sampleQuestions: SampleQuestion[] = React.useMemo(() => {
@@ -1546,16 +1742,24 @@ export function CopilotChatView({
 
     try {
       // Normalize context to include both camelCase and snake_case so backend/AI receives exact filters
-      const normalizedContext = context ? {
-        ...context,
-        resource_group_id: context.resource_group_id || context.resourceGroupId || context.resourcePoolId,
-        resource_group_name: context.resource_group_name || context.resourceGroupName || context.resourcePoolName || context.poolName,
-        task_space_id: context.task_space_id || context.taskSpaceId,
-        task_space_name: context.task_space_name || context.taskSpaceName || context.spaceName,
-        parent_task_id: context.parent_task_id || context.parentTaskId,
-        parent_task_name: context.parent_task_name || context.parentTaskName,
-        ticket_space_id: context.ticket_space_id || context.ticketSpaceId,
-        ticket_space_name: context.ticket_space_name || context.ticketSpaceName,
+      const effectiveContext: Record<string, any> = { ...activeContext };
+      Object.keys(effectiveContext).forEach((k) => {
+        if (k.startsWith("_unselected_")) {
+          delete effectiveContext[k];
+        }
+      });
+
+      const hasAnyContext = Object.keys(effectiveContext).length > 0;
+      const normalizedContext = hasAnyContext ? {
+        ...effectiveContext,
+        resource_group_id: effectiveContext.resource_group_id || effectiveContext.resourceGroupId || effectiveContext.resourcePoolId,
+        resource_group_name: effectiveContext.resource_group_name || effectiveContext.resourceGroupName || effectiveContext.resourcePoolName || effectiveContext.poolName,
+        task_space_id: effectiveContext.task_space_id || effectiveContext.taskSpaceId,
+        task_space_name: effectiveContext.task_space_name || effectiveContext.taskSpaceName || effectiveContext.spaceName,
+        parent_task_id: effectiveContext.parent_task_id || effectiveContext.parentTaskId,
+        parent_task_name: effectiveContext.parent_task_name || effectiveContext.parentTaskName,
+        ticket_space_id: effectiveContext.ticket_space_id || effectiveContext.ticketSpaceId,
+        ticket_space_name: effectiveContext.ticket_space_name || effectiveContext.ticketSpaceName,
       } : undefined;
 
       const response = await chatService.streamChat(
@@ -1756,22 +1960,93 @@ export function CopilotChatView({
           onSubmit={handleSubmit}
           className="max-w-4xl mx-auto relative flex flex-col overflow-hidden rounded-3xl border border-input bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none"
         >
-          {/* Selected Parameters Badges (Dashed Badges) */}
+          {/* Selected Parameters Badges (Dashed Badges with space selector & ignore support) */}
           {mode === "panel" && contextBadges.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3 pb-0.5">
-              {contextBadges.map((badge, idx) => (
-                <Badge
-                  key={idx}
-                  variant="dashed"
-                  className="py-0.5 px-2 text-xs gap-1 select-none shadow-none"
-                  title={`${badge.label}: ${badge.value}`}
-                >
-                  <span className="text-muted-foreground font-normal">{badge.label}:</span>
-                  <span className="font-semibold text-foreground truncate max-w-[160px]">
-                    {badge.value}
-                  </span>
-                </Badge>
-              ))}
+              <span className="text-xs text-muted-foreground font-medium select-none">
+                Context:
+              </span>
+              {contextBadges.map((badge) => {
+                const isSpaceType = badge.type === "resource_group" || badge.type === "task_space" || badge.type === "ticket_space";
+                const spacesList = availableSpaces[badge.type] || [];
+                const isLoadingSpaces = Boolean(loadingSpaces[badge.type]);
+
+                return (
+                  <Popover
+                    key={badge.id}
+                    open={openPopoverBadgeId === badge.id}
+                    onOpenChange={(open) => {
+                      setOpenPopoverBadgeId(open ? badge.id : null);
+                      if (open && isSpaceType) {
+                        fetchSpacesForType(badge.type as any);
+                      }
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <Badge
+                        variant="dashed"
+                        className={cn(
+                          "py-0.5 px-2 text-xs gap-1.5 select-none shadow-none cursor-pointer transition-all",
+                          badge.isUnselected
+                            ? "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                            : "hover:bg-muted/70 hover:border-foreground/30"
+                        )}
+                        title={
+                          badge.isUnselected
+                            ? `${badge.label}: ${badge.value}. Click to select a specific space.`
+                            : `${badge.label}: ${badge.value}. Click to switch or uncheck.`
+                        }
+                      >
+                        {!badge.isUnselected && (
+                          <span className="text-muted-foreground font-normal">{badge.label}:</span>
+                        )}
+                        <span className="font-semibold text-foreground truncate max-w-[200px]">
+                          {badge.value}
+                        </span>
+                        <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0 ml-0.5" />
+                      </Badge>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-64 p-0 shadow-lg" align="start" side="bottom" sideOffset={6}>
+                      <Command>
+                        <CommandInput
+                          placeholder={`Search ${badge.label.toLowerCase()}s...`}
+                          className="h-8 text-xs"
+                        />
+                        <CommandList className="max-h-[220px]">
+                          <CommandEmpty className="py-2.5 text-center text-xs text-muted-foreground">
+                            {isLoadingSpaces ? "Loading spaces..." : "No items found."}
+                          </CommandEmpty>
+
+                          {/* List of accessible spaces */}
+                          {isSpaceType && (
+                            <CommandGroup>
+                              {spacesList.map((space) => {
+                                const isCurrent = !badge.isUnselected && String(space.id) === String(badge.currentId);
+                                return (
+                                  <CommandItem
+                                    key={space.id}
+                                    value={space.name}
+                                    onSelect={() => {
+                                      handleSelectSpace(badge.type, space, badge.currentId);
+                                      setOpenPopoverBadgeId(null);
+                                    }}
+                                    className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer"
+                                  >
+                                    {badge.icon && badge.icon}
+                                    <span className="truncate flex-1">{space.name}</span>
+                                    {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                );
+              })}
             </div>
           )}
 
