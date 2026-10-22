@@ -1741,6 +1741,15 @@ export function CopilotChatView({
     setIsLoading(true);
 
     try {
+      // Extract recent completed conversation history (last 6 messages: ~3 turns)
+      const recentHistory = messages
+        .filter((m) => (m.role === "user" || m.role === "ai") && !m.isThinking && !m.isStreaming && m.content?.trim())
+        .slice(-6)
+        .map((m) => ({
+          role: m.role === "ai" ? "assistant" : "user",
+          content: m.content,
+        }));
+
       // Normalize context to include both camelCase and snake_case so backend/AI receives exact filters
       const effectiveContext: Record<string, any> = { ...activeContext };
       Object.keys(effectiveContext).forEach((k) => {
@@ -1766,7 +1775,8 @@ export function CopilotChatView({
         userMessage.content,
         conversationId,
         agent,
-        normalizedContext
+        normalizedContext,
+        recentHistory
       );
 
       const aiMessageId = (Date.now() + 1).toString();
