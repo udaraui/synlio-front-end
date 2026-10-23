@@ -145,11 +145,15 @@ const getIconComponent = (iconName: string | undefined): LucideIcon | null => {
 function MemberAvatar({ m, size = 5 }: { m: any; size?: number }) {
   const sizeClass = `w-${size} h-${size}`;
   const textClass = size <= 5 ? "text-[9px]" : "text-xs";
-  if (m?.userProfilePicture && m.userProfilePicture !== 'null' && m.userProfilePicture.trim() !== '') {
+  const profilePic = m?.userProfilePicture || m?.profile_picture;
+  const firstName = m?.userFirstName || m?.first_name || "";
+  const lastName = m?.userLastName || m?.last_name || "";
+
+  if (profilePic && profilePic !== 'null' && profilePic.trim() !== '') {
     return (
       <NextImage
-        src={m.userProfilePicture}
-        alt={`${m.userFirstName} ${m.userLastName}`}
+        src={profilePic}
+        alt={`${firstName} ${lastName}`.trim()}
         width={size * 4}
         height={size * 4}
         className={`${sizeClass} rounded-full object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600`}
@@ -161,8 +165,8 @@ function MemberAvatar({ m, size = 5 }: { m: any; size?: number }) {
       className={`${sizeClass} rounded-full bg-primary flex items-center justify-center flex-shrink-0`}
     >
       <span className={`${textClass} font-medium text-white dark:text-black`}>
-        {m?.userFirstName?.[0]}
-        {m?.userLastName?.[0]}
+        {firstName?.[0]}
+        {lastName?.[0]}
       </span>
     </div>
   );
@@ -232,7 +236,6 @@ function TicketPage() {
   const ticketSpacesLoadedRef = useRef(false);
   const loadedConfigSpaceRef = useRef<number | null>(null);
   const isLoadingConfigRef = useRef(false);
-  const configTicketFetchedRef = useRef(false);
 
   // State management
   const [isInitialized, setIsInitialized] = useState(false);
@@ -941,10 +944,6 @@ function TicketPage() {
 
   // Fetch tickets data
   const fetchData = useCallback(async () => {
-    if (configTicketFetchedRef.current) {
-      configTicketFetchedRef.current = false;
-      return;
-    }
     if (!canView || !user?.id || !isInitialized) return;
     // When a ticket space is selected, wait until its config is loaded.
     // configVersion being in the deps array ensures this runs once config arrives.
@@ -1328,13 +1327,11 @@ function TicketPage() {
       setConfig(null);
 
       try {
-        // ── Parallel execution of Config & Tickets (Maximum Speed) ───────────
-
-        // 1. Launch ALL configs in one giant parallel block
-        const statusConfigPromise = getTicketSpaceStatusConfig(spaceId);
-
-        const configPromise = Promise.all([
-          statusConfigPromise,
+        // Load all config in parallel. Ticket fetching is handled exclusively
+        // by fetchData, which re-runs once configVersion bumps (and, if
+        // applicable, statusFilter is set to defaults in the same batch).
+        await Promise.all([
+          getTicketSpaceStatusConfig(spaceId),
           getTicketSpaceSeverityConfig(spaceId),
           getTicketSpaceTypesConfig(spaceId),
           getTicketSpaceQueueConfig(spaceId),
@@ -1374,77 +1371,6 @@ function TicketPage() {
             }
           }
         });
-
-        // 2. Launch initial ticket search (waits for status config to apply default filters)
-        const ticketsPromise = (async () => {
-          if (needsDefaultStatusFilterRef.current) {
-            const statusRes = await statusConfigPromise;
-            const defaultStatusIds = (statusRes.statuses ?? [])
-              .filter((s: any) => s.base === 'To Start' || s.base === 'Processing')
-              .map((s: any) => parseInt(s.id));
-
-            const initialFilters: any[] = [
-              { field: "ticketSpaceId", value: spaceId, matchMode: "equals" },
-            ];
-
-            if (defaultStatusIds.length > 0) {
-              initialFilters.push({
-                field: "statusId",
-                matchMode: "in",
-                value: defaultStatusIds,
-              });
-            }
-
-            const params = {
-              first: 0,
-              rows: 20,
-              filters: initialFilters,
-              multiSorts: [{ field: "createdAt", order: "-1" }], // Default sort by date
-            };
-
-            const result = canViewTicketSpaces
-              ? await searchTickets(params)
-              : await searchTicketsByQueue(params);
-
-            const tickets = (result.data || []).map(normalizeTicket);
-            setData(enrichTickets(tickets, configRef.current));
-            setTotalRecords(result.total || 0);
-            setHasDataFetched(true);
-
-            // Instantly hide the skeleton loader!
-            setIsLoading(false);
-            configTicketFetchedRef.current = true;
-
-            if (tickets.length > 0) {
-              setIsRelationsLoading(true);
-              const allIds: number[] = tickets.map((t: any) => t.id);
-              const CHUNK = 50;
-              const chunks: number[][] = Array.from(
-                { length: Math.ceil(allIds.length / CHUNK) },
-                (_, i) => allIds.slice(i * CHUNK, i * CHUNK + CHUNK),
-              );
-              await Promise.all(chunks.map((chunk) => getBulkTicketRelations(chunk)))
-                .then((results) => {
-                  const bulkRelations: Record<number, any> = Object.assign({}, ...results);
-                  setData((prevData) =>
-                    prevData.map((t: any) => {
-                      const rel = bulkRelations[t.id];
-                      if (!rel) return t;
-                      const merged = { ...t, ...rel };
-                      if (merged.participants) {
-                        merged.participants = merged.participants.map(transformToUserFormat);
-                      }
-                      return merged;
-                    }),
-                  );
-                })
-                .catch(() => { })
-                .finally(() => setIsRelationsLoading(false));
-            }
-          }
-        })();
-
-        await Promise.all([configPromise, ticketsPromise]);
       } catch (error) {
         console.error("Error loading config:", error);
         toast.error("Failed to load configuration");

@@ -94,6 +94,7 @@ function Page() {
         company_code: company.company_code || "",
         active_status: company.isActive,
         logo: company.logo || "",
+        address: company.address ?? "",
         suspend_on: company.suspend_on,
         notificationEmail: company.notificationEmail,
         emailProvider: company.emailProvider,
@@ -130,6 +131,11 @@ function Page() {
         const localCos = safeParse(localStorage.getItem("companies")) || [];
 
         let targetCompany = activeCompany;
+        if (typeof targetCompany === "number" || typeof targetCompany === "string") {
+          targetCompany = localCos.find(
+            (c: any) => String(c.id || c.companyId) === String(targetCompany),
+          );
+        }
         if ((!targetCompany || targetCompany === 0) && localCos.length > 0) {
           targetCompany = localCos[0];
         }
@@ -200,22 +206,17 @@ function Page() {
 
   const handleCompanyEditClick = async (companyId: number) => {
     setCompanyIsLoading(true);
-    if (canEditCompany) {
-      try {
-        const company = await getCompanyById(companyId);
-        if (company.status === 200) {
-          setEditCompany(company.data);
-          setOpenEditDialog(true);
-        } else {
-          toast.error("Failed to fetch company");
-        }
-      } catch {
+    try {
+      const company = await getCompanyById(companyId);
+      if (company.status === 200) {
+        setEditCompany(company.data);
+        setOpenEditDialog(true);
+      } else {
         toast.error("Failed to fetch company");
-      } finally {
-        setCompanyIsLoading(false);
       }
-    } else {
-      toast.error("Not authorized to edit companies");
+    } catch {
+      toast.error("Failed to fetch company");
+    } finally {
       setCompanyIsLoading(false);
     }
   };

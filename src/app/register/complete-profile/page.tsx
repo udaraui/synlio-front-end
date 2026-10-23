@@ -18,13 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
-import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon, Info } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Loader2, ArrowRight, ArrowLeft, EyeOff, Eye, BriefcaseBusiness, Camera, User as UserIcon, UserCircle, Building2, Info, CheckCircle2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
 import { API_URL } from "@/services/api";
-import { generatePrefix } from "@/lib/prefix-generator";
 import { useAuth } from "@/contexts/auth.context";
 import RegistrationMarketing from "@/components/registrationMarketing";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -38,6 +36,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PUBLIC_DOMAINS = [
   "gmail.com",
@@ -78,7 +81,6 @@ const userSchema = z.object({
 
 const companySchema = z.object({
   company_name: z.string().trim().min(1, "Company name is required"),
-  company_code: z.string().trim().min(1, "Company code is required"),
   company_address: z.string().optional(),
   company_address_2: z.string().optional(),
   company_address_3: z.string().optional(),
@@ -91,12 +93,15 @@ type CompanyFormValues = z.infer<typeof companySchema>;
 export default function CompleteProfilePage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [step, setStep] = useState<1 | 2 | 3>(1); // Step 3 is loading spinner
+  // Steps: 1 = user details (email signup), 2 = workspace type (Google signup),
+  // 3 = company details, 4 = loading spinner
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [isGoogleSignup, setIsGoogleSignup] = useState(false);
+  const [workspaceType, setWorkspaceType] = useState<"personal" | "organization" | null>(null);
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [prefixManuallyEdited, setPrefixManuallyEdited] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const showExitConfirmRef = useRef(showExitConfirm);
@@ -200,7 +205,6 @@ export default function CompleteProfilePage() {
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: "",
-      company_code: "",
       company_address: "",
       company_address_2: "",
       company_address_3: "",
@@ -231,22 +235,120 @@ export default function CompleteProfilePage() {
       const suggestion = suggestCompanyName(decoded.email);
       if (suggestion) {
         companyForm.setValue("company_name", suggestion);
-        companyForm.setValue("company_code", generatePrefix(suggestion));
+      }
+
+      // Google signups: skip the personal details form and auto-fill what we know
+      const googleData = sessionStorage.getItem("google_user_data");
+      if (googleData) {
+        setIsGoogleSignup(true);
+        setStep(2);
+        try {
+          const parsed = JSON.parse(googleData);
+          if (parsed.first_name) userForm.setValue("first_name", parsed.first_name);
+          if (parsed.last_name) userForm.setValue("last_name", parsed.last_name);
+          if (parsed.profile_picture) setUserPreviewUrl(parsed.profile_picture);
+        } catch {
+          // Ignore malformed data
+        }
       }
     } catch (err) {
       router.replace("/register");
     }
-  }, [router, companyForm]);
+  }, [router, companyForm, userForm]);
+
+  const readGoogleFirstName = (): string => {
+    try {
+      const raw = sessionStorage.getItem("google_user_data");
+      const name = raw ? JSON.parse(raw)?.first_name : "";
+      return typeof name === "string" ? name.trim() : "";
+    } catch {
+      return "";
+    }
+  };
+
+  /**
+   * Google signups are already authenticated (the stored token is a normal access
+   * token), so the company + Admin role are created through the onboarding endpoints.
+   */
+  const completeGoogleOnboarding = async (
+    fields: {
+      company_name: string;
+      company_address?: string;
+      company_type?: string;
+    },
+    logo?: File | null
+  ) => {
+    const authHeaders = { Authorization: `Bearer ${token}` };
+
+    const formData = new FormData();
+    formData.append("company_name", fields.company_name);
+    if (fields.company_address) formData.append("company_address", fields.company_address);
+    if (fields.company_type) formData.append("company_type", fields.company_type);
+    if (logo) formData.append("companyProfilePicture", logo);
+
+    const createRes = await axiosInstance.post(
+      `${API_URL}/auth/onboarding/create-company`,
+      formData,
+      { headers: { ...authHeaders, "Content-Type": "multipart/form-data" } }
+    );
+
+    const roleRes = await axiosInstance.post(
+      `${API_URL}/auth/onboarding/setup-admin-role`,
+      { companyId: createRes.data.companyId },
+      { headers: authHeaders }
+    );
+
+    // Fresh tokens that include the new Admin privileges
+    const { access_token, return_user } = roleRes.data;
+
+    const companiesResponse = await axiosInstance.get(
+      `/authorization/getCompanyByUserId/${return_user.id}`,
+      { headers: { Authorization: `Bearer ${access_token}` } }
+    );
+    const userCompanies: any[] = companiesResponse.data ?? [];
+    localStorage.setItem("companies", JSON.stringify(userCompanies));
+    const defaultCompany =
+      userCompanies.find((c: any) => c.is_default === true) || userCompanies[0];
+    if (defaultCompany) {
+      localStorage.setItem("active_company", JSON.stringify(defaultCompany));
+    }
+
+    login(access_token, return_user);
+    sessionStorage.removeItem("registration_token");
+    sessionStorage.removeItem("google_user_data");
+    router.replace("/home");
+  };
+
+  const onWorkspaceTypeContinue = async () => {
+    if (workspaceType === "organization") {
+      setStep(3);
+      return;
+    }
+    if (workspaceType !== "personal") return;
+
+    const firstName = readGoogleFirstName();
+    setIsSubmitting(true);
+    try {
+      await completeGoogleOnboarding({
+        company_name: "My Workspace",
+        company_type: "PERSONAL",
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to complete registration");
+      setIsSubmitting(false);
+    }
+  };
 
   const onUserSubmit = async (values: UserFormValues) => {
     if (values.accountType === "company") {
       window.history.pushState({ step: 2 }, "", window.location.href);
-      setStep(2);
+      setStep(3);
       return;
     }
 
     // Personal account: auto-generate company details and register immediately
     setIsSubmitting(true);
+    setStep(4);
 
     const formData = new FormData();
     formData.append("first_name", values.first_name);
@@ -256,7 +358,6 @@ export default function CompleteProfilePage() {
     formData.append("password", values.password);
 
     formData.append("company_name", `Workspace`);
-    formData.append("company_code", `${values.first_name.charAt(0).toUpperCase()}WS`);
     formData.append("company_type", "PERSONAL");
     formData.append("registration_token", token);
 
@@ -296,11 +397,33 @@ export default function CompleteProfilePage() {
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to complete registration");
       setIsSubmitting(false);
+      setStep(1); // Go back to form
     }
   };
 
   const onCompanySubmit = async (values: CompanyFormValues) => {
     setIsSubmitting(true);
+
+    if (isGoogleSignup) {
+      const googleAddress = [values.company_address, values.company_address_2, values.company_address_3]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(", ");
+
+      try {
+        await completeGoogleOnboarding(
+          {
+            company_name: values.company_name,
+            company_address: googleAddress || undefined,
+          },
+          companyProfilePicture
+        );
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Failed to complete registration");
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     const userValues = userForm.getValues();
 
@@ -312,7 +435,6 @@ export default function CompleteProfilePage() {
     formData.append("password", userValues.password);
 
     formData.append("company_name", values.company_name);
-    formData.append("company_code", values.company_code);
     const addressParts = [];
     if (values.company_address) addressParts.push(values.company_address.trim());
     if (values.company_address_2) addressParts.push(values.company_address_2.trim());
@@ -718,7 +840,80 @@ export default function CompleteProfilePage() {
               </Form>
             </div>
 
+            {/* Step 2: Workspace type (Google signups) */}
             <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 2 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
+              <div className="flex flex-col space-y-1.5 mb-8">
+                <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-foreground">
+                  How will you use Synlio?
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-muted-foreground">
+                  Choose a workspace type to get started. You can change this later.
+                </p>
+              </div>
+
+              <div role="radiogroup" aria-label="Workspace type" className="grid grid-cols-1 gap-3 mb-6">
+                {[
+                  {
+                    value: "personal" as const,
+                    title: "Personal Workspace",
+                    Icon: UserIcon,
+                    iconClass: "text-foreground",
+                  },
+                  {
+                    value: "organization" as const,
+                    title: "Company",
+                    Icon: Building2,
+                    iconClass: "text-foreground",
+                  },
+                ].map(({ value, title, Icon, iconClass }) => {
+                  const selected = workspaceType === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      disabled={isSubmitting}
+                      onClick={() => setWorkspaceType(value)}
+                      className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/40 transition-colors text-left w-full ${selected
+                          ? "border-primary bg-muted/50"
+                          : "border-input"
+                        }`}
+                    >
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${iconClass}`}>
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="flex flex-col justify-center">
+                        <span className="text-sm font-medium text-slate-900 dark:text-foreground">{title}</span>
+                      </span>
+                      {selected && <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Button
+                type="button"
+                className="w-full"
+                disabled={!workspaceType || isSubmitting}
+                onClick={onWorkspaceTypeContinue}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Step 3: Company details */}
+            <div className={`col-start-1 row-start-1 transition-opacity duration-300 ${step === 3 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}`}>
               <Form {...companyForm}>
                 <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-5 flex flex-col h-full">
                   <div className="flex items-center justify-between mb-8">
@@ -782,25 +977,6 @@ export default function CompleteProfilePage() {
                           <Input
                             placeholder="Acme Corp"
                             {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              const val = e.target.value.trim();
-                              if (!val) {
-                                companyForm.clearErrors("company_name");
-                              } else {
-                                companyForm.clearErrors("company_name");
-                              }
-                              if (!prefixManuallyEdited) {
-                                companyForm.setValue("company_code", generatePrefix(e.target.value));
-                              }
-                            }}
-                            onBlur={() => {
-                              field.onBlur();
-                              const val = companyForm.getValues("company_name")?.trim();
-                              if (!val) {
-                                companyForm.clearErrors("company_name");
-                              }
-                            }}
                           />
                         </FormControl>
                         <FormMessage />

@@ -39,11 +39,6 @@ const companySchema = z.object({
     .string()
     .min(2, "Company name must be at least 2 characters")
     .max(200, "Company name is too long"),
-  company_code: z
-    .string()
-    .min(1, "Company code is required")
-    .max(50, "Company code is too long")
-    .regex(/^[A-Za-z0-9_-]+$/, "Only letters, numbers, dashes, and underscores"),
   user_profile_picture: z.instanceof(File).optional(),
   company_profile_picture: z.instanceof(File).optional(),
 });
@@ -129,7 +124,6 @@ export default function OnboardingPage() {
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: "",
-      company_code: "",
     },
     mode: "onSubmit",
   });
@@ -144,7 +138,6 @@ export default function OnboardingPage() {
     try {
       const formData = new FormData();
       formData.append("company_name", values.company_name);
-      formData.append("company_code", values.company_code);
       if (companyProfilePicture) formData.append("companyProfilePicture", companyProfilePicture);
 
       const res = await axiosInstance.post(
@@ -256,7 +249,7 @@ export default function OnboardingPage() {
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
                   {step === "create-company"
-                    ? "Give your company a name and a short code to get started."
+                    ? "Give your company a name to get started."
                     : "We'll create an Admin role with full access for your account."}
                 </CardDescription>
               </div>
@@ -327,31 +320,6 @@ export default function OnboardingPage() {
                             placeholder="Acme Corporation"
                             autoFocus
                             {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="company_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Company code{" "}
-                          <span className="text-muted-foreground font-normal text-xs">
-                            (short identifier, e.g. ACME)
-                          </span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="ACME"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(e.target.value.toUpperCase())
-                            }
                           />
                         </FormControl>
                         <FormMessage />

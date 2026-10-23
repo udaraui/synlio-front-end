@@ -26,6 +26,8 @@ import Logo from "../../../public/logo.png";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import RegistrationMarketing from "@/components/registrationMarketing";
 import axiosInstance from "@/lib/interceptors/axiosInstance";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useAuth } from "@/contexts/auth.context";
 
 const registerSchema = z.object({
   email: z
@@ -56,6 +58,72 @@ export default function RegisterPage() {
   const trimmedEmail = emailValue?.trim().toLowerCase() || "";
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
   const isEmailEmpty = !trimmedEmail;
+
+  const { login } = useAuth();
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const response = await axios.post(
+          `${API_URL}/auth/google`,
+          { access_token: tokenResponse.access_token },
+          { withCredentials: true }
+        );
+
+        if (response.status === 201 || response.status === 200) {
+          const { access_token, return_user } = response.data;
+
+          // Check if user already has companies setup
+          const companiesResponse = await axios.get(
+            `${API_URL}/authorization/getCompanyByUserId/${return_user.id}`,
+            {
+              headers: { Authorization: `Bearer ${access_token}` },
+              withCredentials: true,
+            }
+          );
+
+          const userCompanies = companiesResponse.data ?? [];
+
+          if (userCompanies.length > 0) {
+            // User already exists and is fully setup -> Log them in
+            localStorage.setItem("companies", JSON.stringify(userCompanies));
+            const defaultCompany =
+              userCompanies.find((c: any) => c.is_default === true) ||
+              userCompanies[0];
+            if (defaultCompany) {
+              localStorage.setItem(
+                "active_company",
+                JSON.stringify(defaultCompany)
+              );
+            }
+            login(access_token, return_user);
+            router.replace("/home");
+          } else {
+            // Brand new user -> Skip email verification and go straight to complete profile
+            sessionStorage.setItem("registration_token", access_token);
+            sessionStorage.setItem(
+              "google_user_data",
+              JSON.stringify({
+                email: return_user.email,
+                first_name: return_user.first_name,
+                last_name: return_user.last_name,
+                profile_picture: return_user.profile_picture,
+              })
+            );
+            router.push("/register/complete-profile");
+          }
+        }
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || "Google registration failed."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => toast.error("Google registration failed or was cancelled."),
+  });
 
   const checkEmail = useCallback((value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -259,7 +327,8 @@ export default function RegisterPage() {
               variant="outline" 
               type="button" 
               className="w-full"
-              onClick={() => toast.info("Under construction")}
+              disabled={isLoading}
+              onClick={() => handleGoogleLogin()}
             >
               <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

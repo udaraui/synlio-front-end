@@ -56,6 +56,8 @@ import { Switch } from "@/components/ui/switch";
 import { API_URL } from "@/lib/constants";
 import { getAllCompany } from "@/services/company-management/company-services";
 import { safeParse } from "@/services/auth/auth-service";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 interface UserEditDrawerProps {
   open: boolean;
@@ -69,7 +71,12 @@ const formSchema = z.object({
   first_name: z.string().min(1, { message: "First name is required." }),
   last_name: z.string().min(1, { message: "Last name is required." }),
   email: z.string().email({ message: "Invalid email address." }).optional(),
-  phone_number: z.string().min(1, { message: "Phone number is required." }),
+  phone_number: z
+    .string()
+    .min(1, { message: "Phone number is required." })
+    .refine((v) => !v || isValidPhoneNumber(v), {
+      message: "Please enter a valid phone number.",
+    }),
   profile_picture: z.union([z.instanceof(File), z.undefined()]).optional(),
   companies: z.array(z.number()).optional().default([]),
   divisions: z.array(z.number()).optional().default([]),
@@ -427,7 +434,11 @@ export function UserEditDrawer({
                     <FormItem>
                       <FormLabel>Phone <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input type="tel" placeholder="e.g. +1 (555) 000-0000" autoComplete="off" className="shadow-none" {...field} />
+                        <PhoneInput
+                          defaultCountry="LK"
+                          placeholder="77 123 4567"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -70,6 +70,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Calendar } from "@/components/ui/calendar";
+import { PhoneInput } from '@/components/ui/phone-input';
+import { isValidPhoneNumber } from 'react-phone-number-input';
 
 interface SearchableSelectProps {
   options: { id: number; name: string }[];
@@ -160,7 +162,9 @@ const formSchema = z.object({
   last_name: z.string().min(1, 'Last Name is required'),
   email: z.string().email('Invalid email address'),
   working_hours: z.coerce.number().min(1, 'Required'),
-  mobile: z.string().min(1, 'Phone number is required'),
+  mobile: z.string().min(1, 'Phone number is required').refine((v) => !v || isValidPhoneNumber(v), {
+    message: 'Please enter a valid phone number.',
+  }),
   profile_pic: z.any().optional(),
   division: z.coerce.number().min(1, 'Division is required'),
   calendar: z.coerce.number().min(1, 'Calendar is required'),
@@ -709,7 +713,7 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                         <FormField control={form.control} name="mobile" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Phone Number <span className="text-red-500">*</span></FormLabel>
-                            <FormControl><Input placeholder="e.g. +1 (555) 000-0000" className="shadow-none" {...field} /></FormControl>
+                            <FormControl><PhoneInput defaultCountry="LK" placeholder="77 123 4567" {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />

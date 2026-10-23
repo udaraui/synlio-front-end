@@ -57,6 +57,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createUser, searchUserByEmail } from "@/services/user-management/user-service";
 import { safeParse } from "@/services/auth/auth-service";
 import { useDebounce } from "@/hooks/use-debounce";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 interface UserCreateDrawerProps {
   open: boolean;
@@ -70,7 +72,12 @@ const formSchema = z.object({
   first_name: z.string().min(1, { message: "First name is required." }),
   last_name: z.string().min(1, { message: "Last name is required." }),
   email: z.string().email({ message: "Invalid email address." }),
-  phone_number: z.string().min(1, { message: "Phone number is required." }),
+  phone_number: z
+    .string()
+    .min(1, { message: "Phone number is required." })
+    .refine((v) => !v || isValidPhoneNumber(v), {
+      message: "Please enter a valid phone number.",
+    }),
   password: z.string().optional(),
   profile_picture: z.instanceof(File).optional(),
   companies: z.array(z.number()).optional().default([]),
@@ -475,7 +482,11 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                     <FormItem>
                       <FormLabel>Phone <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input type="tel" placeholder="e.g. +1 (555) 000-0000" autoComplete="off" className="shadow-none" {...field} />
+                        <PhoneInput
+                          defaultCountry="LK"
+                          placeholder="77 123 4567"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -622,24 +622,22 @@ const CompanyList: React.FC<CompanyListProps> = ({
                               />
                             )}
 
-                            {canEditCompany && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onCompanyEditClick?.(company.id);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">Edit Company</TooltipContent>
-                              </Tooltip>
-                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onCompanyEditClick?.(company.id);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Edit Company</TooltipContent>
+                            </Tooltip>
 
                             {canDeleteCompany && (
                               <Tooltip>
