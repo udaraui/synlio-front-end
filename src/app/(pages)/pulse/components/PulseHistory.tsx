@@ -1584,21 +1584,12 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <Table className="border-t">
-                                                            {/* <TableHeader>
-                                                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                                    <TableHead className="w-[100px]"></TableHead>
-                                                    <TableHead className="w-[300px]">Work</TableHead>
-                                                    <TableHead className="w-[150px]">Role</TableHead>
-                                                    <TableHead>Changes happened</TableHead>
-                                                    <TableHead className="text-right w-[120px]">Effort</TableHead>
-                                                </TableRow>
-                                            </TableHeader> */}
+                                                        <Table className="border-t min-w-[1100px]">
                                                             <TableBody>
                                                                 {paginatedGrouped.map((group) => {
                                                                     const { primaryPulse: pulse, pulses, allocatedHours, id: groupId } = group;
                                                                     return (
-                                                                        <TableRow key={groupId}>
+                                                                        <TableRow key={groupId} className="group">
                                                                             <TableCell className="w-[50px]"><PulseTypeIcon type={pulse.pulseType} /></TableCell>
                                                                             <TableCell className="w-[100px]">
                                                                                 {pulse.pulseType === PulseType.MEETING_TIME ? (
@@ -1626,7 +1617,7 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
                                                                                     return <TruncatedTooltip tooltipContent={infoHighlighted}>{infoNormal}</TruncatedTooltip>;
                                                                                 })()}
                                                                             </TableCell>
-                                                                            <TableCell className="w-[120px] text-right">
+                                                                            <TableCell className="w-[120px] min-w-[120px] text-right sticky right-0 z-10 bg-card group-hover:bg-muted/50 border-l border-border/80 shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.3)] transition-colors">
                                                                                 <div className="flex items-center justify-end gap-2">
                                                                                     {(() => {
                                                                                         let nativeHours = 0;
