@@ -48,6 +48,18 @@ import {
   InlineEditableParticipants,
 } from './InlineEditableTicketComponents';
 import TicketSlaHoverCard from './TicketSlaHoverCard';
+import { useTableColumnResize, ColumnResizeConfig } from '@/hooks/useTableColumnResize';
+import { ColumnResizeHandle } from '@/components/common/ColumnResizeHandle';
+
+const TICKET_TABLE_COLUMNS: ColumnResizeConfig[] = [
+  { id: 'title', defaultWidth: 320, minWidth: 200, maxWidth: 800 },
+  { id: 'status', defaultWidth: 152, minWidth: 90, maxWidth: 260 },
+  { id: 'severity', defaultWidth: 128, minWidth: 90, maxWidth: 260 },
+  { id: 'queue', defaultWidth: 128, minWidth: 90, maxWidth: 260 },
+  { id: 'assignee', defaultWidth: 96, minWidth: 70, maxWidth: 200 },
+  { id: 'participants', defaultWidth: 160, minWidth: 90, maxWidth: 300 },
+  { id: 'actions', defaultWidth: 80, isResizable: false },
+];
 
 interface TicketTableViewProps {
   data: any[];
@@ -85,6 +97,14 @@ export default function TicketTableView({
     () => Object.fromEntries(data.map((t) => [t.id, t.commentCount ?? 0]))
   );
 
+  const {
+    columnWidths,
+    activeResizingCol,
+    onMouseDown: onColumnResizeStart,
+    resetColumnWidth,
+    totalTableWidth,
+  } = useTableColumnResize('synlio_ticket_table_col_widths_v1', TICKET_TABLE_COLUMNS);
+
   useEffect(() => {
     setCommentCounts(
       Object.fromEntries(data.map((t) => [t.id, t.commentCount ?? 0]))
@@ -94,28 +114,63 @@ export default function TicketTableView({
   return (
     <div className="rounded-lg border bg-background overflow-hidden flex-1 flex flex-col min-h-0">
       <div className="relative flex-1 overflow-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-        <table className="w-full text-sm table-fixed">
+        <table className="w-full text-sm table-fixed" style={{ minWidth: `${totalTableWidth}px` }}>
+          <colgroup>
+            {TICKET_TABLE_COLUMNS.map((col) => (
+              <col key={col.id} style={{ width: `${columnWidths[col.id] ?? col.defaultWidth}px` }} />
+            ))}
+          </colgroup>
           <thead className="bg-gray-50 dark:bg-gray-900 border-b border-border">
             <tr>
-              <th className="h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-80 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Title
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('title', e)}
+                  onDoubleClick={() => resetColumnWidth('title')}
+                  isResizing={activeResizingCol === 'title'}
+                />
               </th>
-              <th className="h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-38 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Status
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('status', e)}
+                  onDoubleClick={() => resetColumnWidth('status')}
+                  isResizing={activeResizingCol === 'status'}
+                />
               </th>
-              <th className="h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Severity
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('severity', e)}
+                  onDoubleClick={() => resetColumnWidth('severity')}
+                  isResizing={activeResizingCol === 'severity'}
+                />
               </th>
-              <th className="h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Queue/Dept.
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('queue', e)}
+                  onDoubleClick={() => resetColumnWidth('queue')}
+                  isResizing={activeResizingCol === 'queue'}
+                />
               </th>
-              <th className="h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-24 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Assignee
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('assignee', e)}
+                  onDoubleClick={() => resetColumnWidth('assignee')}
+                  isResizing={activeResizingCol === 'assignee'}
+                />
               </th>
-              <th className="h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-40 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Participants
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('participants', e)}
+                  onDoubleClick={() => resetColumnWidth('participants')}
+                  isResizing={activeResizingCol === 'participants'}
+                />
               </th>
-              <th className="h-10 px-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider w-20 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="h-10 px-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
               </th>
             </tr>
           </thead>
@@ -168,7 +223,7 @@ export default function TicketTableView({
                   key={ticket.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group border-b border-gray-200 dark:border-gray-700"
                 >
-                  <td className="px-4 py-2 w-80">
+                  <td className="px-4 py-2">
                     <div className="flex items-center gap-1.5">
                       <InlineEditableTicketType
                         ticketType={ticketType}

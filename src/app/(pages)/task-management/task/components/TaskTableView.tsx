@@ -59,6 +59,20 @@ import { TaskLabelDropdown } from '@/components/common/TaskLabelDropdown';
 import type { TaskCardConfigData, TaskUpdateHandler } from './task-card.types';
 import { InlineTaskCreatorRow } from './InlineTaskCreatorRow';
 import { NoMembersWarningAvatar } from './NoMembersWarningAvatar';
+import { useTableColumnResize, ColumnResizeConfig } from '@/hooks/useTableColumnResize';
+import { ColumnResizeHandle } from '@/components/common/ColumnResizeHandle';
+
+const TASK_TABLE_COLUMNS: ColumnResizeConfig[] = [
+  { id: 'title', defaultWidth: 384, minWidth: 200, maxWidth: 900 },
+  { id: 'status', defaultWidth: 128, minWidth: 90, maxWidth: 260 },
+  { id: 'severity', defaultWidth: 128, minWidth: 90, maxWidth: 260 },
+  { id: 'assignee', defaultWidth: 80, minWidth: 70, maxWidth: 200 },
+  { id: 'coAssignees', defaultWidth: 128, minWidth: 80, maxWidth: 260 },
+  { id: 'startDate', defaultWidth: 128, minWidth: 100, maxWidth: 260 },
+  { id: 'endDate', defaultWidth: 128, minWidth: 100, maxWidth: 260 },
+  { id: 'labels', defaultWidth: 160, minWidth: 100, maxWidth: 350 },
+  { id: 'actions', defaultWidth: 96, isResizable: false },
+];
 
 /** Map status base to an auto-derived progress percentage */
 const progressForBase = (base: string | null | undefined): number | null => {
@@ -143,6 +157,14 @@ function TaskTableView({
   const searchParams = useSearchParams();
   const meetingName = searchParams?.get('meetingName');
   const activityTitle = searchParams?.get('activityTitle');
+
+  const {
+    columnWidths,
+    activeResizingCol,
+    onMouseDown: onColumnResizeStart,
+    resetColumnWidth,
+    totalTableWidth,
+  } = useTableColumnResize('synlio_task_table_col_widths_v1', TASK_TABLE_COLUMNS);
 
   const [openCommentTaskId, setOpenCommentTaskId] = useState<number | null>(null);
   const [openActionsTaskId, setOpenActionsTaskId] = useState<number | null>(null);
@@ -2225,25 +2247,82 @@ function TaskTableView({
   return (
     <div className="rounded-lg border bg-background overflow-hidden flex-1 flex flex-col min-h-0">
       <div className="relative flex-1 overflow-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-        <table className="w-full text-sm table-fixed min-w-[1328px]">
+        <table className="w-full text-sm table-fixed" style={{ minWidth: `${Math.max(1328, totalTableWidth)}px` }}>
+          <colgroup>
+            {TASK_TABLE_COLUMNS.map((col) => (
+              <col key={col.id} style={{ width: `${columnWidths[col.id] ?? col.defaultWidth}px` }} />
+            ))}
+          </colgroup>
           <thead className="bg-gray-50 dark:bg-gray-900 border-b border-border">
             <tr>
-              <th className="pl-1 pr-2 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-96 sticky top-0 left-0 z-30 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[1px_0_0_0_theme(colors.gray.200)] dark:shadow-[1px_0_0_0_theme(colors.gray.700)]">
+              <th className="relative pl-1 pr-2 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 left-0 z-30 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[1px_0_0_0_theme(colors.gray.200)] dark:shadow-[1px_0_0_0_theme(colors.gray.700)]">
                 <div className="flex items-center gap-1">
                   <span className="w-5 flex-shrink-0" />
                   TITLE
                 </div>
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('title', e)}
+                  onDoubleClick={() => resetColumnWidth('title')}
+                  isResizing={activeResizingCol === 'title'}
+                />
               </th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">Status</th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">Severity</th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-20 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">Assignee</th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border truncate" title="Co-Assignees">Co-Assignees</th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">Start Date</th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-32 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">End Date</th>
-              <th className="px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-40 sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+                Status
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('status', e)}
+                  onDoubleClick={() => resetColumnWidth('status')}
+                  isResizing={activeResizingCol === 'status'}
+                />
+              </th>
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+                Severity
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('severity', e)}
+                  onDoubleClick={() => resetColumnWidth('severity')}
+                  isResizing={activeResizingCol === 'severity'}
+                />
+              </th>
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+                Assignee
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('assignee', e)}
+                  onDoubleClick={() => resetColumnWidth('assignee')}
+                  isResizing={activeResizingCol === 'assignee'}
+                />
+              </th>
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border truncate" title="Co-Assignees">
+                Co-Assignees
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('coAssignees', e)}
+                  onDoubleClick={() => resetColumnWidth('coAssignees')}
+                  isResizing={activeResizingCol === 'coAssignees'}
+                />
+              </th>
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+                Start Date
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('startDate', e)}
+                  onDoubleClick={() => resetColumnWidth('startDate')}
+                  isResizing={activeResizingCol === 'startDate'}
+                />
+              </th>
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
+                End Date
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('endDate', e)}
+                  onDoubleClick={() => resetColumnWidth('endDate')}
+                  isResizing={activeResizingCol === 'endDate'}
+                />
+              </th>
+              <th className="relative px-4 h-10 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border">
                 Labels
+                <ColumnResizeHandle
+                  onMouseDown={(e) => onColumnResizeStart('labels', e)}
+                  onDoubleClick={() => resetColumnWidth('labels')}
+                  isResizing={activeResizingCol === 'labels'}
+                />
               </th>
-              <th className="px-2 h-10 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider w-24 sticky top-0 right-0 z-30 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[-1px_0_0_0_theme(colors.gray.200)] dark:shadow-[-1px_0_0_0_theme(colors.gray.700)]"></th>
+              <th className="px-2 h-10 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0 right-0 z-30 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[-1px_0_0_0_theme(colors.gray.200)] dark:shadow-[-1px_0_0_0_theme(colors.gray.700)]"></th>
             </tr>
           </thead>
           <tbody className="">
