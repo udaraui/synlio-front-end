@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PaginationControls } from "@/components/common/PaginationControls";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -3806,92 +3807,26 @@ function TicketPage() {
 
       {/* Pagination */}
       {filteredData.length > 0 && (
-        <div className="flex-none border-t bg-background">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-4 py-1.5">
-            <span className="text-xs text-gray-600 dark:text-gray-400">
-              Showing {(currentPage - 1) * itemsPerPage + 1} –{" "}
-              {Math.min(currentPage * itemsPerPage, totalRecords)} of{" "}
-              {totalRecords} tickets
-            </span>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Select
-                  value={itemsPerPage.toString()}
-                  onValueChange={(value) => {
-                    const newSize = parseInt(value);
-                    setItemsPerPage(newSize);
-                    setCurrentPage(1);
-                    // Persist page size to user config (viewPreference)
-                    if (user?.id) {
-                      const savedPrefs = localStorage.getItem("user_view_preferences");
-                      const prefs = savedPrefs ? JSON.parse(savedPrefs) : {};
-                      prefs.ticketPageSize = newSize;
-                      localStorage.setItem("user_view_preferences", JSON.stringify(prefs));
-                      createOrUpdateUserConfig(user.id, { viewPreference: prefs }).catch(() => { });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-6 text-sm w-20">
-                    <SelectValue placeholder="Show" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="12">12</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(1)}
-                >
-                  «
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                >
-                  ‹
-                </Button>
-                <span className="text-xs px-2 text-gray-600 dark:text-gray-400">
-                  Page {currentPage} of {Math.ceil(totalRecords / itemsPerPage)}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={
-                    currentPage >= Math.ceil(totalRecords / itemsPerPage)
-                  }
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                >
-                  ›
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={
-                    currentPage >= Math.ceil(totalRecords / itemsPerPage)
-                  }
-                  onClick={() =>
-                    setCurrentPage(Math.ceil(totalRecords / itemsPerPage))
-                  }
-                >
-                  »
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalItems={totalRecords}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newSize) => {
+            setItemsPerPage(newSize);
+            setCurrentPage(1);
+            // Persist page size to user config (viewPreference)
+            if (user?.id) {
+              const savedPrefs = localStorage.getItem("user_view_preferences");
+              const prefs = savedPrefs ? JSON.parse(savedPrefs) : {};
+              prefs.ticketPageSize = newSize;
+              localStorage.setItem("user_view_preferences", JSON.stringify(prefs));
+              createOrUpdateUserConfig(user.id, { viewPreference: prefs }).catch(() => { });
+            }
+          }}
+          pageSizeOptions={[12, 20, 50, 100]}
+          itemName="tickets"
+        />
       )}
 
       {/* Delete Dialog */}

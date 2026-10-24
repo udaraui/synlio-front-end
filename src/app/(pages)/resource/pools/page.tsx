@@ -22,6 +22,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { PaginationControls } from "@/components/common/PaginationControls";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
@@ -359,80 +360,18 @@ function Page() {
 
       {/* Pagination */}
       {currentResources.length > 0 && (
-        <div className="flex-none border-t bg-background">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-4 py-1.5">
-            <span className="text-xs text-gray-600 dark:text-gray-400">
-              Showing {(currentPage - 1) * itemsPerPage + 1} –
-              {Math.min(currentPage * itemsPerPage, totalRecords)} of{" "}
-              {totalRecords} resource groups
-            </span>
-            <div className="flex items-center gap-3">
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(value) => {
-                  setItemsPerPage(parseInt(value));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="h-6 text-sm w-20">
-                  <SelectValue placeholder="Show" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="12">12</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-1">
-                {[
-                  {
-                    label: "«",
-                    onClick: () => setCurrentPage(1),
-                    disabled: currentPage === 1,
-                  },
-                  {
-                    label: "‹",
-                    onClick: () => setCurrentPage((p) => Math.max(1, p - 1)),
-                    disabled: currentPage === 1,
-                  },
-                  { label: null },
-                  {
-                    label: "›",
-                    onClick: () =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1)),
-                    disabled: currentPage >= totalPages,
-                  },
-                  {
-                    label: "»",
-                    onClick: () => setCurrentPage(totalPages),
-                    disabled: currentPage >= totalPages,
-                  },
-                ].map((item, i) =>
-                  item.label === null ? (
-                    <span
-                      key={i}
-                      className="text-xs px-2 text-gray-600 dark:text-gray-400"
-                    >
-                      Page {currentPage} of {totalPages}
-                    </span>
-                  ) : (
-                    <Button
-                      key={i}
-                      size="sm"
-                      variant="outline"
-                      className="h-7 w-7 p-0"
-                      disabled={item.disabled}
-                      onClick={item.onClick}
-                    >
-                      {item.label}
-                    </Button>
-                  ),
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalItems={totalRecords}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(value) => {
+            setItemsPerPage(value);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[12, 20, 50, 100]}
+          itemName="resource groups"
+        />
       )}
       {isCreatingResource && (
         <ResourcePoolMultiStepForm

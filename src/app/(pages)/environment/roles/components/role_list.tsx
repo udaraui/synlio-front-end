@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PaginationControls } from '@/components/common/PaginationControls';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -494,82 +495,16 @@ function RoleList({
 
           {/* Pagination - spans the table column only, panel keeps its own scroll */}
           {totalRecords > 0 && (
-            <div className="flex-none border-t border-border bg-background -mx-1 px-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-4 py-1.5">
-                <span className="text-xs text-gray-600 dark:text-gray-400">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} –
-                  {Math.min(currentPage * itemsPerPage, totalRecords)} of{" "}
-                  {totalRecords} roles
-                </span>
-                <div className="flex items-center gap-3">
-                  {setItemsPerPage && (
-                    <Select
-                      value={itemsPerPage.toString()}
-                      onValueChange={(v) => {
-                        setItemsPerPage(parseInt(v));
-                        setCurrentPage?.(1);
-                      }}
-                    >
-                      <SelectTrigger className="h-6 text-sm w-20 border border-border shadow-none">
-                        <SelectValue placeholder="Show" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <div className="flex items-center gap-1">
-                    {[
-                      {
-                        label: "«",
-                        onClick: () => setCurrentPage?.(1),
-                        disabled: currentPage === 1,
-                      },
-                      {
-                        label: "‹",
-                        onClick: () => setCurrentPage?.(Math.max(1, currentPage - 1)),
-                        disabled: currentPage === 1,
-                      },
-                      { label: null },
-                      {
-                        label: "›",
-                        onClick: () =>
-                          setCurrentPage?.(Math.min(totalPages, currentPage + 1)),
-                        disabled: currentPage >= totalPages,
-                      },
-                      {
-                        label: "»",
-                        onClick: () => setCurrentPage?.(totalPages),
-                        disabled: currentPage >= totalPages,
-                      },
-                    ].map((item, i) =>
-                      item.label === null ? (
-                        <span
-                          key={i}
-                          className="text-xs px-2 text-gray-600 dark:text-gray-400"
-                        >
-                          Page {currentPage} of {totalPages}
-                        </span>
-                      ) : (
-                        <Button
-                          key={i}
-                          size="sm"
-                          variant="outline"
-                          className="h-7 w-7 p-0"
-                          disabled={item.disabled}
-                          onClick={item.onClick}
-                        >
-                          {item.label}
-                        </Button>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalItems={totalRecords}
+              itemsPerPage={itemsPerPage}
+              onPageChange={(p) => setCurrentPage?.(p)}
+              onItemsPerPageChange={setItemsPerPage ? (size) => setItemsPerPage(size) : undefined}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemName="roles"
+              className="-mx-1"
+            />
           )}
         </div>
         {panel}

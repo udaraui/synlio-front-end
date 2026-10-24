@@ -67,7 +67,7 @@ export default function LoginPage() {
   }, []);
 
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
+    onSuccess: async (tokenResponse: any) => {
       setIsLoading(true);
       try {
         const response = await axios.post(

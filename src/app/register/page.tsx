@@ -62,7 +62,7 @@ export default function RegisterPage() {
   const { login } = useAuth();
 
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
+    onSuccess: async (tokenResponse: any) => {
       setIsLoading(true);
       try {
         const response = await axios.post(

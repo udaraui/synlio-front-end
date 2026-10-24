@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PaginationControls } from "@/components/common/PaginationControls";
 import TicketSpaceTableView from './components/TicketSpaceTableView';
 import TicketSpaceGridView from './components/TicketSpaceGridView';
 import { TicketSpaceGridSkeleton, TicketSpaceTableSkeleton } from './components/TicketSpaceSkeletons';
@@ -435,83 +436,18 @@ function Page() {
 
       {/* Fixed Pagination Footer */}
       {currentData.length > 0 && (
-        <div className="flex-none border-t bg-background">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-4 py-1.5">
-            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-              <span>
-                Showing {currentData.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalRecords)} of {totalRecords} ticket spaces
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Items per page selector */}
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(value) => {
-                  setItemsPerPage(parseInt(value));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="h-6 text-sm w-20">
-                  <SelectValue placeholder="Show" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="12">12</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Pagination controls */}
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={currentPage === 1}
-                  onClick={() => toast.info('Go to first page')}
-                  title="First page"
-                >
-                  «
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={currentPage === 1}
-                  onClick={() => toast.info('Go to previous page')}
-                  title="Previous page"
-                >
-                  ‹
-                </Button>
-                <span className="text-xs px-2 text-gray-600 dark:text-gray-400">
-                  Page {currentPage} of {Math.ceil(totalRecords / itemsPerPage)}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={currentPage >= Math.ceil(totalRecords / itemsPerPage)}
-                  onClick={() => toast.info('Go to next page')}
-                  title="Next page"
-                >
-                  ›
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  disabled={currentPage >= Math.ceil(totalRecords / itemsPerPage)}
-                  onClick={() => toast.info('Go to last page')}
-                  title="Last page"
-                >
-                  »
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalItems={totalRecords}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(value) => {
+            setItemsPerPage(value);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[12, 20, 50, 100]}
+          itemName="ticket spaces"
+        />
       )}
 
       {/* Create/Edit Form Dialog */}
