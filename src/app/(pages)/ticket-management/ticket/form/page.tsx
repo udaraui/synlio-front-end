@@ -2065,11 +2065,23 @@ export default function CreateTicketPage() {
                       const toSev = config.severities.find((s: any) => String(s.id) === String(p.to));
                       if (fromSev) fromVal = fromSev.name;
                       if (toSev) toVal = toSev.name;
-                    } else if ((k === 'assigneeId' || k === 'assigneeName') && config?.members) {
-                      const fromMember = config.members.find((m: any) => String(m.id) === String(p.from));
-                      const toMember = config.members.find((m: any) => String(m.id) === String(p.to));
-                      if (fromMember) fromVal = `${fromMember.userFirstName ?? ''} ${fromMember.userLastName ?? ''}`.trim() || (fromMember.userEmail ?? '');
-                      if (toMember) toVal = `${toMember.userFirstName ?? ''} ${toMember.userLastName ?? ''}`.trim() || (toMember.userEmail ?? '');
+                    } else if (k === 'assigneeId' || k === 'assigneeName') {
+                      if (payload.assigneeName?.from !== undefined && payload.assigneeName?.from !== null) {
+                        fromVal = formatFieldValue(payload.assigneeName.from);
+                      } else if (config?.members) {
+                        const fromMember = config.members.find((m: any) => String(m.id) === String(p.from));
+                        if (fromMember) fromVal = `${fromMember.userFirstName ?? ''} ${fromMember.userLastName ?? ''}`.trim() || (fromMember.userEmail ?? '');
+                      }
+
+                      if (payload.assigneeName?.to !== undefined && payload.assigneeName?.to !== null) {
+                        toVal = formatFieldValue(payload.assigneeName.to);
+                      } else if (config?.members) {
+                        const toMember = config.members.find((m: any) => String(m.id) === String(p.to));
+                        if (toMember) toVal = `${toMember.userFirstName ?? ''} ${toMember.userLastName ?? ''}`.trim() || (toMember.userEmail ?? '');
+                      }
+
+                      const fromMember = config?.members?.find((m: any) => String(m.id) === String(p.from));
+                      const toMember = config?.members?.find((m: any) => String(m.id) === String(p.to));
                       fromPic = payload.assigneeProfilePicUrl?.from || payload.assigneeProfilePicture?.from || fromMember?.userProfilePicture;
                       toPic = payload.assigneeProfilePicUrl?.to || payload.assigneeProfilePicture?.to || toMember?.userProfilePicture;
                     } else if ((k === 'queueId' || k === 'queueName') && config?.queues) {

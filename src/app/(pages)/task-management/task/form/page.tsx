@@ -423,9 +423,9 @@ export default function TaskFormPage() {
             setTaskViewData((prev: any) => ({ ...prev, coAssignees: res.coAssignees, members: res.members ?? prev.members }));
             setFormData((prev) => ({ ...prev, memberIds: newMemberIds }));
             syncMeta(res);
-            toast.success('Co-assignees saved');
+            toast.success('Co-assignees changed');
           })
-          .catch(() => { endAutoSave(); toast.error('Failed to save co-assignees'); });
+          .catch(() => { endAutoSave(); toast.error('Failed to change co-assignees'); });
       }
       return { ...p, coAssigneeIds: next };
     });
@@ -471,13 +471,13 @@ export default function TaskFormPage() {
           setTaskViewData((prev: any) => ({ ...prev, assignee: res.assignee, members: res.members ?? prev.members }));
           setFormData((p) => ({ ...p, memberIds: newMemberIds }));
           syncMeta(res);
-          toast.success('Assignee saved');
+          toast.success('Assignee changed');
         })
         .catch(() => {
           endAutoSave();
           set('assigneeId', oldAssigneeId);
           set('assigneeSkill', formDataSnapshot.current?.assigneeSkill);
-          toast.error('Failed to save assignee');
+          toast.error('Failed to changed assignee');
         });
     }
   };
@@ -512,9 +512,9 @@ export default function TaskFormPage() {
             setFormData((prev) => ({ ...prev, memberIds: serverMemberIds }));
             syncMeta(res);
             const isAdded = next.length > p.memberIds.length;
-            toast.success(isAdded ? 'Guest added' : 'Guest removed');
+            toast.success(isAdded ? 'Guest member added' : 'Guest member removed');
           })
-          .catch(() => { endAutoSave(); toast.error('Failed to save guest'); });
+          .catch(() => { endAutoSave(); toast.error('Failed to save guest member'); });
       }
       return { ...p, memberIds: next };
     });
@@ -1886,6 +1886,7 @@ export default function TaskFormPage() {
               const emailToResource: Record<string, any> = {};
               const allResources = [
                 ...(config?.resources ?? []),
+                ...(allKnownResources ?? []),
                 ...(taskViewData?.members ?? []),
                 ...(taskViewData?.coAssignees ?? []),
                 ...(Object.values(memberResourceCache) ?? []),
@@ -2007,18 +2008,25 @@ export default function TaskFormPage() {
                       const toSev = config.severities.find((s: any) => String(s.id) === String(p.to));
                       if (fromSev) fromVal = fromSev.name;
                       if (toSev) toVal = toSev.name;
-                    } else if ((k === 'assigneeId' || k === 'assigneeName') && config?.resources) {
-                      const fromRes = config.resources.find((r: any) => String(r.id) === String(p.from));
-                      const toRes = config.resources.find((r: any) => String(r.id) === String(p.to));
-                      if (fromRes) fromVal = `${fromRes.first_name ?? ''} ${fromRes.last_name ?? ''}`.trim() || fromRes.email;
-                      if (toRes) toVal = `${toRes.first_name ?? ''} ${toRes.last_name ?? ''}`.trim() || toRes.email;
-                      fromPic = payload.assigneeProfilePicUrl?.from || payload.assigneeProfilePicture?.from || fromRes?.profile_picture;
-                      toPic = payload.assigneeProfilePicUrl?.to || payload.assigneeProfilePicture?.to || toRes?.profile_picture;
-                    }
+                    } else if (k === 'assigneeId' || k === 'assigneeName') {
+                      if (payload.assigneeName?.from !== undefined && payload.assigneeName?.from !== null) {
+                        fromVal = formatFieldValue(payload.assigneeName.from);
+                      } else {
+                        const fromRes = allResources.find((r: any) => String(r.id) === String(p.from));
+                        if (fromRes) fromVal = `${fromRes.first_name ?? ''} ${fromRes.last_name ?? ''}`.trim() || fromRes.email;
+                      }
 
-                    if (k === 'assigneeName') {
-                      fromPic = payload.assigneeProfilePicUrl?.from || payload.assigneeProfilePicture?.from;
-                      toPic = payload.assigneeProfilePicUrl?.to || payload.assigneeProfilePicture?.to;
+                      if (payload.assigneeName?.to !== undefined && payload.assigneeName?.to !== null) {
+                        toVal = formatFieldValue(payload.assigneeName.to);
+                      } else {
+                        const toRes = allResources.find((r: any) => String(r.id) === String(p.to));
+                        if (toRes) toVal = `${toRes.first_name ?? ''} ${toRes.last_name ?? ''}`.trim() || toRes.email;
+                      }
+
+                      const fromRes = allResources.find((r: any) => String(r.id) === String(p.from));
+                      const toRes = allResources.find((r: any) => String(r.id) === String(p.to));
+                      fromPic = payload.assigneeProfilePicUrl?.from || payload.assigneeProfilePicture?.from || fromRes?.profile_pic || fromRes?.profile_picture;
+                      toPic = payload.assigneeProfilePicUrl?.to || payload.assigneeProfilePicture?.to || toRes?.profile_pic || toRes?.profile_picture;
                     }
 
                     return [{ label: fieldLabels[k] ?? k, from: fromVal, to: toVal, fromPic, toPic }];
