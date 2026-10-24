@@ -76,10 +76,10 @@ const UserAvatar = ({
   };
 
   let finalProfilePic: string | undefined = undefined;
-  if (profilePicture && typeof profilePicture === 'string' && profilePicture.trim().length > 0) {
-    finalProfilePic = profilePicture.startsWith('http')
+  if (profilePicture && typeof profilePicture === 'string' && profilePicture.trim().length > 0 && profilePicture !== 'null') {
+    finalProfilePic = profilePicture.startsWith('http') || profilePicture.startsWith('data:') || profilePicture.startsWith('blob:')
       ? profilePicture
-      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${profilePicture}`;
+      : undefined;
   }
 
   return (

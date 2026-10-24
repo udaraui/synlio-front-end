@@ -115,8 +115,8 @@ type Person = {
 
 function initials(p?: Person | null): string {
   if (!p) return "?";
-  const f = p.first_name?.[0] ?? "";
-  const l = p.last_name?.[0] ?? "";
+  const f = p.first_name?.trim()?.[0] ?? "";
+  const l = p.last_name?.trim()?.[0] ?? "";
   return (f + l).toUpperCase() || "?";
 }
 

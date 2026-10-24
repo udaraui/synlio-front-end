@@ -482,7 +482,7 @@ export default function ResourceSelector({
                         <Avatar className="h-8 w-8 bg-primary/10">
                           <AvatarImage src={(r as any).profile_pic || ''} />
                           <AvatarFallback className="bg-primary text-white text-xs font-semibold">
-                            {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || ''}
+                            {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || ''}
                           </AvatarFallback>
                         </Avatar>
 

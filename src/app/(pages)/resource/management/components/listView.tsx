@@ -99,7 +99,7 @@ const ListView: React.FC<ListViewProps> = ({
     <div className="space-y-3"> {/* Changed from grid to space-y-3 */}
       {resources.map((resource, index) => {
         const fullName = `${resource.first_name} ${resource.last_name}`;
-        const initials = `${resource.first_name?.[0] || ""}${resource.last_name?.[0] || ""}`.toUpperCase();
+        const initials = `${resource.first_name?.trim()?.[0] || ""}${resource.last_name?.trim()?.[0] || ""}`.toUpperCase();
 
         // Status Bar Color Logic
         const statusAccentColor = resource.active_status ? 'bg-green-500/80' : 'bg-red-500/80';

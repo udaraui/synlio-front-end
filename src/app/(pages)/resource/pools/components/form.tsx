@@ -101,7 +101,7 @@ function OwnerSelector({
               <Avatar className="h-8 w-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-primary/50 transition-shadow">
                 <AvatarImage src={selectedOwner.profile_picture || selectedOwner.profile_pic || ''} alt={`${selectedOwner.first_name} ${selectedOwner.last_name}`} />
                 <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                  {selectedOwner.first_name?.charAt(0)}{selectedOwner.last_name?.charAt(0)}
+                  {selectedOwner.first_name?.trim()?.charAt(0)}{selectedOwner.last_name?.trim()?.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
@@ -157,7 +157,7 @@ function OwnerSelector({
                     <Avatar className="h-8 w-8 bg-primary/10">
                       <AvatarImage src={o.profile_picture || o.profile_pic || ''} />
                       <AvatarFallback className="bg-primary text-white text-xs font-semibold">
-                        {((o.first_name?.[0] || '') + (o.last_name?.[0] || '')).toUpperCase() || '?'}
+                        {((o.first_name?.trim()?.[0] || '') + (o.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="space-y-0.5 flex-1 min-w-0">
@@ -480,7 +480,7 @@ export default function ResourcePoolFormModal({
                                   <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:ring-destructive/60 hover:opacity-80 transition-all">
                                     <AvatarImage src={res.profile_pic} alt={`${res.first_name} ${res.last_name}`} />
                                     <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                                      {res.first_name?.charAt(0)}{res.last_name?.charAt(0)}
+                                      {res.first_name?.trim()?.charAt(0)}{res.last_name?.trim()?.charAt(0)}
                                     </AvatarFallback>
                                   </Avatar>
                                 </button>

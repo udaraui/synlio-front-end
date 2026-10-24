@@ -846,7 +846,7 @@ export function FilterTemplateButton({
                     const isSelected = selectedUserIds.has(user.id);
                     const fullName = `${user.first_name} ${user.last_name}`.trim() || user.email;
                     const initials = (
-                      (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
+                      (user.first_name?.trim()?.[0] || '') + (user.last_name?.trim()?.[0] || '')
                     ).toUpperCase() || 'U';
 
                     return (

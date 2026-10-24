@@ -130,8 +130,11 @@ const UserList: React.FC<UserListProps> = ({
     ? users
     : users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const getInitials = (firstName: string, lastName: string) =>
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getInitials = (firstName: string, lastName: string) => {
+    const f = (firstName || '').trim();
+    const l = (lastName || '').trim();
+    return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase();
+  };
 
 
   return (

@@ -211,7 +211,7 @@ const GridView: React.FC<GridViewProps> = ({
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${sidebarOpen ? "lg:grid-cols-2 xl:grid-cols-3" : "lg:grid-cols-3 xl:grid-cols-4"}`}>
       {resources.map((resource, index) => {
         const fullName = `${resource.first_name} ${resource.last_name}`;
-        const initials = `${resource.first_name?.[0] || ""}${resource.last_name?.[0] || ""}`.toUpperCase();
+        const initials = `${resource.first_name?.trim()?.[0] || ""}${resource.last_name?.trim()?.[0] || ""}`.toUpperCase();
 
         const utilizationPercent =
           hardcodedUtilizations[index % hardcodedUtilizations.length];

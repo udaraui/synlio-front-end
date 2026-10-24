@@ -258,8 +258,8 @@ const ViewResourceModal: React.FC<ResourceModalProps> = ({
                     className="object-cover"
                   />
                   <AvatarFallback className="text-2xl font-semibold bg-muted text-muted-foreground">
-                    {resource?.first_name?.charAt(0)}
-                    {resource?.last_name?.charAt(0)}
+                    {resource?.first_name?.trim()?.charAt(0)}
+                    {resource?.last_name?.trim()?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
               )}

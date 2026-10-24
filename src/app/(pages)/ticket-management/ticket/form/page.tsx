@@ -1978,13 +1978,23 @@ export default function CreateTicketPage() {
                 if (r?.email) emailToResource[r.email] = r;
               });
 
+              const sanitizeProfilePic = (pic?: string | null): string | undefined => {
+                if (!pic || typeof pic !== 'string') return undefined;
+                const p = pic.trim();
+                if (!p || p === 'null' || p === 'undefined') return undefined;
+                if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:') || p.startsWith('blob:')) {
+                  return p;
+                }
+                return undefined;
+              };
+
               const getActorInfo = (actorId: string | null): { name: string; initials: string; profilePic?: string | null } => {
                 if (!actorId) return { name: 'System', initials: 'S', profilePic: null };
                 const resource = emailToResource[actorId];
                 if (resource) {
                   const name = `${resource.first_name ?? ''} ${resource.last_name ?? ''}`.trim() || actorId;
-                  const initials = ((resource.first_name?.[0] ?? '') + (resource.last_name?.[0] ?? '')).toUpperCase() || actorId[0]?.toUpperCase() || '?';
-                  return { name, initials, profilePic: resource.profile_pic };
+                  const initials = ((resource.first_name?.trim()?.[0] ?? '') + (resource.last_name?.trim()?.[0] ?? '')).toUpperCase() || actorId[0]?.toUpperCase() || '?';
+                  return { name, initials, profilePic: sanitizeProfilePic(resource.profile_pic) };
                 }
                 const parts = actorId.split('@')[0].split(/[._-]/);
                 const initials = parts.slice(0, 2).map((p: string) => p[0]?.toUpperCase() ?? '').join('');
@@ -2152,13 +2162,18 @@ export default function CreateTicketPage() {
                               <div key={ev.id ?? idx} className="flex gap-3">
                                 {/* Timeline column: avatar + connector line */}
                                 <div className="flex flex-col items-center flex-shrink-0">
-                                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 overflow-hidden', avatarBg)}>
-                                    {actor.profilePic ? (
-                                      <img src={actor.profilePic} alt={actor.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      actor.initials
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
+                                    {actor.profilePic && (
+                                      <AvatarImage
+                                        src={actor.profilePic}
+                                        alt={actor.name}
+                                        className="object-cover"
+                                      />
                                     )}
-                                  </div>
+                                    <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
+                                      {actor.initials}
+                                    </AvatarFallback>
+                                  </Avatar>
                                   {(!isLast || visibleLogHistoryCount < ticketEvents.length || visibleLogHistoryCount > 5) && (
                                     <div className="w-px flex-1 bg-gray-200 dark:bg-gray-700 my-1" />
                                   )}
@@ -2381,11 +2396,13 @@ export default function CreateTicketPage() {
 
         {/* Right Sidebar - Metadata */}
         <div
-          className="border-l bg-muted/30 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
+          className="border-l bg-muted/30 flex flex-col h-full min-h-0"
           style={{ width: "40%" }}
         >
-          {/* ── STATUS / TYPE / SEVERITY / QUEUE / IMPACT ─────── */}
-          <div className="px-2 py-3 flex flex-col gap-2 pb-6">
+          {/* Middle content area - Scrollable */}
+          <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* ── STATUS / TYPE / SEVERITY / QUEUE / IMPACT ─────── */}
+            <div className="px-2 py-3 flex flex-col gap-2 pb-6">
             {/* Status */}
             <div className="grid grid-cols-[110px_1fr] items-center min-h-8 rounded-md hover:bg-muted/40 transition-colors">
               <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 pl-1">
@@ -3168,8 +3185,8 @@ export default function CreateTicketPage() {
                                 alt={`${assignee.userFirstName} ${assignee.userLastName}`}
                               />
                               <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                                {assignee.userFirstName?.charAt(0)}
-                                {assignee.userLastName?.charAt(0)}
+                                {assignee.userFirstName?.trim()?.charAt(0)}
+                                {assignee.userLastName?.trim()?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
@@ -3446,8 +3463,8 @@ export default function CreateTicketPage() {
                                 alt={`${member.userFirstName} ${member.userLastName}`}
                               />
                               <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                                {member.userFirstName?.charAt(0)}
-                                {member.userLastName?.charAt(0)}
+                                {member.userFirstName?.trim()?.charAt(0)}
+                                {member.userLastName?.trim()?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                           </div>
@@ -3472,8 +3489,8 @@ export default function CreateTicketPage() {
                                 alt={`${member.userFirstName} ${member.userLastName}`}
                               />
                               <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                                {member.userFirstName?.charAt(0)}
-                                {member.userLastName?.charAt(0)}
+                                {member.userFirstName?.trim()?.charAt(0)}
+                                {member.userLastName?.trim()?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                           </button>
@@ -3617,16 +3634,17 @@ export default function CreateTicketPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* ── METADATA ─────────────────────────────────────── */}
+        {/* ── METADATA (Frozen Footer) ─────────────────────────── */}
           {isEditMode && (
             isLoading ? (
-              <div className="px-4 pb-4 pt-3 border-t border-border space-y-2">
+              <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border bg-background space-y-2">
                 <Skeleton className="h-4 w-64" />
                 <Skeleton className="h-4 w-56" />
               </div>
             ) : (metadata.createdAt || metadata.updatedAt) && (
-              <div className="px-4 pb-4 pt-3 border-t border-border space-y-2">
+              <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border bg-background space-y-2">
                 {metadata.createdAt && (
                   <p className="text-xs font-medium text-muted-foreground">
                     Created

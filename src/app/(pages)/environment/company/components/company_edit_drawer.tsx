@@ -183,7 +183,7 @@ export function CompanyEditDrawer({
                     const isFileObject = value instanceof File;
                     const existingImageUrl =
                       company?.logo && !isFileObject
-                        ? `${API_URL}/uploads/logos/${company.logo}`
+                        ? (company.logo.startsWith('http') || company.logo.startsWith('data:') || company.logo.startsWith('blob:') ? company.logo : null)
                         : null;
                     const newFileUrl =
                       isFileObject && value ? URL.createObjectURL(value as File) : null;

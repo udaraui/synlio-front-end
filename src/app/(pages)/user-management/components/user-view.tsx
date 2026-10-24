@@ -46,8 +46,11 @@ const UserView: React.FC<UserViewProps> = ({
 
   if (!open) return null;
 
-  const getInitials = (firstName: string, lastName: string) =>
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getInitials = (firstName: string, lastName: string) => {
+    const f = (firstName || '').trim();
+    const l = (lastName || '').trim();
+    return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase();
+  };
 
   /* ── Loading skeleton ── */
   if (isLoading && !user) {

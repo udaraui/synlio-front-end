@@ -144,7 +144,7 @@ const ResourceGroupTableView: React.FC<TableViewProps> = ({
               <div>
                 <Avatar className="w-8 h-8 text-xs relative">
                   <AvatarFallback className="text-xs font-semibold bg-primary text-white">
-                    {((first?.charAt(0) || "") + (last?.charAt(0) || "")).toUpperCase() || "?"}
+                    {((first?.trim()?.charAt(0) || "") + (last?.trim()?.charAt(0) || "")).toUpperCase() || "?"}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -194,7 +194,7 @@ const ResourceGroupTableView: React.FC<TableViewProps> = ({
                           <AvatarImage src={resource.profile_pic} alt={rName} className="object-cover" />
                         )}
                         <AvatarFallback className="text-xs font-semibold bg-primary text-white">
-                          {((rFirst?.charAt(0) || "") + (rLast?.charAt(0) || "")).toUpperCase() || "?"}
+                          {((rFirst?.trim()?.charAt(0) || "") + (rLast?.trim()?.charAt(0) || "")).toUpperCase() || "?"}
                         </AvatarFallback>
                       </Avatar>
                     );

@@ -637,7 +637,7 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                               <AvatarImage src={previewUrl || ""} className="object-cover" />
                               <AvatarFallback className="text-3xl font-semibold bg-primary text-white">
                                 {form.watch("first_name") || form.watch("last_name") ? (
-                                  `${(form.watch("first_name") || "").charAt(0)}${(form.watch("last_name") || "").charAt(0)}`.toUpperCase()
+                                  `${(form.watch("first_name") || "").trim().charAt(0)}${(form.watch("last_name") || "").trim().charAt(0)}`.toUpperCase()
                                 ) : (
                                   <User className="w-12 h-12" />
                                 )}
@@ -813,7 +813,7 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                               <Avatar className="h-7 w-7 flex-shrink-0 bg-primary/10">
                                                 <AvatarImage src={r.profile_pic || ''} className="object-cover" />
                                                 <AvatarFallback className="bg-primary text-white text-xs font-semibold">
-                                                  {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || '?'}
+                                                  {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                                                 </AvatarFallback>
                                               </Avatar>
                                               <div className="flex-1 min-w-0 flex flex-col justify-center">

@@ -377,7 +377,7 @@ export const NewInternalMeetingDialog: React.FC<NewInternalMeetingDialogProps> =
   };
 
   const getInitials = (u: CompanyUser) =>
-    `${u.first_name?.[0] ?? ""}${u.last_name?.[0] ?? ""}`.toUpperCase();
+    `${u.first_name?.trim()?.[0] ?? ""}${u.last_name?.trim()?.[0] ?? ""}`.toUpperCase();
 
   return (
     <Dialog

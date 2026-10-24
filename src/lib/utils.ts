@@ -35,7 +35,25 @@ export const formatRelativeTime = (date: Date): string => {
   return format(date, 'MMM d, yyyy');
 };
 
-export const getInitials = (name: string) => {
+export const getInitials = (name?: string | null) => {
   if (!name) return '';
-  return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  return name
+    .trim()
+    .split(/\s+/)
+    .map(n => n[0])
+    .filter(Boolean)
+    .join('')
+    .toUpperCase();
 };
+
+export const getFirstLastInitials = (
+  firstName?: string | null,
+  lastName?: string | null,
+  fallback: string = '?'
+) => {
+  const f = (firstName || '').trim();
+  const l = (lastName || '').trim();
+  const initials = `${f.charAt(0)}${l.charAt(0)}`.toUpperCase();
+  return initials || fallback;
+};
+

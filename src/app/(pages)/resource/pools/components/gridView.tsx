@@ -194,7 +194,7 @@ const GridView: React.FC<GridViewProps> = ({
                               <div>
                                 <Avatar className="w-8 h-8 text-xs bg-primary/10">
                                   <AvatarFallback className="text-xs font-semibold bg-primary">
-                                    {((resourcePool.pool_owner_first_name?.charAt(0) || "") + (resourcePool.pool_owner_last_name?.charAt(0) || "")).toUpperCase() || "?"}
+                                    {((resourcePool.pool_owner_first_name?.trim()?.charAt(0) || "") + (resourcePool.pool_owner_last_name?.trim()?.charAt(0) || "")).toUpperCase() || "?"}
                                   </AvatarFallback>
                                 </Avatar>
                               </div>
@@ -254,7 +254,7 @@ const GridView: React.FC<GridViewProps> = ({
                                       <AvatarImage src={resource.profile_pic} alt={`${resource.firstName} ${resource.lastName}`} className="object-cover" />
                                     )}
                                     <AvatarFallback className="text-xs font-semibold bg-primary">
-                                      {((resource.firstName?.charAt(0) || "") + (resource.lastName?.charAt(0) || "")).toUpperCase() || "?"}
+                                      {((resource.firstName?.trim()?.charAt(0) || "") + (resource.lastName?.trim()?.charAt(0) || "")).toUpperCase() || "?"}
                                     </AvatarFallback>
                                   </Avatar>
                                 ))}

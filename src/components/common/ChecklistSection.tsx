@@ -97,7 +97,7 @@ export interface ChecklistSectionProps {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const initialsOf = (r?: { first_name?: string; last_name?: string } | null) =>
-  `${r?.first_name?.charAt(0) ?? ''}${r?.last_name?.charAt(0) ?? ''}`.toUpperCase() || '?';
+  `${r?.first_name?.trim()?.charAt(0) ?? ''}${r?.last_name?.trim()?.charAt(0) ?? ''}`.toUpperCase() || '?';
 
 const fullNameOf = (r?: { first_name?: string; last_name?: string } | null) =>
   `${r?.first_name ?? ''} ${r?.last_name ?? ''}`.trim();

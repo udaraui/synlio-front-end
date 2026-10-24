@@ -76,9 +76,9 @@ const UserAvatar = ({
 
   let finalProfilePic: string | undefined = undefined;
   if (profilePic && typeof profilePic === 'string' && profilePic.trim().length > 0 && profilePic !== 'null') {
-    finalProfilePic = profilePic.startsWith('http')
+    finalProfilePic = profilePic.startsWith('http') || profilePic.startsWith('data:') || profilePic.startsWith('blob:')
       ? profilePic
-      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${profilePic}`;
+      : undefined;
   }
 
   return (

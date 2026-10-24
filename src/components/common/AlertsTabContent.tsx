@@ -246,12 +246,12 @@ function UserMultiSelect({
   };
 
   const initials = (u: AlertUser) =>
-    `${u.first_name?.charAt(0) ?? ""}${u.last_name?.charAt(0) ?? ""}`.toUpperCase() || u.email[0].toUpperCase();
+    `${u.first_name?.trim()?.charAt(0) ?? ""}${u.last_name?.trim()?.charAt(0) ?? ""}`.toUpperCase() || u.email[0].toUpperCase();
 
   const avatarSrc = (u: AlertUser) => {
     const pic = (u as any).profile_picture;
-    if (!pic) return undefined;
-    return pic.startsWith("http") ? pic : `${process.env.NEXT_PUBLIC_API_URL}/uploads/users/${pic}`;
+    if (!pic || typeof pic !== "string" || !pic.trim()) return undefined;
+    return pic.startsWith("http") || pic.startsWith("data:") || pic.startsWith("blob:") ? pic : undefined;
   };
 
   const filtered = results.filter((r) => !excludeIds.includes(r.id));

@@ -329,7 +329,7 @@ const TableView: React.FC<TableViewProps> = ({
         const r = row.original;
         const index = row.index;
         const fullName = `${r.first_name} ${r.last_name}`;
-        const initials = `${r.first_name?.[0] || ""}${r.last_name?.[0] || ""}`.toUpperCase();
+        const initials = `${r.first_name?.trim()?.[0] || ""}${r.last_name?.trim()?.[0] || ""}`.toUpperCase();
 
         const utilizationPercent = hardcodedUtilizations[index % hardcodedUtilizations.length];
         const utilizationInfo = getUtilizationInfo(utilizationPercent);

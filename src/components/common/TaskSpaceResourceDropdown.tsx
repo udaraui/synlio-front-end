@@ -463,16 +463,14 @@ export function TaskSpaceResourceDropdown({
                             <Avatar className="h-7 w-7 flex-shrink-0">
                               <AvatarImage
                                 src={
-                                  r.profile_pic
-                                    ? r.profile_pic.startsWith('http')
-                                      ? r.profile_pic
-                                      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                                  r.profile_pic && (r.profile_pic.startsWith('http') || r.profile_pic.startsWith('data:') || r.profile_pic.startsWith('blob:'))
+                                    ? r.profile_pic
                                     : undefined
                                 }
                                 alt={`${r.first_name} ${r.last_name}`}
                               />
                               <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || ''}
+                                {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || ''}
                               </AvatarFallback>
                             </Avatar>
                             <SkillsHoverPopover skills={r.skills ?? []} emptyText="No skills">
@@ -668,16 +666,14 @@ export function TaskSpaceResourceDropdown({
                                     <Avatar className="h-7 w-7 flex-shrink-0">
                                       <AvatarImage
                                         src={
-                                          r.profile_pic
-                                            ? r.profile_pic.startsWith('http')
-                                              ? r.profile_pic
-                                              : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                                          r.profile_pic && (r.profile_pic.startsWith('http') || r.profile_pic.startsWith('data:') || r.profile_pic.startsWith('blob:'))
+                                            ? r.profile_pic
                                             : undefined
                                         }
                                         alt={`${r.first_name} ${r.last_name}`}
                                       />
                                       <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                        {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || '?'}
+                                        {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                                       </AvatarFallback>
                                     </Avatar>
                                     <SkillsHoverPopover skills={r.skills ?? []}>
@@ -757,16 +753,14 @@ export function TaskSpaceResourceDropdown({
                         <Avatar className="h-7 w-7 flex-shrink-0">
                           <AvatarImage
                             src={
-                              r.profile_pic
-                                ? r.profile_pic.startsWith('http')
-                                  ? r.profile_pic
-                                  : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                              r.profile_pic && (r.profile_pic.startsWith('http') || r.profile_pic.startsWith('data:') || r.profile_pic.startsWith('blob:'))
+                                ? r.profile_pic
                                 : undefined
                             }
                             alt={`${r.first_name} ${r.last_name}`}
                           />
                           <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                            {((r.first_name?.[0] || '') + (r.last_name?.[0] || '')).toUpperCase() || '?'}
+                            {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                           </AvatarFallback>
                         </Avatar>
                         <SkillsHoverPopover skills={r.skills ?? []} emptyText="No skills">

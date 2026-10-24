@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PaginationControls } from "@/components/common/PaginationControls";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,30 +119,43 @@ type ParentTaskEntry = {
   members?: any[];
 };
 
+function getResourceProfilePicUrl(profilePic?: string | null) {
+  if (!profilePic || profilePic === 'null' || typeof profilePic !== 'string' || profilePic.trim() === '') return undefined;
+  if (profilePic.startsWith('http://') || profilePic.startsWith('https://') || profilePic.startsWith('data:') || profilePic.startsWith('blob:')) return profilePic;
+  return undefined;
+}
+
 // reusable resource avatar (profile pic or initials fallback)
 function ResourceAvatar({ r, size = 5 }: { r: any; size?: number }) {
-  const sizeClass = `w-${size} h-${size}`;
-  const textClass = size <= 5 ? "text-[9px]" : "text-xs";
-  if (r?.profile_pic && r.profile_pic !== 'null' && r.profile_pic.trim() !== '') {
-    return (
-      <NextImage
-        src={r.profile_pic}
-        alt={`${r.first_name} ${r.last_name}`}
-        width={size * 4}
-        height={size * 4}
-        className={`${sizeClass} rounded-full object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600`}
-      />
-    );
+  const pixelSize = size * 4;
+  const firstName = (r?.first_name || '').trim();
+  const lastName = (r?.last_name || '').trim();
+  let initials = '?';
+  if (firstName && lastName) {
+    initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
+  } else if (firstName) {
+    initials = firstName.substring(0, 2).toUpperCase();
+  } else if (lastName) {
+    initials = lastName.substring(0, 2).toUpperCase();
   }
+  const picUrl = getResourceProfilePicUrl(r?.profile_pic);
+
   return (
-    <div
-      className={`${sizeClass} rounded-full bg-primary flex items-center justify-center flex-shrink-0`}
+    <Avatar
+      style={{ width: `${pixelSize}px`, height: `${pixelSize}px` }}
+      className="shrink-0 rounded-full"
     >
-      <span className={`${textClass} font-medium text-white dark:text-black`}>
-        {r?.first_name?.[0]}
-        {r?.last_name?.[0]}
-      </span>
-    </div>
+      {picUrl && (
+        <AvatarImage
+          src={picUrl}
+          alt={`${firstName} ${lastName}`.trim()}
+          className="object-cover"
+        />
+      )}
+      <AvatarFallback className="text-[10px] font-semibold bg-primary text-primary-foreground dark:text-black">
+        {initials}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 

@@ -42,7 +42,9 @@ interface UserSearchResult {
 }
 
 function getInitials(first: string, last: string) {
-  return `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
+  const f = (first ?? "").trim();
+  const l = (last ?? "").trim();
+  return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase();
 }
 
 function buildAvatarUrl(pic?: string): string | undefined {

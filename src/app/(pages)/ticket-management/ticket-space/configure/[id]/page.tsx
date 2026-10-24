@@ -2681,11 +2681,11 @@ function PermissionsTabContent({
                         <div className="flex items-center gap-3">
                           <Avatar className="h-7 w-7 flex-shrink-0">
                             <AvatarImage
-                              src={member.resource.profile_pic ? (member.resource.profile_pic.startsWith('http') ? member.resource.profile_pic : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${member.resource.profile_pic}`) : undefined}
+                              src={member.resource.profile_pic && (member.resource.profile_pic.startsWith('http') || member.resource.profile_pic.startsWith('data:') || member.resource.profile_pic.startsWith('blob:')) ? member.resource.profile_pic : undefined}
                               alt={`${member.resource.first_name} ${member.resource.last_name}`}
                             />
                             <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                              {(member.resource.first_name?.[0] || '').toUpperCase()}{(member.resource.last_name?.[0] || '').toUpperCase()}
+                              {(member.resource.first_name?.trim()?.[0] || '').toUpperCase()}{(member.resource.last_name?.trim()?.[0] || '').toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
@@ -2919,15 +2919,16 @@ function PermissionsTabContent({
                             <div className="flex items-center gap-3">
                               <Avatar className="h-7 w-7 flex-shrink-0">
                                 <AvatarImage
-                                  src={(permission.userProfilePicture || permission.user?.profile_picture)
-                                    ? ((permission.userProfilePicture || permission.user?.profile_picture).startsWith('http')
-                                      ? (permission.userProfilePicture || permission.user?.profile_picture)
-                                      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/users/${permission.userProfilePicture || permission.user?.profile_picture}`)
-                                    : undefined}
+                                  src={
+                                    (() => {
+                                      const pic = permission.userProfilePicture || permission.user?.profile_picture;
+                                      return pic && (pic.startsWith('http') || pic.startsWith('data:') || pic.startsWith('blob:')) ? pic : undefined;
+                                    })()
+                                  }
                                   alt={`${permission.userFirstName || permission.user?.firstName || ''} ${permission.userLastName || permission.user?.lastName || ''}`}
                                 />
                                 <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                  {((permission.userFirstName || permission.user?.firstName)?.[0] || '').toUpperCase()}{((permission.userLastName || permission.user?.lastName)?.[0] || '').toUpperCase()}
+                                  {((permission.userFirstName || permission.user?.firstName)?.trim()?.[0] || '').toUpperCase()}{((permission.userLastName || permission.user?.lastName)?.trim()?.[0] || '').toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-sm font-medium">

@@ -186,10 +186,10 @@ const UserAvatar = ({
   }
 
   let finalProfilePic: string | undefined = undefined;
-  if (profilePic && typeof profilePic === 'string' && profilePic.trim().length > 0) {
-    finalProfilePic = profilePic.startsWith('http')
+  if (profilePic && typeof profilePic === 'string' && profilePic.trim().length > 0 && profilePic !== 'null') {
+    finalProfilePic = profilePic.startsWith('http') || profilePic.startsWith('data:') || profilePic.startsWith('blob:')
       ? profilePic
-      : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${profilePic}`;
+      : undefined;
   }
 
   return (
@@ -1896,14 +1896,24 @@ export default function TaskFormPage() {
                 if (r?.email) emailToResource[r.email] = r;
               });
 
+              const sanitizeProfilePic = (pic?: string | null): string | undefined => {
+                if (!pic || typeof pic !== 'string') return undefined;
+                const p = pic.trim();
+                if (!p || p === 'null' || p === 'undefined') return undefined;
+                if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:') || p.startsWith('blob:')) {
+                  return p;
+                }
+                return undefined;
+              };
+
               // Derive actor display name & initials from email or resource
               const getActorInfo = (actorId: string | null): { name: string; initials: string; profilePic?: string | null } => {
                 if (!actorId) return { name: 'Unknown', initials: '' };
                 const resource = emailToResource[actorId];
                 if (resource) {
                   const name = `${resource.first_name ?? ''} ${resource.last_name ?? ''}`.trim() || actorId;
-                  const initials = ((resource.first_name?.[0] ?? '') + (resource.last_name?.[0] ?? '')).toUpperCase() || actorId[0]?.toUpperCase() || '?';
-                  return { name, initials, profilePic: resource.profile_pic };
+                  const initials = ((resource.first_name?.trim()?.[0] ?? '') + (resource.last_name?.trim()?.[0] ?? '')).toUpperCase() || actorId[0]?.toUpperCase() || '?';
+                  return { name, initials, profilePic: sanitizeProfilePic(resource.profile_pic) };
                 }
                 // Fallback: derive from email (e.g. john.doe@company.com → JD)
                 const parts = actorId.split('@')[0].split(/[._-]/);
@@ -2080,14 +2090,18 @@ export default function TaskFormPage() {
                               <div key={ev.id ?? idx} className="flex gap-3">
                                 {/* Timeline column: avatar + connector line */}
                                 <div className="flex flex-col items-center flex-shrink-0">
-                                  {/* Avatar */}
-                                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-white dark:text-gray-900 text-xs font-semibold flex-shrink-0 overflow-hidden', avatarBg)}>
-                                    {actor.profilePic ? (
-                                      <img src={actor.profilePic} alt={actor.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      actor.initials
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
+                                    {actor.profilePic && (
+                                      <AvatarImage
+                                        src={actor.profilePic}
+                                        alt={actor.name}
+                                        className="object-cover"
+                                      />
                                     )}
-                                  </div>
+                                    <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
+                                      {actor.initials}
+                                    </AvatarFallback>
+                                  </Avatar>
                                   {/* Connector line */}
                                   {(!isLast || visibleLogHistoryCount < taskEvents.length || visibleLogHistoryCount > 5) && (
                                     <div className="w-px flex-1 bg-gray-200 dark:bg-gray-700 my-1" />
@@ -2261,11 +2275,14 @@ export default function TaskFormPage() {
         </div>
 
         {/* -- Right sidebar ----------------------------------------------- */}
-        <div className="border-l bg-background overflow-y-auto flex flex-col"
-          style={{ width: '40%' }}>
-
-          {/* -- DETAILS --------------------------------------- */}
-          <div className="px-2 py-3 pb-6">
+        <div
+          className="border-l bg-background flex flex-col h-full min-h-0"
+          style={{ width: '40%' }}
+        >
+          {/* Middle content area - Scrollable */}
+          <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* -- DETAILS --------------------------------------- */}
+            <div className="px-2 py-3 pb-6">
             <div className="flex flex-col gap-2">
 
               {/* Parent Task */}
@@ -2879,7 +2896,7 @@ export default function TaskFormPage() {
                                     <Avatar className="h-8 w-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-primary/50 transition-shadow">
                                       <AvatarImage src={selectedAssignee.profile_pic} alt={`${selectedAssignee.first_name} ${selectedAssignee.last_name}`} />
                                       <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
-                                        {selectedAssignee.first_name?.charAt(0)}{selectedAssignee.last_name?.charAt(0)}
+                                        {selectedAssignee.first_name?.trim()?.charAt(0)}{selectedAssignee.last_name?.trim()?.charAt(0)}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
@@ -3079,7 +3096,7 @@ export default function TaskFormPage() {
                                     <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:ring-destructive/60 hover:opacity-80 transition-all">
                                       <AvatarImage src={r.profile_pic} alt={`${r.first_name} ${r.last_name}`} />
                                       <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
-                                        {r.first_name?.charAt(0)}{r.last_name?.charAt(0)}
+                                        {r.first_name?.trim()?.charAt(0)}{r.last_name?.trim()?.charAt(0)}
                                       </AvatarFallback>
                                     </Avatar>
                                   </button>
@@ -3239,7 +3256,7 @@ export default function TaskFormPage() {
                             <Avatar className="h-8 w-8 ring-2 ring-background cursor-pointer hover:ring-destructive/60 hover:opacity-80 transition-all">
                               <AvatarImage src={r.profile_pic} alt={`${r.first_name} ${r.last_name}`} />
                               <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
-                                {r.first_name?.charAt(0)}{r.last_name?.charAt(0)}
+                                {r.first_name?.trim()?.charAt(0)}{r.last_name?.trim()?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                           </button>
@@ -3276,7 +3293,7 @@ export default function TaskFormPage() {
                                   <Avatar className="h-8 w-8 ring-2 ring-background">
                                     <AvatarImage src={r.profile_pic} alt={`${r.first_name} ${r.last_name}`} />
                                     <AvatarFallback className="text-xs font-semibold bg-primary text-white dark:text-gray-900">
-                                      {r.first_name?.charAt(0)}{r.last_name?.charAt(0)}
+                                      {r.first_name?.trim()?.charAt(0)}{r.last_name?.trim()?.charAt(0)}
                                     </AvatarFallback>
                                   </Avatar>
                                 </div>
@@ -3303,17 +3320,18 @@ export default function TaskFormPage() {
               );
             })()}
 
+            </div>
           </div>
 
-          {/* -- METADATA --------------------------------------- */}
+          {/* -- METADATA (Frozen Footer) ----------------------- */}
           {isEditMode && (
             isLoading ? (
-              <div className="px-4 pb-4 pt-3 border-t border-border space-y-2">
+              <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border bg-background space-y-2">
                 <Skeleton className="h-4 w-64" />
                 <Skeleton className="h-4 w-56" />
               </div>
             ) : (metadata.createdAt || metadata.updatedAt) && (
-              <div className="px-4 pb-4 pt-3 border-t border-border space-y-2">
+              <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border bg-background space-y-2">
                 {metadata.createdAt && (
                   <p className="text-xs font-medium text-muted-foreground">
                     Created{metadata.createdBy && <> by <span className="text-primary">{metadata.createdBy}</span></>}, {new Date(metadata.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}

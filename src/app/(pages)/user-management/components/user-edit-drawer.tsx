@@ -321,8 +321,8 @@ export function UserEditDrawer({
                           <AvatarImage
                             src={
                               previewUrl ||
-                              (user?.profile_picture
-                                ? `${API_URL}/uploads/${user.profile_picture}`
+                              (user?.profile_picture && (user.profile_picture.startsWith('http') || user.profile_picture.startsWith('data:') || user.profile_picture.startsWith('blob:'))
+                                ? user.profile_picture
                                 : undefined)
                             }
                             className="object-cover"

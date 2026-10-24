@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PaginationControls } from "@/components/common/PaginationControls";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -142,34 +143,44 @@ const getIconComponent = (iconName: string | undefined): LucideIcon | null => {
   return iconMap[normalizedIcon] || iconMap[iconName.toLowerCase()] || Circle;
 };
 
+function getMemberProfilePicUrl(profilePic?: string | null) {
+  if (!profilePic || profilePic === 'null' || typeof profilePic !== 'string' || profilePic.trim() === '') return undefined;
+  if (profilePic.startsWith('http://') || profilePic.startsWith('https://') || profilePic.startsWith('data:') || profilePic.startsWith('blob:')) return profilePic;
+  return undefined;
+}
+
 // Reusable member avatar (profile pic or initials fallback)
 function MemberAvatar({ m, size = 5 }: { m: any; size?: number }) {
-  const sizeClass = `w-${size} h-${size}`;
-  const textClass = size <= 5 ? "text-[9px]" : "text-xs";
+  const pixelSize = size * 4;
   const profilePic = m?.userProfilePicture || m?.profile_picture;
-  const firstName = m?.userFirstName || m?.first_name || "";
-  const lastName = m?.userLastName || m?.last_name || "";
-
-  if (profilePic && profilePic !== 'null' && profilePic.trim() !== '') {
-    return (
-      <NextImage
-        src={profilePic}
-        alt={`${firstName} ${lastName}`.trim()}
-        width={size * 4}
-        height={size * 4}
-        className={`${sizeClass} rounded-full object-cover flex-shrink-0 border border-gray-200 dark:border-gray-600`}
-      />
-    );
+  const firstName = (m?.userFirstName || m?.first_name || "").trim();
+  const lastName = (m?.userLastName || m?.last_name || "").trim();
+  let initials = '?';
+  if (firstName && lastName) {
+    initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
+  } else if (firstName) {
+    initials = firstName.substring(0, 2).toUpperCase();
+  } else if (lastName) {
+    initials = lastName.substring(0, 2).toUpperCase();
   }
+  const picUrl = getMemberProfilePicUrl(profilePic);
+
   return (
-    <div
-      className={`${sizeClass} rounded-full bg-primary flex items-center justify-center flex-shrink-0`}
+    <Avatar
+      style={{ width: `${pixelSize}px`, height: `${pixelSize}px` }}
+      className="shrink-0 rounded-full"
     >
-      <span className={`${textClass} font-medium text-white dark:text-black`}>
-        {firstName?.[0]}
-        {lastName?.[0]}
-      </span>
-    </div>
+      {picUrl && (
+        <AvatarImage
+          src={picUrl}
+          alt={`${firstName} ${lastName}`.trim()}
+          className="object-cover"
+        />
+      )}
+      <AvatarFallback className="text-[10px] font-semibold bg-primary text-primary-foreground dark:text-black">
+        {initials}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 

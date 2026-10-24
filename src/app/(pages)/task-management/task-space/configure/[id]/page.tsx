@@ -1834,16 +1834,14 @@ function OwnersTabContent({
                               <Avatar className="h-7 w-7 flex-shrink-0">
                                 <AvatarImage
                                   src={
-                                    u.profile_picture
-                                      ? u.profile_picture.startsWith("http")
-                                        ? u.profile_picture
-                                        : `${process.env.NEXT_PUBLIC_API_URL}/uploads/users/${u.profile_picture}`
+                                    u.profile_picture && (u.profile_picture.startsWith("http") || u.profile_picture.startsWith("data:") || u.profile_picture.startsWith("blob:"))
+                                      ? u.profile_picture
                                       : undefined
                                   }
                                   alt={`${u.first_name} ${u.last_name}`}
                                 />
                                 <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                  {(u.first_name?.[0] || '').toUpperCase()}{(u.last_name?.[0] || '').toUpperCase() || '?'}
+                                  {(u.first_name?.trim()?.[0] || '').toUpperCase()}{(u.last_name?.trim()?.[0] || '').toUpperCase() || '?'}
                                 </AvatarFallback>
                               </Avatar>
 
@@ -1910,16 +1908,14 @@ function OwnersTabContent({
                           <Avatar className="h-7 w-7 flex-shrink-0">
                             <AvatarImage
                               src={
-                                o.profile_pic
-                                  ? o.profile_pic.startsWith("http")
-                                    ? o.profile_pic
-                                    : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${o.profile_pic}`
+                                o.profile_pic && (o.profile_pic.startsWith("http") || o.profile_pic.startsWith("data:") || o.profile_pic.startsWith("blob:"))
+                                  ? o.profile_pic
                                   : undefined
                               }
                               alt={`${o.first_name} ${o.last_name}`}
                             />
                             <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                              {(o.first_name?.[0] || '').toUpperCase()}{(o.last_name?.[0] || '').toUpperCase() || (!o.first_name && !o.name ? '?' : '')}
+                              {(o.first_name?.trim()?.[0] || '').toUpperCase()}{(o.last_name?.trim()?.[0] || '').toUpperCase() || (!o.first_name && !o.name ? '?' : '')}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-sm font-medium">
@@ -2123,16 +2119,14 @@ function ResourcesTabContent({
                               <Avatar className="h-7 w-7 flex-shrink-0">
                                 <AvatarImage
                                   src={
-                                    r.profile_pic
-                                      ? r.profile_pic.startsWith("http")
-                                        ? r.profile_pic
-                                        : `${process.env.NEXT_PUBLIC_API_URL}/uploads/resource/${r.profile_pic}`
+                                    r.profile_pic && (r.profile_pic.startsWith("http") || r.profile_pic.startsWith("data:") || r.profile_pic.startsWith("blob:"))
+                                      ? r.profile_pic
                                       : undefined
                                   }
                                   alt={`${r.first_name} ${r.last_name}`}
                                 />
                                 <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
-                                  {(r.first_name?.[0] || '').toUpperCase()}{(r.last_name?.[0] || '').toUpperCase() || '?'}
+                                  {(r.first_name?.trim()?.[0] || '').toUpperCase()}{(r.last_name?.trim()?.[0] || '').toUpperCase() || '?'}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-sm font-medium">

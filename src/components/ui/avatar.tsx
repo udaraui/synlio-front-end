@@ -36,8 +36,10 @@ function AvatarImage({
 
 function AvatarFallback({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+  const content = typeof children === "string" ? children.trim() : children;
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
@@ -46,8 +48,10 @@ function AvatarFallback({
         className
       )}
       {...props}
-    />
-  )
+    >
+      {content}
+    </AvatarPrimitive.Fallback>
+  );
 }
 
 function AvatarBadge({

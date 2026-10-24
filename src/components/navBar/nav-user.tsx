@@ -39,12 +39,11 @@ export function NavUser({ onOpenThemeSettings }: NavUserProps = {}) {
     if (!user?.profile_picture) return null;
 
     // If profile_picture is already a full URL (starts with http/https), use it as is
-    if (user.profile_picture.startsWith('http://') || user.profile_picture.startsWith('https://')) {
+    if (user.profile_picture.startsWith('http://') || user.profile_picture.startsWith('https://') || user.profile_picture.startsWith('data:') || user.profile_picture.startsWith('blob:')) {
       return user.profile_picture;
     }
 
-    // Otherwise, construct the URL with API_URL
-    return `${API_URL}/uploads/users/${user.profile_picture}`;
+    return null;
   };
 
   const profilePicUrl = getProfilePictureUrl();
@@ -63,7 +62,7 @@ export function NavUser({ onOpenThemeSettings }: NavUserProps = {}) {
               className="object-cover"
             />
             <AvatarFallback className="text-sm bg-primary font-semibold">
-              {`${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase()}
+              {`${user?.first_name?.trim()?.[0] || ''}${user?.last_name?.trim()?.[0] || ''}`.toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </Button>
