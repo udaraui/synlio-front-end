@@ -1,6 +1,7 @@
 import { Division } from "./division";
 import { UserCompanyRole } from "./user-company-role";
 import { Company } from '@/interfaces/company';
+import { Role } from './role';
 
 export interface User {
   id: number;
@@ -16,5 +17,6 @@ export interface User {
   updatedBy?: string;
   divisions?: Division[];
   companies?: Company[];
+  roles?: Role[];
   userCompanyRoles?: UserCompanyRole[];
 }

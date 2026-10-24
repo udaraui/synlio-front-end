@@ -73,12 +73,31 @@ function RolesPermissions({
 
     // First filter by company ID if one is selected
     let companyFilteredRoles = user.userCompanyRoles;
+
+    // Fallback: If userCompanyRoles is missing or empty, synthesize it mapping over user.roles
+    if (!companyFilteredRoles || companyFilteredRoles.length === 0) {
+      if (user.roles?.length) {
+        companyFilteredRoles = user.roles.map((r, index) => ({
+          id: r.id || index,
+          user_id: user.id,
+          userId: user.id,
+          role_id: r.id,
+          roleId: r.id,
+          company_id: user.companies?.[0]?.id || 0,
+          companyId: user.companies?.[0]?.id || 0,
+          role: r,
+          company: user.companies?.[0],
+          user: user,
+        }));
+      }
+    }
+
     if (targetCompanyId) {
-      companyFilteredRoles = user.userCompanyRoles?.filter((ucr) => {
+      companyFilteredRoles = companyFilteredRoles?.filter((ucr) => {
         const cid = Number(
           ucr.company?.id ??
           (ucr as any).companyId ??
-          (ucr as any).company_id ??
+          ucr.company_id ??
           0
         );
         return cid === Number(targetCompanyId);
@@ -110,7 +129,7 @@ function RolesPermissions({
           privilege.group?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     });
-  }, [user.userCompanyRoles, searchTerm, isSystemUser, filterCompanyId]);
+  }, [user.userCompanyRoles, user.roles, user.companies, searchTerm, isSystemUser, filterCompanyId]);
 
   // Collect all unique privilege groups across all visible roles for the filter popover
   const availableGroups = useMemo(() => {
@@ -121,7 +140,25 @@ function RolesPermissions({
     const targetCompanyId = isSystemUser
       ? filterCompanyId ? parseInt(filterCompanyId) : null
       : selectedCompany?.companyId;
+
     let roles = user.userCompanyRoles;
+    if (!roles || roles.length === 0) {
+      if (user.roles?.length) {
+        roles = user.roles.map((r, index) => ({
+          id: r.id || index,
+          user_id: user.id,
+          userId: user.id,
+          role_id: r.id,
+          roleId: r.id,
+          company_id: user.companies?.[0]?.id || 0,
+          companyId: user.companies?.[0]?.id || 0,
+          role: r,
+          company: user.companies?.[0],
+          user: user,
+        }));
+      }
+    }
+
     if (targetCompanyId) {
       roles = roles?.filter((r) => r.company?.id === targetCompanyId);
     }
@@ -132,7 +169,7 @@ function RolesPermissions({
       });
     });
     return Array.from(groups).sort();
-  }, [user.userCompanyRoles, isSystemUser, filterCompanyId]);
+  }, [user.userCompanyRoles, user.roles, user.companies, isSystemUser, filterCompanyId]);
 
   // Get filtered privileges for a specific role
   const getFilteredPrivileges = (privileges: any[]) => {

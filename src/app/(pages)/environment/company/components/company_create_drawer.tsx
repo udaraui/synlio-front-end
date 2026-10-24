@@ -54,6 +54,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createCompany } from "@/services/company-management/company-services";
 import { load } from "@/services/user-management/user-service";
 import { ActiveStatus } from "@/interfaces/common/status.enum";
+import { joinCompanyAddress } from "@/lib/company-address";
 
 interface CompanyCreateDrawerProps {
   open: boolean;
@@ -64,7 +65,9 @@ interface CompanyCreateDrawerProps {
 
 const formSchema = z.object({
   company: z.string().min(1, { message: "Company name is required." }),
-  company_code: z.string().min(1, { message: "Company code is required." }),
+  company_address: z.string().optional(),
+  company_address_2: z.string().optional(),
+  company_address_3: z.string().optional(),
   logo: z.instanceof(File).optional(),
   active_status: z.nativeEnum(ActiveStatus).optional(),
   users: z.array(z.number()).optional().default([]),
@@ -87,7 +90,9 @@ export function CompanyCreateDrawer({
     defaultValues: {
       logo: undefined,
       company: "",
-      company_code: "",
+      company_address: "",
+      company_address_2: "",
+      company_address_3: "",
       active_status: ActiveStatus.ACTIVE,
       users: [] as number[],
     },
@@ -125,7 +130,9 @@ export function CompanyCreateDrawer({
       form.reset({
         logo: undefined,
         company: "",
-        company_code: "",
+        company_address: "",
+        company_address_2: "",
+        company_address_3: "",
         active_status: ActiveStatus.ACTIVE,
         users: [],
       });
@@ -138,7 +145,11 @@ export function CompanyCreateDrawer({
     try {
       const response = await createCompany({
         company: data.company,
-        company_code: data.company_code,
+        address: joinCompanyAddress(
+          data.company_address,
+          data.company_address_2,
+          data.company_address_3,
+        ),
         logo: data.logo,
         users: data.users,
       });
@@ -221,16 +232,33 @@ export function CompanyCreateDrawer({
                 />
 
                 <div className="flex-1 space-y-5 w-full">
-                  {/* Name + Code */}
-                  <div className="grid grid-cols-2 gap-5">
+                  {/* Name (company code is auto-generated on save) */}
+                  <FormField
+                    control={form.control}
+                    name="company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Acme Corporation" className="bg-muted/40" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Address (optional) */}
+                  <div className="space-y-3">
                     <FormField
                       control={form.control}
-                      name="company"
+                      name="company_address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name</FormLabel>
+                          <FormLabel>
+                            Address <span className="text-muted-foreground font-normal">(optional)</span>
+                          </FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. Acme Corporation" className="bg-muted/40" {...field} />
+                            <Input placeholder="Address Line 1" className="bg-muted/40" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -238,12 +266,23 @@ export function CompanyCreateDrawer({
                     />
                     <FormField
                       control={form.control}
-                      name="company_code"
+                      name="company_address_2"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Code</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. ACME" className="bg-muted/40" {...field} />
+                            <Input placeholder="Address Line 2 (Suite, Floor, etc.)" className="bg-muted/40" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="company_address_3"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input placeholder="City, State, ZIP Code" className="bg-muted/40" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -27,6 +27,7 @@ import Image from "next/image";
 import Logo from "../../../public/logo.png";
 import * as React from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const loginFormSchema = z.object({
   email: z.string().toLowerCase().email({
@@ -64,6 +65,59 @@ export default function LoginPage() {
       }
     }
   }, []);
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const response = await axios.post(
+          `${API_URL}/auth/google`,
+          { access_token: tokenResponse.access_token },
+          { withCredentials: true }
+        );
+
+        if (response.status === 201 || response.status === 200) {
+          const { access_token, return_user } = response.data;
+
+          // Apply the same company fetching and localStorage logic as the normal email login
+          const companiesResponse = await axios.get(
+            `${API_URL}/authorization/getCompanyByUserId/${return_user.id}`,
+            {
+              headers: { Authorization: `Bearer ${access_token}` },
+              withCredentials: true,
+            }
+          );
+
+          const userCompanies = companiesResponse.data ?? [];
+          localStorage.setItem("companies", JSON.stringify(userCompanies));
+
+          let defaultCompany =
+            userCompanies.find((c: any) => c.is_default === true) ||
+            userCompanies[0];
+          if (defaultCompany) {
+            localStorage.setItem(
+              "active_company",
+              JSON.stringify(defaultCompany)
+            );
+          }
+
+          login(access_token, return_user);
+          const isSystemUser = userCompanies.length === 0;
+          const redirectPath =
+            searchParams?.get("redirect") ||
+            (isSystemUser ? "/user-management" : "/home");
+          router.replace(redirectPath);
+        }
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || "Google authentication failed."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => toast.error("Google login failed or was cancelled."),
+  });
 
   async function onSubmit(values: z.infer<typeof loginFormSchema>) {
     setIsLoading(true);
@@ -252,7 +306,8 @@ export default function LoginPage() {
                 variant="outline"
                 type="button"
                 className="w-full"
-                onClick={() => toast.info('Under construction')}
+                disabled={isLoading}
+                onClick={() => handleGoogleLogin()}
               >
                 <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

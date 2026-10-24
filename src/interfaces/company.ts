@@ -9,6 +9,7 @@ interface Company {
   company: string;
   company_code: string;
   logo: string;
+  address?: string;
   suspend_on: Date;
   createdBy: string;
   createdAt: Date;

@@ -6,6 +6,7 @@ import { PrivilegeProvider } from '@/contexts/userPrivilege.context';
 import { AuthProvider } from '@/contexts/auth.context';
 import { DynamicTitle } from '@/components/common/DynamicTitle';
 import { ThemeProvider } from '@/components/theme-wrapper';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 export const metadata: Metadata = {
   title: 'Synlio',
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <title>Synlio</title>
     </head>
     <body className={`antialiased`} suppressHydrationWarning>
+    <GoogleOAuthProvider clientId="395673281133-fpmhgpvhv9ichte6bjai079ne0tnh1n4.apps.googleusercontent.com">
     <ThemeProvider
       attribute="class"
       defaultTheme="system"
@@ -47,6 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </AuthProvider>
       </main>
     </ThemeProvider>
+    </GoogleOAuthProvider>
     </body>
     </html>
   );
