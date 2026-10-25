@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import {
-  Flag,
   Calendar,
   ArrowUpRight,
   ArrowRight,
@@ -163,7 +162,7 @@ export default function EmailPreviewPage() {
               </div>
 
               {/* Metadata Table Rows (Matches Project/Ticket Cards) */}
-              <div className="divide-y divide-slate-100 dark:divide-[#1e2d4d] px-6 sm:px-8 border-t border-slate-100 dark:border-[#1e2d4d]">
+              <div className="divide-y divide-slate-100 dark:divide-[#111a2e] px-6 sm:px-8 border-t border-slate-100 dark:border-[#111a2e]">
                 {/* Status Row */}
                 <div
                   className={`py-3 text-xs sm:text-sm flex ${
@@ -209,12 +208,12 @@ export default function EmailPreviewPage() {
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-[#091322] border border-slate-200 dark:border-[#1e2d4d] text-slate-500 opacity-60">
-                      <Flag className="w-3 h-3 fill-slate-400" />
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
                       Medium
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-white dark:bg-[#091322] border border-slate-200 dark:border-[#1e2d4d]">
-                      <Flag className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-white dark:bg-[#091322] border border-slate-200 dark:border-[#1e2d4d] text-slate-700 dark:text-slate-200">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Low
                     </span>
                   </div>
@@ -396,7 +395,7 @@ export default function EmailPreviewPage() {
               </div>
 
               {/* Action / CTA Section */}
-              <div className="p-6 sm:p-8 pt-4 text-center border-t border-slate-100 dark:border-[#1e2d4d]">
+              <div className="p-6 sm:p-8 pt-4 text-center border-t border-slate-100 dark:border-[#111a2e]">
                 <button className="inline-flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white dark:text-black font-semibold text-sm px-6 py-2.5 rounded-md transition-all cursor-pointer">
                   <span>View in Synlio</span>
                   <ArrowUpRight className="w-4 h-4" />
