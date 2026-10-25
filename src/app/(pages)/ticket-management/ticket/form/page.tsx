@@ -38,6 +38,7 @@ import {
   Bookmark,
   Unlink,
   Trash2,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -2386,7 +2387,10 @@ export default function CreateTicketPage() {
                       Creating...
                     </>
                   ) : (
-                    "Create Ticket"
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Create Ticket
+                    </>
                   )}
                 </Button>
               )}

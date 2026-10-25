@@ -110,7 +110,7 @@ export default function EmailPreviewPage() {
         {/* Email Card Shell */}
         <div className="bg-white dark:bg-black border border-slate-200 dark:border-[#1e2d4d] rounded-xl overflow-hidden transition-colors">
           {/* ── Brand Header (Matches Synlio Deep Navy) ── */}
-          <div className="bg-[#0b1329] dark:bg-[#050b17] px-6 sm:px-8 py-5 flex items-center justify-between border-b border-[#0b1329] dark:border-b-[#1e2d4d]">
+          <div className="bg-[#0b1329] dark:bg-[#050b17] px-6 sm:px-8 py-5 flex items-center justify-between border-b-0">
             <div className="flex items-center gap-2.5">
               <Image
                 src={Logo}
