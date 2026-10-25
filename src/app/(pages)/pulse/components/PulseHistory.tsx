@@ -8,7 +8,7 @@ import { PulseType } from "@/enums/pulse-type.enum";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { format } from 'date-fns';
 import { type DateRange } from 'react-day-picker';
-import { ArrowRight, TriangleAlert, UserStar, Users, Video, ChevronLeft, ChevronRight, PackageOpen, Loader2, Check, X, Info, Clock, ClockPlus, MousePointerClick, CalendarDays, Filter } from 'lucide-react';
+import { ArrowRight, TriangleAlert, UserStar, Users, Video, ChevronLeft, ChevronRight, PackageOpen, Loader2, Check, X, Info, Clock, ClockPlus, MousePointerClick, CalendarDays, Filter, Forward, ThumbsUp } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -1903,8 +1903,21 @@ const PulseHistoryPage: React.FC<PulseHistoryPageProps> = ({ user, onActionCompl
                                     onClick={handleActionSubmit}
                                     disabled={actionSubmitting}
                                 >
-                                    {actionSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    {actionModal.forwardToId ? 'Forward' : 'Approve'}
+                                    {actionSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            {actionModal.forwardToId ? 'Forwarding...' : 'Approving...'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            {actionModal.forwardToId ? (
+                                                <Forward className="w-4 h-4 mr-2" />
+                                            ) : (
+                                                <ThumbsUp className="w-4 h-4 mr-2" />
+                                            )}
+                                            {actionModal.forwardToId ? 'Forward' : 'Approve'}
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Calendar,
@@ -17,12 +17,28 @@ import {
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import Logo from "../../../public/logo.png";
 
-type EmailTab = "alert" | "verification" | "password-reset";
+type EmailTab = "alert" | "verification" | "password-reset" | "pulse-verification";
 
 export default function EmailPreviewPage() {
   const [tab, setTab] = useState<EmailTab>("alert");
   const [isMobile, setIsMobile] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const typeParam = params.get("type");
+      if (typeParam === "pulse" || typeParam === "pulse-verification") {
+        setTab("pulse-verification");
+      } else if (typeParam === "password-reset") {
+        setTab("password-reset");
+      } else if (typeParam === "verification") {
+        setTab("verification");
+      } else if (typeParam === "alert") {
+        setTab("alert");
+      }
+    }
+  }, []);
 
   const handleCopy = (text: string) => {
     if (typeof window !== "undefined" && navigator?.clipboard) {
@@ -70,6 +86,15 @@ export default function EmailPreviewPage() {
                 }`}
             >
               Password Reset
+            </button>
+            <button
+              onClick={() => setTab("pulse-verification")}
+              className={`text-xs font-medium px-3 py-1 rounded-full transition-all cursor-pointer ${tab === "pulse-verification"
+                ? "bg-sky-500 text-white font-semibold"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+            >
+              Pulse Verification
             </button>
           </div>
         </div>
@@ -406,82 +431,152 @@ export default function EmailPreviewPage() {
 
           {/* ── TAB 2: Verification Code Email ─────────────────────────── */}
           {tab === "verification" && (
-            <div className="p-6 sm:p-8">
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight mb-3">
-                Verify your email address
-              </h1>
-              <p className="text-sm mb-3">
-                Thanks for signing up for Synlio! Enter the verification code below to confirm your account and get started.
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 italic mb-4">
-                If you did not request this email, you can safely ignore it.
-              </p>
+            <div>
+              <div className="p-6 sm:p-8 pb-5">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">
+                  <span>Security</span>
+                  <span className="text-slate-400 dark:text-slate-600">/</span>
+                  <span className="text-sky-600 dark:text-sky-400 font-semibold">
+                    Email Verification
+                  </span>
+                </div>
+                <h1 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white tracking-tight leading-snug mb-3">
+                  Verify your email address
+                </h1>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-3">
+                  Thanks for signing up for Synlio! Enter the verification code below to confirm your account and get started.
+                </p>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 italic mb-3">
+                  If you did not request this email, you can safely ignore it.
+                </p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  This code will expire in{" "}
+                  <strong className="text-slate-900 dark:text-white font-semibold">
+                    15 minutes
+                  </strong>
+                  .
+                </p>
+              </div>
 
-              <p className="text-sm flex items-center gap-1.5">
-                {/* <Clock className="w-3.5 h-3.5 shrink-0" /> */}
-                This code will expire in <strong className="text-slate-700 dark:text-slate-200">15 minutes</strong>
-              </p>
-
-              {/* OTP Digits Card */}
-              <div className="mt-6 mx-auto w-fit bg-slate-50 dark:bg-[#070e1c] border border-slate-200 dark:border-[#1e2d4d] rounded-lg px-8 py-4 text-center">
-                <span className="font-mono text-3xl sm:text-4xl font-bold tracking-[10px] text-slate-900 dark:text-sky-400">
-                  849201
-                </span>
+              {/* Action / OTP Section */}
+              <div className="p-6 sm:p-8 text-center border-t border-slate-100 dark:border-[#111a2e]">
+                <div className="mx-auto w-fit bg-slate-50 dark:bg-[#070e1c] border border-slate-200 dark:border-[#111a2e] rounded-lg px-8 py-4 text-center">
+                  <span className="font-mono text-3xl sm:text-4xl font-bold tracking-[10px] text-slate-900 dark:text-sky-400">
+                    849201
+                  </span>
+                </div>
+                <p className="mt-3.5 text-xs text-slate-500 dark:text-slate-400">
+                  Enter this code on the verification screen to complete your registration.
+                </p>
               </div>
             </div>
           )}
 
           {/* ── TAB 3: Password Reset Email ────────────────────────────── */}
           {tab === "password-reset" && (
-            <div className="p-6 sm:p-8">
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight mb-3">
-                Reset your password
-              </h1>
-              <p className="text-sm mb-3">
-                We received a request to reset the password for your Synlio account. Click the button below to choose a new password.
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 italic mb-4">
-                If you did not request this email, you can safely ignore it.
-              </p>
+            <div>
+              <div className="p-6 sm:p-8 pb-5">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">
+                  <span>Security</span>
+                  <span className="text-slate-400 dark:text-slate-600">/</span>
+                  <span className="text-sky-600 dark:text-sky-400 font-semibold">
+                    Password Reset
+                  </span>
+                </div>
+                <h1 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white tracking-tight leading-snug mb-3">
+                  Reset your password
+                </h1>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-3">
+                  We received a request to reset the password for your Synlio account. Click the button below to choose a new password.
+                </p>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 italic mb-3">
+                  If you did not request this email, you can safely ignore it.
+                </p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  This link will expire in{" "}
+                  <strong className="text-slate-900 dark:text-white font-semibold">
+                    1 hour
+                  </strong>
+                  .
+                </p>
+              </div>
 
-              <p className="text-sm flex items-center gap-1.5">
-                This link will expire in <strong className="text-slate-700 dark:text-slate-200">1 hour</strong>
-              </p>
-
-              {/* CTA Button */}
-              <div className="mt-6 text-center">
-                <button className="inline-flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white dark:text-black font-semibold text-sm px-6 py-2.5 rounded-md transition-all cursor-pointer">
+              {/* Action / CTA Section */}
+              <div className="p-6 sm:p-8 text-center border-t border-slate-100 dark:border-[#111a2e]">
+                <button className="inline-flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm px-6 py-2.5 rounded-md transition-all cursor-pointer">
                   <span>Reset Password</span>
                   <ArrowUpRight className="w-4 h-4" />
                 </button>
+
+                {/* Fallback URL Box */}
+                <div className="mt-5 bg-slate-50 dark:bg-[#070e1c] border border-slate-200 dark:border-[#111a2e] rounded-lg p-3.5 text-left">
+                  <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    If the button doesn&apos;t work, copy and paste this link into your browser:
+                  </span>
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <span className="text-xs text-sky-600 dark:text-sky-400 break-all select-all font-mono">
+                      https://app.synlio.com/reset-password?token=sample-reset-token-12345
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopy(
+                          "https://app.synlio.com/reset-password?token=sample-reset-token-12345"
+                        )
+                      }
+                      className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-[#111a2e] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors shrink-0 cursor-pointer"
+                      title={copied ? "Copied!" : "Copy link"}
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 4: Pulse Verification Email ────────────────────────── */}
+          {tab === "pulse-verification" && (
+            <div>
+              <div className="p-6 sm:p-8 pb-5">
+                {/* <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">
+                  <span className="text-sky-600 dark:text-sky-400 font-semibold">
+                    Weekly Pulse
+                  </span>
+                </div> */}
+                <h1 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white tracking-tight leading-snug mb-3">
+                  Pulse Snapshot Forwarded
+                </h1>
+
+                {/* Actor Info Row */}
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-7 h-7 rounded-full bg-sky-500 text-white dark:text-black font-bold text-xs flex items-center justify-center">
+                    KA
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                    <strong className="text-slate-900 dark:text-white font-semibold">
+                      Kasun Ariyasinghe
+                    </strong>{" "}
+                    requested your review
+                  </p>
+                </div>
+
+                {/* Forwarded Callout Note */}
+                <div className="p-4 rounded-r-lg text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                  Hi, please review and approve this weekly pulse snapshot.
+                </div>
               </div>
 
-              {/* Fallback URL Box */}
-              <div className="mt-6 border border-slate-200 dark:border-[#1e2d4d] rounded-lg p-3.5">
-                <span className="block text-sm text-slate-500 dark:text-slate-400 mb-1">
-                  If the button doesn&apos;t work, click the link below.
-                </span>
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <span className="text-sm text-sky-600 dark:text-sky-400 break-all select-all">
-                    https://app.synlio.com/reset-password?token=sample-reset-token-12345
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleCopy(
-                        "https://app.synlio.com/reset-password?token=sample-reset-token-12345"
-                      )
-                    }
-                    className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-[#1e2d4d] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors shrink-0 cursor-pointer"
-                    title={copied ? "Copied!" : "Copy link"}
-                  >
-                    {copied ? (
-                      <Check className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
+              {/* Action / CTA Section */}
+              <div className="p-6 sm:p-8 text-center border-t border-slate-100 dark:border-[#111a2e]">
+                <button className="inline-flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm px-6 py-2.5 rounded-md transition-all cursor-pointer">
+                  <span>Review Snapshot</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           )}
