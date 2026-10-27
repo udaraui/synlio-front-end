@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Layers, Folder, CheckSquare, ChevronDown } from "lucide-react";
+import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Folder, CheckSquare, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import {
   LayoutDashboardIcon,
   TicketIcon as AnimatedTicketIcon,
 } from "@animateicons/react/lucide";
+import { InlineCopilotBadge } from "@/components/common/CopilotToolbarButton";
 
 import {
   InlineEditableStatus,
@@ -187,12 +188,15 @@ function ContinuousAnimatedAnalystIcon({
   );
 }
 
+import { TicketDraftCard } from "@/components/copilot/TicketDraftCard";
+
 export interface Message {
   id: string;
   role: "user" | "ai";
   content: string;
   isThinking?: boolean;
   isStreaming?: boolean;
+  draftPayload?: any;
 }
 
 // Helper to extract primary RGB values from CSS variable --primary
@@ -494,8 +498,22 @@ const renderTemplateBadge = (rawText: string, primaryFallback: string, key?: any
 
 const renderCleanProseText = (children: React.ReactNode): React.ReactNode => {
   if (typeof children === 'string') {
-    if (!children.includes('{{')) return children;
-    return children.replace(/\{\{[^:]+::([^:}]+)(?:::.*?)?\}\}/g, '$1');
+    let text = children;
+    if (text.includes('{{')) {
+      text = text.replace(/\{\{[^:]+::([^:}]+)(?:::.*?)?\}\}/g, '$1');
+    }
+
+    if (/co-pilot/i.test(text)) {
+      const parts = text.split(/(co-pilot)/i);
+      return parts.map((part, idx) => {
+        if (/^co-pilot$/i.test(part)) {
+          return <InlineCopilotBadge key={`inline-copilot-${idx}`} />;
+        }
+        return part;
+      });
+    }
+
+    return text;
   }
 
   if (Array.isArray(children)) {
@@ -650,7 +668,7 @@ const markdownComponents = {
     }
     return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderCleanProseText(children)}</p>;
   },
-  strong: ({ node, ...props }: any) => <strong className="font-semibold text-foreground" {...props} />,
+  strong: ({ node, children, ...props }: any) => <strong className="font-semibold text-foreground" {...props}>{renderCleanProseText(children)}</strong>,
   h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-foreground" {...props} />,
   h2: ({ node, ...props }: any) => <h2 className="text-xl font-semibold mt-6 mb-3 text-foreground" {...props} />,
   h3: ({ node, children, ...props }: any) => {
@@ -1061,20 +1079,26 @@ const markdownComponents = {
 
 interface ChatMessageItemProps {
   msg: Message;
+  isLatest?: boolean;
   onSelectAction?: (actionText: string, msgId?: string) => void;
   onDismissAction?: (msgId: string) => void;
   actionState?: 'dismissed' | 'full_list' | null;
   isLoading?: boolean;
   mode?: "full" | "panel";
+  onSelectOption?: (optionName: string, msgId?: string) => void;
+  onCancelDraft?: (msgId: string) => void;
 }
 
 const ChatMessageItem = React.memo(function ChatMessageItem({
   msg,
+  isLatest = true,
   onSelectAction,
   onDismissAction,
   actionState = null,
   isLoading = false,
   mode = "full",
+  onSelectOption,
+  onCancelDraft,
 }: ChatMessageItemProps) {
   const isFinished = !msg.isStreaming && !msg.isThinking;
   const previewMatch = msg.role === "ai" && isFinished
@@ -1134,6 +1158,18 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                     .replace(/###\s*(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/gi, '### ')
                     .replace(/###\s*\d+\.\s*/g, '### ')}
                 </ReactMarkdown>
+
+                {msg.draftPayload && mode === "panel" && (msg.draftPayload.status !== "NEEDS_INPUT" || isLatest) && (
+                  <TicketDraftCard
+                    payload={msg.draftPayload}
+                    onSelectOption={(_field, opt) => {
+                      onSelectOption?.(opt.name, msg.id);
+                    }}
+                    onCancel={() => {
+                      onCancelDraft?.(msg.id);
+                    }}
+                  />
+                )}
 
                 {hasPreview && (
                   <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 px-4 py-3 rounded-xl border border-border">
@@ -1227,6 +1263,7 @@ export function CopilotChatView({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [actionStates, setActionStates] = useState<Record<string, 'dismissed' | 'full_list'>>({});
+  const [pendingDraft, setPendingDraft] = useState<any>(null);
 
   const [internalConvId, setInternalConvId] = useState<string>(() => {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -1292,10 +1329,10 @@ export function CopilotChatView({
 
     const taskSpaceName = !activeContext?._unselected_task_space
       ? (
-          activeContext?.taskSpaceName ||
-          ((agent === "project_analytics" || pathname.includes("/task")) ? activeContext?.spaceName : undefined) ||
-          (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined)
-        )
+        activeContext?.taskSpaceName ||
+        ((agent === "project_analytics" || pathname.includes("/task")) ? activeContext?.spaceName : undefined) ||
+        (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined)
+      )
       : undefined;
 
     const isTaskDomain =
@@ -1316,10 +1353,10 @@ export function CopilotChatView({
     // 2. Ticket Management Domain
     const ticketSpaceName = !activeContext?._unselected_ticket_space
       ? (
-          activeContext?.ticketSpaceName ||
-          ((agent === "ticket_analytics" || pathname.includes("/ticket")) ? activeContext?.spaceName : undefined) ||
-          (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined)
-        )
+        activeContext?.ticketSpaceName ||
+        ((agent === "ticket_analytics" || pathname.includes("/ticket")) ? activeContext?.spaceName : undefined) ||
+        (pageTitle?.startsWith("Space: ") ? pageTitle.replace("Space: ", "").trim() : undefined)
+      )
       : undefined;
 
     const isTicketDomain =
@@ -1337,13 +1374,13 @@ export function CopilotChatView({
     // 3. Resource Management Domain
     const poolName = !activeContext?._unselected_resource_group
       ? (
-          activeContext?.resourceGroupName ||
-          activeContext?.resourcePoolName ||
-          activeContext?.poolName ||
-          (pageTitle?.startsWith("Group: ") && pageTitle !== "Group: Resource Group"
-            ? pageTitle.replace("Group: ", "").trim()
-            : undefined)
-        )
+        activeContext?.resourceGroupName ||
+        activeContext?.resourcePoolName ||
+        activeContext?.poolName ||
+        (pageTitle?.startsWith("Group: ") && pageTitle !== "Group: Resource Group"
+          ? pageTitle.replace("Group: ", "").trim()
+          : undefined)
+      )
       : undefined;
 
     const isResourceDomain =
@@ -1550,7 +1587,7 @@ export function CopilotChatView({
         id: "ticket_space",
         type: "ticket_space",
         label: "Ticket Space",
-        value: isSelected ? String(tksName || `ID: ${tksId}`) : "All Ticket Spaces Selected",
+        value: isSelected ? String(tksName || `ID: ${tksId}`) : "No space selected",
         currentId: isSelected ? tksId : undefined,
         isUnselected: !isSelected,
         icon: <Ticket className="w-3 h-3 text-primary shrink-0" />,
@@ -1757,6 +1794,8 @@ export function CopilotChatView({
     setInput("");
     setIsLoading(true);
 
+    let aiMessageId: string | null = null;
+
     try {
       // Extract recent completed conversation history (last 6 messages: ~3 turns)
       const recentHistory = messages
@@ -1778,6 +1817,8 @@ export function CopilotChatView({
       const hasAnyContext = Object.keys(effectiveContext).length > 0;
       const normalizedContext = hasAnyContext ? {
         ...effectiveContext,
+        chatMode: mode,
+        mode: mode,
         resource_group_id: effectiveContext.resource_group_id || effectiveContext.resourceGroupId || effectiveContext.resourcePoolId,
         resource_group_name: effectiveContext.resource_group_name || effectiveContext.resourceGroupName || effectiveContext.resourcePoolName || effectiveContext.poolName,
         task_space_id: effectiveContext.task_space_id || effectiveContext.taskSpaceId,
@@ -1786,20 +1827,22 @@ export function CopilotChatView({
         parent_task_name: effectiveContext.parent_task_name || effectiveContext.parentTaskName,
         ticket_space_id: effectiveContext.ticket_space_id || effectiveContext.ticketSpaceId,
         ticket_space_name: effectiveContext.ticket_space_name || effectiveContext.ticketSpaceName,
-      } : undefined;
+      } : { chatMode: mode, mode: mode };
 
       const response = await chatService.streamChat(
         userMessage.content,
         conversationId,
         agent,
         normalizedContext,
-        recentHistory
+        recentHistory,
+        pendingDraft,
+        mode
       );
 
-      const aiMessageId = (Date.now() + 1).toString();
+      aiMessageId = (Date.now() + 1).toString();
       setMessages((prev) => [
         ...prev,
-        { id: aiMessageId, role: "ai", content: "", isThinking: true, isStreaming: true },
+        { id: aiMessageId!, role: "ai", content: "", isThinking: true, isStreaming: true },
       ]);
 
       setIsLoading(false);
@@ -1807,23 +1850,49 @@ export function CopilotChatView({
       const reader = response.getReader();
       const decoder = new TextDecoder();
       let done = false;
+      let accumulatedText = "";
+      let capturedPayload: any = null;
 
       while (!done && reader) {
         const { value, done: doneReading } = await reader.read();
         done = doneReading;
         if (value) {
-          const chunk = decoder.decode(value, { stream: true });
+          const rawChunk = decoder.decode(value, { stream: true });
+          accumulatedText += rawChunk;
+
+          let displayChunk = rawChunk;
+
+          // Check if stream emitted a structured draft payload
+          if (accumulatedText.includes("__DRAFT_PAYLOAD__")) {
+            const parts = accumulatedText.split("__DRAFT_PAYLOAD__");
+            try {
+              capturedPayload = JSON.parse(parts[1].trim());
+              if (capturedPayload?.draft) {
+                setPendingDraft(capturedPayload.draft);
+              }
+            } catch {
+              // Wait for full JSON chunk
+            }
+          }
 
           setMessages((prev) =>
             prev.map((msg) => {
               if (msg.id === aiMessageId) {
-                if (chunk.includes("__FINAL__")) {
-                  return { ...msg, content: chunk.split("__FINAL__").pop() || "", isThinking: false, isStreaming: false };
+                const nextMsg = { ...msg };
+                if (capturedPayload) {
+                  nextMsg.draftPayload = capturedPayload;
                 }
-                if (chunk.includes("__REPLACE__")) {
-                  return { ...msg, content: chunk.split("__REPLACE__").pop() || "", isThinking: true, isStreaming: true };
+
+                if (displayChunk.includes("__FINAL__")) {
+                  const finalContent = displayChunk.split("__FINAL__").pop() || "";
+                  const cleanContent = finalContent.split("__DRAFT_PAYLOAD__")[0];
+                  return { ...nextMsg, content: cleanContent, isThinking: false, isStreaming: false };
                 }
-                return { ...msg, content: msg.content + chunk, isThinking: false, isStreaming: true };
+                if (displayChunk.includes("__REPLACE__")) {
+                  return { ...nextMsg, content: displayChunk.split("__REPLACE__").pop() || "", isThinking: true, isStreaming: true };
+                }
+                const cleanChunk = displayChunk.split("__DRAFT_PAYLOAD__")[0];
+                return { ...nextMsg, content: nextMsg.content + cleanChunk, isThinking: false, isStreaming: true };
               }
               return msg;
             })
@@ -1832,18 +1901,47 @@ export function CopilotChatView({
       }
 
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === aiMessageId ? { ...msg, isThinking: false, isStreaming: false } : msg
-        )
+        prev.map((msg) => {
+          if (msg.id === aiMessageId) {
+            const finalContent = msg.content.split("__DRAFT_PAYLOAD__")[0];
+            return {
+              ...msg,
+              content: finalContent || (capturedPayload?.summary || ""),
+              draftPayload: capturedPayload || msg.draftPayload,
+              isThinking: false,
+              isStreaming: false,
+            };
+          }
+          return msg;
+        })
       );
     } catch (error) {
       console.error("Error communicating with backend:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "ai",
-        content: "Oops! Something went wrong communicating with the backend. Please ensure the server is running.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      const errorText = "Oops! Something went wrong communicating with the backend. Please ensure the server is running.";
+      setMessages((prev) => {
+        if (aiMessageId && prev.some((m) => m.id === aiMessageId)) {
+          return prev.map((m) =>
+            m.id === aiMessageId
+              ? {
+                  ...m,
+                  content: errorText,
+                  isThinking: false,
+                  isStreaming: false,
+                }
+              : m
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: "ai",
+            content: errorText,
+            isThinking: false,
+            isStreaming: false,
+          },
+        ];
+      });
       setIsLoading(false);
     }
   };
@@ -1955,11 +2053,52 @@ export function CopilotChatView({
               <ChatMessageItem
                 key={msg.id}
                 msg={msg}
+                isLatest={index === messages.length - 1}
                 onSelectAction={handleSelectAction}
                 onDismissAction={handleDismissAction}
                 actionState={actionState}
                 isLoading={isLoading}
                 mode={mode}
+                onSelectOption={(optionName, msgId) => {
+                  if (msgId) {
+                    setMessages((prev) =>
+                      prev.map((m) => (m.id === msgId ? { ...m, draftPayload: null } : m))
+                    );
+                  }
+                  sendMessage(optionName);
+                }}
+                onCancelDraft={(msgId) => {
+                  setPendingDraft(null);
+                  setIsLoading(false);
+                  const userDismissId = Date.now().toString();
+                  const aiResponseId = (Date.now() + 1).toString();
+
+                  setMessages((prev) => {
+                    if (
+                      prev.length > 0 &&
+                      prev[prev.length - 1]?.content === "Process has been dismissed. Let me know if you need help with anything else!"
+                    ) {
+                      return prev;
+                    }
+
+                    const cleaned = prev.map((m) =>
+                      !msgId || m.id === msgId ? { ...m, draftPayload: null } : m
+                    );
+                    return [
+                      ...cleaned,
+                      {
+                        id: userDismissId,
+                        role: "user",
+                        content: "Dismiss ticket creation",
+                      },
+                      {
+                        id: aiResponseId,
+                        role: "ai",
+                        content: "Process has been dismissed. Let me know if you need help with anything else!",
+                      },
+                    ];
+                  });
+                }}
               />
             );
           })
@@ -2060,7 +2199,7 @@ export function CopilotChatView({
                                     }}
                                     className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer"
                                   >
-                                    {badge.icon && badge.icon}
+                                    {/* {badge.icon && badge.icon} */}
                                     <span className="truncate flex-1">{space.name}</span>
                                     {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
                                   </CommandItem>

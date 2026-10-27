@@ -6,6 +6,7 @@ import { type IconHandle } from "@animateicons/react";
 import { Button } from "@/components/ui/button";
 import { useMenuAccess } from "@/hooks/use-menu-access";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export interface CopilotToolbarButtonProps {
   onClick: () => void;
@@ -87,7 +88,33 @@ export function CopilotToolbarButton({
     <div className="ml-auto flex items-center gap-1.5 shrink-0">
       {showDivider && <div className="h-3.5 w-px bg-gray-300 dark:bg-gray-600 mx-1 shrink-0" />}
 
-      {/* Synlio Logo Gradient: Mint/Teal -> Cyan -> Royal Blue -> Violet -> Purple */}
+      <SynlioLogoGradientDef />
+
+      <Button
+        size="sm"
+        variant={variant}
+        className="h-7 px-2.5 gap-2 text-xs border-border shadow-none shrink-0 cursor-pointer hover:bg-accent"
+        onClick={handleClick}
+        onMouseEnter={handleMouseEnter}
+        aria-label="Co-Pilot"
+      >
+        <div className="copilot-animated-icon flex items-center justify-center shrink-0">
+          <SparklesIcon
+            ref={iconRef}
+            size={15}
+            duration={1.2}
+            isAnimated={false}
+          />
+        </div>
+        Co-Pilot
+      </Button>
+    </div>
+  );
+}
+
+export function SynlioLogoGradientDef() {
+  return (
+    <>
       <svg
         width="0"
         height="0"
@@ -112,26 +139,6 @@ export function CopilotToolbarButton({
           </linearGradient>
         </defs>
       </svg>
-
-      <Button
-        size="sm"
-        variant={variant}
-        className="h-7 px-2.5 gap-2 text-xs border-border shadow-none shrink-0 cursor-pointer hover:bg-accent"
-        onClick={handleClick}
-        onMouseEnter={handleMouseEnter}
-        aria-label="Co-Pilot"
-      >
-        <div className="copilot-animated-icon flex items-center justify-center shrink-0">
-          <SparklesIcon
-            ref={iconRef}
-            size={15}
-            duration={1.2}
-            isAnimated={false}
-          />
-        </div>
-        Co-Pilot
-      </Button>
-
       <style>{`
         .copilot-animated-icon svg {
           overflow: visible !important;
@@ -151,6 +158,60 @@ export function CopilotToolbarButton({
           fill-opacity: 0.9;
         }
       `}</style>
-    </div>
+    </>
   );
 }
+
+export function InlineCopilotBadge({ className }: { className?: string }) {
+  const iconRef = useRef<IconHandle>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const animDuration = 1.2;
+
+    const runLoop = async () => {
+      await new Promise((r) => setTimeout(r, 400));
+      while (isMounted) {
+        if (!iconRef.current) break;
+        const animResult = iconRef.current.startAnimation() as unknown;
+        if (animResult && typeof (animResult as Promise<void>).then === "function") {
+          await animResult;
+        } else {
+          await new Promise((r) => setTimeout(r, Math.round(900 * animDuration)));
+        }
+        if (!isMounted) break;
+        iconRef.current?.stopAnimation();
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    };
+
+    runLoop();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 h-6 px-2 text-xs font-medium border border-border rounded-md bg-background hover:bg-accent text-foreground shadow-xs align-middle mx-1 cursor-default select-none transition-colors",
+        className
+      )}
+      onMouseEnter={() => iconRef.current?.startAnimation()}
+      onClick={() => iconRef.current?.startAnimation()}
+      title="Co-Pilot"
+    >
+      <SynlioLogoGradientDef />
+      <div className="copilot-animated-icon flex items-center justify-center shrink-0">
+        <SparklesIcon
+          ref={iconRef}
+          size={13}
+          duration={1.2}
+          isAnimated={false}
+        />
+      </div>
+      <span>Co-Pilot</span>
+    </span>
+  );
+}
+

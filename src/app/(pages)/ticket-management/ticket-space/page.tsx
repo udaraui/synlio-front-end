@@ -18,14 +18,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CopilotToolbarButton } from '@/components/common/CopilotToolbarButton';
+import { CopilotDrawer } from '@/components/common/CopilotDrawer';
 import { TicketSpaceForm } from './components/TicketSpaceForm';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PaginationControls } from "@/components/common/PaginationControls";
 import TicketSpaceTableView from './components/TicketSpaceTableView';
 import TicketSpaceGridView from './components/TicketSpaceGridView';
@@ -61,6 +55,7 @@ function Page() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [statusCountsBySpace, setStatusCountsBySpace] = useState<Record<number, any[]>>({});
   const [isCountsLoading, setIsCountsLoading] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   // Ref to prevent duplicate fetches
   const isFetchingRef = React.useRef(false);
@@ -353,7 +348,7 @@ function Page() {
             </div>
 
             <CopilotToolbarButton
-              onClick={() => toast.info("Ticket Analyst will be available soon!")}
+              onClick={() => setIsCopilotOpen(true)}
             />
           </div>
         </div>
@@ -472,6 +467,15 @@ function Page() {
         onDelete={confirmDelete}
         title="Delete Ticket Space"
         description="Are you sure you want to delete this ticket space? This action cannot be undone."
+      />
+
+      {/* Copilot Assistant Drawer */}
+      <CopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        agent="ticket_analytics"
+        pageScopeKey="ticket_spaces"
+        pageTitle="Ticket Spaces"
       />
     </div>
   );

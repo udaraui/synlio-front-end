@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
+import { CopilotDrawer } from "@/components/common/CopilotDrawer";
 import {
   Select,
   SelectContent,
@@ -250,6 +251,7 @@ function TicketPage() {
   const isLoadingConfigRef = useRef(false);
 
   // State management
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [ticketSpacesLoaded, setTicketSpacesLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1291,6 +1293,26 @@ function TicketPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Listen for tickets created from copilot or modal to refresh the list automatically
+  useEffect(() => {
+    const handleTicketCreated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const createdSpaceId = customEvent.detail?.ticket?.ticketSpaceId;
+      lastKeyRef.current = "";
+      isFetchingRef.current = false;
+      if (createdSpaceId && String(createdSpaceId) !== selectedTicketSpaceFilter) {
+        setSelectedTicketSpaceFilter(String(createdSpaceId));
+      } else {
+        fetchData();
+      }
+    };
+
+    window.addEventListener("synlio:ticket-created", handleTicketCreated);
+    return () => {
+      window.removeEventListener("synlio:ticket-created", handleTicketCreated);
+    };
+  }, [fetchData, selectedTicketSpaceFilter]);
 
   const handleAdd = () => {
     router.push(
@@ -3720,7 +3742,7 @@ function TicketPage() {
               />
             </div>
             <CopilotToolbarButton
-              onClick={() => toast.info("Ticket Analyst will be available soon!")}
+              onClick={() => setIsCopilotOpen(true)}
             />
           </div>
         </div>
@@ -3869,6 +3891,18 @@ function TicketPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        agent="ticket_analytics"
+        context={{
+          ticketSpaceId: selectedTicketSpaceFilter || ticketSpaceId || undefined,
+          ticketSpaceName: ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId))?.name,
+        }}
+        pageScopeKey="tickets"
+        pageTitle="Tickets"
+      />
     </div>
   );
 }
