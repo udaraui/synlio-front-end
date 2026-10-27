@@ -122,13 +122,14 @@ const UserList: React.FC<UserListProps> = ({
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : '';
   const statusTerm = externalStatusTerm !== undefined ? externalStatusTerm : '';
 
+  const safeUsers = Array.isArray(users) ? users : [];
   const totalPages = useServerPagination
-    ? Math.ceil(totalRecords / itemsPerPage)
-    : Math.ceil(users.length / itemsPerPage);
+    ? Math.max(1, Math.ceil(totalRecords / itemsPerPage))
+    : Math.max(1, Math.ceil(safeUsers.length / itemsPerPage));
 
   const currentUsers = useServerPagination
-    ? users
-    : users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    ? safeUsers
+    : safeUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getInitials = (firstName: string, lastName: string) => {
     const f = (firstName || '').trim();
@@ -326,7 +327,7 @@ const UserList: React.FC<UserListProps> = ({
                   <TableBody className="[&_tr:last-child]:border-b [&_tr:last-child]:border-border">
                     {!canViewUser ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-28 text-center text-sm text-destructive">
+                        <TableCell colSpan={isSystemUser ? 7 : 6} className="h-28 text-center text-sm text-destructive">
                           You are not authorized to view users
                         </TableCell>
                       </TableRow>
@@ -368,7 +369,7 @@ const UserList: React.FC<UserListProps> = ({
                       ))
                     ) : currentUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-36 text-center">
+                        <TableCell colSpan={isSystemUser ? 7 : 6} className="h-36 text-center">
                           <div className="flex flex-col items-center gap-2 text-muted-foreground">
                             <Users className="h-8 w-8 opacity-30" />
                             <p className="text-sm text-muted-foreground">No users found</p>

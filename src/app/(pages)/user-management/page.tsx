@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import UserCreateDrawer from "./components/user-create-drawer";
 import UserList from "./components/user-list";
 import { getUserById, load } from "@/services/user-management/user-service";
@@ -29,13 +29,14 @@ const Page = () => {
   const [editUser, setEditUser] = useState<User | null>(null);
 
   const [debouncedNameTerm, setDebouncedNameTerm] = useState("");
-  const [debouncedStatusTerm, setDebouncedStatusTerm] = useState("");
   const [filterCompanyId, setFilterCompanyId] = useState<string>("");
-  const [debouncedFilterCompanyId, setDebouncedFilterCompanyId] = useState("");
   type SortOption = 'name-asc' | 'name-desc' | 'updatedAt-desc' | 'updatedAt-asc' | 'createdAt-desc' | 'createdAt-asc' | '';
   const [sortOption, setSortOption] = useState<SortOption>('');
   const [allCompanies, setAllCompanies] = useState<any[]>([]);
   const [isSystemUser, setIsSystemUser] = useState(false);
+
+  // Request sequence counter to eliminate async race condition overwrites
+  const fetchIdRef = useRef(0);
 
   const canViewUser = usePrivilegeGuard("16") as boolean;
 
@@ -54,25 +55,28 @@ const Page = () => {
     ]);
   }, [setBreadcrumbs]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setAllUsersGetIsLoading(true);
+
     const localCompanies = safeParse(localStorage.getItem("companies")) || [];
     const selectedCompany = safeParse(localStorage.getItem("active_company"));
     const isSystem = localCompanies.length === 0;
 
     try {
+      const targetCompanyIdNum = isSystem && filterCompanyId ? parseInt(filterCompanyId) : undefined;
       const filters = [
         ...(!isSystem && selectedCompany?.companyId
           ? [{ field: "companyId", value: selectedCompany.companyId, matchMode: "equals" }]
           : []),
-        ...(isSystem && debouncedFilterCompanyId
-          ? [{ field: "companyId", value: parseInt(debouncedFilterCompanyId), matchMode: "equals" }]
+        ...(isSystem && targetCompanyIdNum
+          ? [{ field: "companyId", value: targetCompanyIdNum, matchMode: "equals" }]
           : []),
         ...(debouncedNameTerm
           ? [{ field: debouncedNameTerm.includes("@") ? "email" : "first_name", value: debouncedNameTerm, matchMode: "contains" }]
           : []),
-        ...(debouncedStatusTerm
-          ? [{ field: "isActive", value: debouncedStatusTerm === "true", matchMode: "equals" }]
+        ...(statusTerm
+          ? [{ field: "isActive", value: statusTerm === "true", matchMode: "equals" }]
           : []),
       ];
 
@@ -80,6 +84,7 @@ const Page = () => {
         first: (currentPage - 1) * itemsPerPage,
         rows: itemsPerPage,
         filters,
+        targetCompanyId: targetCompanyIdNum,
         multiSorts: [{
           field: (sortOption || 'name-asc').startsWith('name') ? 'first_name' : (sortOption || 'name-asc').startsWith('updatedAt') ? 'updatedAt' : 'createdAt',
           order: (sortOption || 'name-asc').endsWith('-desc') ? '-1' : '1',
@@ -88,40 +93,97 @@ const Page = () => {
 
       if (canViewUser) {
         const result = await load(params);
+
+        // Discard stale in-flight responses if another fetch was triggered
+        if (currentFetchId !== fetchIdRef.current) {
+          return;
+        }
+
         if (result && Array.isArray(result.data)) {
-          setTotalRecords(result.total || result.data.length);
-          const transformedUsers = result.data.map((user: any) => ({
-            id: user.id,
-            first_name: user.first_name || "",
-            last_name: user.last_name || "",
-            email: user.email || "",
-            mobile_number: user.mobile_number || "",
-            isActive: user.isActive,
-            createdAt: user.createdAt || user.created_at || new Date().toISOString(),
-            updatedAt: user.updatedAt || user.updated_at || "",
-            createdBy: user.createdBy || user.created_by || "",
-            updatedBy: user.updatedBy || user.updated_by || "",
-            profile_picture: user.profile_picture || "",
-            userCompanyRoles: user.userCompanyRoles || [],
-            divisions: user.divisions || [],
-          }));
-          setUsers(transformedUsers);
+          if (result.data.length === 0) {
+            // Forcefully clear table when 0 records are returned
+            setUsers([]);
+            setTotalRecords(0);
+          } else {
+            const total = typeof result.total === "number" ? result.total : result.data.length;
+            setTotalRecords(total);
+            const transformedUsers = result.data.map((user: any) => ({
+              id: user.id,
+              first_name: user.first_name || "",
+              last_name: user.last_name || "",
+              email: user.email || "",
+              mobile_number: user.mobile_number || "",
+              isActive: user.isActive,
+              createdAt: user.createdAt || user.created_at || new Date().toISOString(),
+              updatedAt: user.updatedAt || user.updated_at || "",
+              createdBy: user.createdBy || user.created_by || "",
+              updatedBy: user.updatedBy || user.updated_by || "",
+              profile_picture: user.profile_picture || "",
+              userCompanyRoles: user.userCompanyRoles || [],
+              divisions: user.divisions || [],
+            }));
+            setUsers(transformedUsers);
+          }
         } else {
           toast.error("Failed to fetch users");
           setUsers([]);
           setTotalRecords(0);
         }
       } else {
-        toast.error("Not authorized to view users");
-        setUsers([]);
-        setTotalRecords(0);
-        return;
+        if (currentFetchId === fetchIdRef.current) {
+          toast.error("Not authorized to view users");
+          setUsers([]);
+          setTotalRecords(0);
+        }
       }
     } catch (error) {
-      toast.error("Failed to fetch users");
+      if (currentFetchId === fetchIdRef.current) {
+        toast.error("Failed to fetch users");
+        setUsers([]);
+        setTotalRecords(0);
+      }
     } finally {
-      setAllUsersGetIsLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setAllUsersGetIsLoading(false);
+      }
     }
+  }, [
+    canViewUser,
+    filterCompanyId,
+    currentPage,
+    itemsPerPage,
+    debouncedNameTerm,
+    statusTerm,
+    sortOption,
+  ]);
+
+  const handleCompanyChange = (newCompanyId: string) => {
+    // 1. Invalidate any in-flight requests immediately
+    fetchIdRef.current += 1;
+
+    // 2. Forcefully clear users and state immediately
+    setUsers([]);
+    setTotalRecords(0);
+    setSelectedUser(null);
+    setOpenViewDialog(false);
+
+    // 3. Reset page to 1
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+
+    // 4. Set company filter
+    setFilterCompanyId(newCompanyId);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    fetchIdRef.current += 1;
+    setUsers([]);
+    setTotalRecords(0);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+    setStatusTerm(newStatus);
   };
 
   const handleUserClick = async (userId: number) => {
@@ -175,21 +237,17 @@ const Page = () => {
     }
   };
 
-  // Debounce effects
+  // Debounce search input only
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedNameTerm(nameTerm), 500);
+    const t = setTimeout(() => {
+      setDebouncedNameTerm(nameTerm);
+    }, 500);
     return () => clearTimeout(t);
   }, [nameTerm]);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedStatusTerm(statusTerm), 500);
-    return () => clearTimeout(t);
-  }, [statusTerm]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedFilterCompanyId(filterCompanyId), 500);
-    return () => clearTimeout(t);
-  }, [filterCompanyId]);
+    if (currentPage !== 1) setCurrentPage(1);
+  }, [debouncedNameTerm]);
 
   useEffect(() => {
     if (isSystemUser) {
@@ -206,21 +264,10 @@ const Page = () => {
     }
   }, [isSystemUser]);
 
+  // Main fetch effect - re-runs cleanly whenever memoized fetchUsers dependencies change
   useEffect(() => {
     fetchUsers();
-  }, [
-    debouncedNameTerm,
-    debouncedStatusTerm,
-    debouncedFilterCompanyId,
-    currentPage,
-    itemsPerPage,
-    canViewUser,
-    sortOption,
-  ]);
-
-  useEffect(() => {
-    if (currentPage !== 1) setCurrentPage(1);
-  }, [debouncedNameTerm, debouncedStatusTerm, debouncedFilterCompanyId]);
+  }, [fetchUsers]);
 
   const panelOpen = openViewDialog && selectedUser !== null;
 
@@ -247,12 +294,13 @@ const Page = () => {
     <>
       <div className="flex flex-col h-full overflow-hidden pt-8">
         <UserList
+          key={filterCompanyId || "all-companies"}
           users={users}
           onUserClick={handleUserClick}
           searchTerm={nameTerm}
           onNameSearchChange={setNameTerm}
           statusTerm={statusTerm}
-          onStatusSearchChange={setStatusTerm}
+          onStatusSearchChange={handleStatusChange}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           itemsPerPage={itemsPerPage}
@@ -266,7 +314,7 @@ const Page = () => {
           selectedUser={selectedUser}
           isSystemUser={isSystemUser}
           companies={allCompanies}
-          onCompanySearchChange={setFilterCompanyId}
+          onCompanySearchChange={handleCompanyChange}
           companyTerm={filterCompanyId}
           sortOption={sortOption}
           onSortChange={(opt) => setSortOption(opt as any)}
