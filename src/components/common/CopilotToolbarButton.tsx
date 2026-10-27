@@ -202,14 +202,14 @@ export function InlineCopilotBadge({ className }: { className?: string }) {
       title="Co-Pilot"
     >
       <SynlioLogoGradientDef />
-      <div className="copilot-animated-icon flex items-center justify-center shrink-0">
+      <span className="copilot-animated-icon inline-flex items-center justify-center shrink-0">
         <SparklesIcon
           ref={iconRef}
           size={13}
           duration={1.2}
           isAnimated={false}
         />
-      </div>
+      </span>
       <span>Co-Pilot</span>
     </span>
   );

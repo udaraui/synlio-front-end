@@ -666,7 +666,7 @@ const markdownComponents = {
         .replace(/^(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/i, '');
       return <h3 className="text-lg font-medium mt-5 mb-2 text-foreground" {...props}>{cleanText}</h3>;
     }
-    return <p className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderCleanProseText(children)}</p>;
+    return <div className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderCleanProseText(children)}</div>;
   },
   strong: ({ node, children, ...props }: any) => <strong className="font-semibold text-foreground" {...props}>{renderCleanProseText(children)}</strong>,
   h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-foreground" {...props} />,
@@ -1867,8 +1867,12 @@ export function CopilotChatView({
             const parts = accumulatedText.split("__DRAFT_PAYLOAD__");
             try {
               capturedPayload = JSON.parse(parts[1].trim());
-              if (capturedPayload?.draft) {
-                setPendingDraft(capturedPayload.draft);
+              const draftsToSave =
+                capturedPayload?.drafts && Array.isArray(capturedPayload.drafts) && capturedPayload.drafts.length > 0
+                  ? capturedPayload.drafts
+                  : capturedPayload?.draft;
+              if (draftsToSave) {
+                setPendingDraft(draftsToSave);
               }
             } catch {
               // Wait for full JSON chunk
@@ -1987,17 +1991,17 @@ export function CopilotChatView({
             <p className={`text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed ${mode === "panel" ? "max-w-md" : "max-w-xl"}`}>
               {mode === "panel" ? (
                 agent === "project_analytics" ? (
-                  "Pick a prompt below or type what you need to track and manage tasks, milestones, and project health."
+                  "Pick a prompt below or type what you need to create tasks, track milestones, or check project health."
                 ) : agent === "ticket_analytics" ? (
-                  "Pick a prompt below or type what you need to monitor and resolve queues, priorities, and issues."
+                  "Pick a prompt below or type what you need to create tickets, monitor queues, or resolve issues."
                 ) : (
-                  "Pick a prompt below or type what you need to review and manage team capacity, workload, and allocations."
+                  "Pick a prompt below or type what you need to review allocations, manage capacity, or plan work."
                 )
               ) : (
                 <>
-                  Pick a prompt below or type a question to get insights across
+                  Pick a prompt below or type what you need to create tickets, manage tasks,
                   <br />
-                  Resources, Projects and Tickets.
+                  or explore insights across Resources, Projects, and Tickets.
                 </>
               )}
             </p>
@@ -2089,7 +2093,7 @@ export function CopilotChatView({
                       {
                         id: userDismissId,
                         role: "user",
-                        content: "Dismiss ticket creation",
+                        content: "Dismiss the process",
                       },
                       {
                         id: aiResponseId,
