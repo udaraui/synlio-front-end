@@ -13,13 +13,14 @@ export const chatService = {
     context?: Record<string, any>,
     history?: Array<{ role: string; content: string }>,
     pendingDraft?: any,
-    chatMode?: string
+    chatMode?: string,
+    attachments?: Array<{ filename: string; mimeType: string; content?: string; contentText?: string }>
   ): Promise<ReadableStream> => {
     // We use adapter: 'fetch' because standard XHR does not support 
     // raw ReadableStreams in the browser for chunk-by-chunk decoding.
     const response = await axiosInstance.post(
       API_ENDPOINTS.CHAT,
-      { message, conversationId, agent, context, history, pendingDraft, chatMode },
+      { message, conversationId, agent, context, history, pendingDraft, chatMode, attachments },
       {
         responseType: 'stream',
         adapter: 'fetch',

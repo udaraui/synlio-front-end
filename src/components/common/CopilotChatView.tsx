@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Folder, CheckSquare, ChevronDown } from "lucide-react";
+import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Folder, CheckSquare, ChevronDown, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
@@ -197,6 +197,7 @@ export interface Message {
   isThinking?: boolean;
   isStreaming?: boolean;
   draftPayload?: any;
+  attachments?: Array<{ name: string; size?: number; type?: string }>;
 }
 
 // Helper to extract primary RGB values from CSS variable --primary
@@ -1122,19 +1123,38 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
 
   return (
     <div
-      className={`flex ${mode === "panel" ? "px-2" : "px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16"} ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+      className={`flex w-full ${mode === "panel" ? "px-2" : "px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16"} ${msg.role === "user" ? "justify-end" : "justify-start"}`}
     >
       {msg.role === "user" ? (
-        <div
-          className="flex max-w-[80%] items-start gap-3 rounded-2xl px-5 py-2 border bg-primary text-primary-foreground flex-row-reverse rounded-tr-xs"
-        >
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-          </div>
+        <div className={`flex flex-col items-end ${mode === "panel" ? "max-w-[85%]" : "max-w-[80%]"} gap-1.5`}>
+          {msg.attachments && msg.attachments.length > 0 && (
+            <div className="flex flex-wrap items-center justify-end gap-1.5 mb-0.5">
+              {msg.attachments.map((att, i) => (
+                <Badge
+                  key={i}
+                  variant="outline"
+                  className="py-0.5 px-2 text-xs gap-1.5 select-none shadow-none font-normal hover:bg-muted/70 hover:border-foreground/30 transition-all text-foreground cursor-default"
+                >
+                  <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="font-semibold text-foreground truncate max-w-[200px]">{att.name}</span>
+                  {att.size ? (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      ({Math.round(att.size / 1024) || 1} KB)
+                    </span>
+                  ) : null}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {msg.content && (
+            <div className="rounded-2xl px-4 py-2 border bg-primary text-primary-foreground rounded-tr-xs shadow-xs">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="flex max-w-4xl items-start gap-3 w-full text-foreground py-1">
-          <div className="flex-1 overflow-hidden">
+        <div className={`flex items-start gap-3 w-full text-foreground py-1 ${mode === "panel" ? "max-w-none" : "max-w-4xl"}`}>
+          <div className="flex-1 w-full overflow-hidden">
             {msg.isThinking ? (
               <div className="flex items-center gap-2 pt-1 pb-1">
                 <Eclipse size={18} className="text-primary shrink-0" />
@@ -1147,6 +1167,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                   components={markdownComponents as any}
                 >
                   {msg.content
+                    .replace(/(I've prepared [^\n]+)\n+(Please review the details before proceeding\.)/gi, '$1 $2')
                     .replace(/<!--preview_count:\d+-->/g, '')
                     .replace(/(###\s*(?:Key Findings|Overview)[\s\S]*?)(?=\n###|$)/gi, (section) => {
                       return section
@@ -1315,6 +1336,66 @@ export function CopilotChatView({
   const [openPopoverBadgeId, setOpenPopoverBadgeId] = useState<string | null>(null);
   const [availableSpaces, setAvailableSpaces] = useState<Record<string, { id: string | number; name: string }[]>>({});
   const [loadingSpaces, setLoadingSpaces] = useState<Record<string, boolean>>({});
+
+  // Document attachment state for Co-Pilot
+  interface CopilotAttachment {
+    name: string;
+    size: number;
+    type: string;
+    base64?: string;
+    contentText?: string;
+  }
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
+  const [isReadingFile, setIsReadingFile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  const processFiles = async (files: File[]) => {
+    setIsReadingFile(true);
+    const newAttachments: CopilotAttachment[] = [];
+
+    for (const file of files) {
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+      try {
+        if ([".txt", ".csv", ".md", ".json", ".log"].includes(ext)) {
+          const text = await file.text();
+          newAttachments.push({
+            name: file.name,
+            size: file.size,
+            type: file.type || "text/plain",
+            contentText: text,
+          });
+        } else {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          newAttachments.push({
+            name: file.name,
+            size: file.size,
+            type: file.type || "application/octet-stream",
+            base64,
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to read file ${file.name}:`, err);
+        toast.error(`Could not read ${file.name}`);
+      }
+    }
+
+    setAttachments((prev) => [...prev, ...newAttachments]);
+    setIsReadingFile(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(Array.from(files));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   useEffect(() => {
     setActiveContext(context || {});
@@ -1781,13 +1862,18 @@ export function CopilotChatView({
     }
   }, [input]);
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
+  const sendMessage = async (text: string, attachedDocs?: CopilotAttachment[]) => {
+    const hasAttachments = attachedDocs && attachedDocs.length > 0;
+    if (!text.trim() && !hasAttachments) return;
+    if (isLoading) return;
+
+    const displayContent = text.trim();
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: text.trim(),
+      content: displayContent,
+      attachments: hasAttachments ? attachedDocs.map((a) => ({ name: a.name, size: a.size, type: a.type })) : undefined,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -1829,14 +1915,24 @@ export function CopilotChatView({
         ticket_space_name: effectiveContext.ticket_space_name || effectiveContext.ticketSpaceName,
       } : { chatMode: mode, mode: mode };
 
+      const attachmentsPayload = (attachedDocs || []).map((a) => ({
+        filename: a.name,
+        mimeType: a.type,
+        content: a.base64,
+        contentText: a.contentText,
+      }));
+
+      const queryText = text.trim() || (hasAttachments ? "Please review the attached document and create ticket drafts for all identified tasks, issues, or action items." : "");
+
       const response = await chatService.streamChat(
-        userMessage.content,
+        queryText,
         conversationId,
         agent,
         normalizedContext,
         recentHistory,
         pendingDraft,
-        mode
+        mode,
+        attachmentsPayload.length > 0 ? attachmentsPayload : undefined
       );
 
       aiMessageId = (Date.now() + 1).toString();
@@ -1952,12 +2048,56 @@ export function CopilotChatView({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    sendMessage(input);
+    if ((!input.trim() && attachments.length === 0) || isLoading || isReadingFile) return;
+    const currentAttachments = [...attachments];
+    setAttachments([]);
+    sendMessage(input, currentAttachments);
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-background relative overflow-hidden">
+    <div
+      onDragEnter={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current += 1;
+        if (e.dataTransfer.types && Array.from(e.dataTransfer.types).includes("Files")) {
+          setIsDragging(true);
+        }
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current -= 1;
+        if (dragCounterRef.current <= 0) {
+          dragCounterRef.current = 0;
+          setIsDragging(false);
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current = 0;
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          processFiles(Array.from(e.dataTransfer.files));
+        }
+      }}
+      className="flex flex-col h-full w-full bg-background relative overflow-hidden"
+    >
+      {/* Full-panel Drag & Drop Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 bg-background/85 backdrop-blur-xs flex flex-col items-center justify-center border-2 border-dashed border-primary m-3 rounded-2xl pointer-events-none animate-in fade-in-50 duration-150 select-none">
+          <Paperclip className="w-7 h-7 mb-2" />
+          <p className="text-sm font-semibold text-foreground">Drop document anywhere to attach</p>
+          <p className="text-xs text-muted-foreground mt-0.5">PDF, DOCX, CSV, TXT, JSON, Markdown</p>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
@@ -2128,99 +2268,153 @@ export function CopilotChatView({
       <div className="p-3 bg-background">
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto relative flex flex-col overflow-hidden rounded-3xl border border-input bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              processFiles(Array.from(e.dataTransfer.files));
+            }
+          }}
+          className={cn(
+            mode === "panel" ? "w-full max-w-none" : "max-w-4xl mx-auto",
+            "relative flex flex-col overflow-hidden rounded-3xl border bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none",
+            isDragging ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-input"
+          )}
         >
-          {/* Selected Parameters Badges (Dashed Badges with space selector & ignore support) */}
-          {mode === "panel" && contextBadges.length > 0 && (
+          {/* Selected Parameters Badges & Attached Documents (in the same row) */}
+          {((mode === "panel" && contextBadges.length > 0) || attachments.length > 0) && (
             <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3 pb-0.5">
-              <span className="text-xs text-muted-foreground font-medium select-none">
-                Context:
-              </span>
-              {contextBadges.map((badge) => {
-                const isSpaceType = badge.type === "resource_group" || badge.type === "task_space" || badge.type === "ticket_space";
-                const spacesList = availableSpaces[badge.type] || [];
-                const isLoadingSpaces = Boolean(loadingSpaces[badge.type]);
+              {mode === "panel" && contextBadges.length > 0 && (
+                <>
+                  <span className="text-xs text-muted-foreground font-medium select-none">
+                    Context:
+                  </span>
+                  {contextBadges.map((badge) => {
+                    const isSpaceType = badge.type === "resource_group" || badge.type === "task_space" || badge.type === "ticket_space";
+                    const spacesList = availableSpaces[badge.type] || [];
+                    const isLoadingSpaces = Boolean(loadingSpaces[badge.type]);
 
-                return (
-                  <Popover
-                    key={badge.id}
-                    open={openPopoverBadgeId === badge.id}
-                    onOpenChange={(open) => {
-                      setOpenPopoverBadgeId(open ? badge.id : null);
-                      if (open && isSpaceType) {
-                        fetchSpacesForType(badge.type as any);
-                      }
-                    }}
-                  >
-                    <PopoverTrigger asChild>
-                      <Badge
-                        variant="dashed"
-                        className={cn(
-                          "py-0.5 px-2 text-xs gap-1.5 select-none shadow-none cursor-pointer transition-all",
-                          badge.isUnselected
-                            ? "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                            : "hover:bg-muted/70 hover:border-foreground/30"
-                        )}
-                        title={
-                          badge.isUnselected
-                            ? `${badge.label}: ${badge.value}. Click to select a specific space.`
-                            : `${badge.label}: ${badge.value}. Click to switch or uncheck.`
-                        }
+                    return (
+                      <Popover
+                        key={badge.id}
+                        open={openPopoverBadgeId === badge.id}
+                        onOpenChange={(open) => {
+                          setOpenPopoverBadgeId(open ? badge.id : null);
+                          if (open && isSpaceType) {
+                            fetchSpacesForType(badge.type as any);
+                          }
+                        }}
                       >
-                        {!badge.isUnselected && (
-                          <span className="text-muted-foreground font-normal">{badge.label}:</span>
-                        )}
-                        <span className="font-semibold text-foreground truncate max-w-[200px]">
-                          {badge.value}
-                        </span>
-                        <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0 ml-0.5" />
-                      </Badge>
-                    </PopoverTrigger>
+                        <PopoverTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "py-0.5 px-2 text-xs gap-1.5 select-none shadow-none cursor-pointer transition-all",
+                              badge.isUnselected
+                                ? "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                                : "hover:bg-muted/70 hover:border-foreground/30"
+                            )}
+                            title={
+                              badge.isUnselected
+                                ? `${badge.label}: ${badge.value}. Click to select a specific space.`
+                                : `${badge.label}: ${badge.value}. Click to switch or uncheck.`
+                            }
+                          >
+                            {!badge.isUnselected && (
+                              <span className="text-muted-foreground font-normal">{badge.label}:</span>
+                            )}
+                            <span className="font-semibold text-foreground truncate max-w-[200px]">
+                              {badge.value}
+                            </span>
+                            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0 ml-0.5" />
+                          </Badge>
+                        </PopoverTrigger>
 
-                    <PopoverContent className="w-64 p-0 shadow-lg" align="start" side="bottom" sideOffset={6}>
-                      <Command>
-                        <CommandInput
-                          placeholder={`Search ${badge.label.toLowerCase()}s...`}
-                          className="h-8 text-xs"
-                        />
-                        <CommandList className="max-h-[220px]">
-                          <CommandEmpty className="py-2.5 text-center text-xs text-muted-foreground">
-                            {isLoadingSpaces ? "Loading spaces..." : "No items found."}
-                          </CommandEmpty>
+                        <PopoverContent className="w-64 p-0 shadow-lg" align="start" side="bottom" sideOffset={6}>
+                          <Command>
+                            <CommandInput
+                              placeholder={`Search ${badge.label.toLowerCase()}s...`}
+                              className="h-8 text-xs"
+                            />
+                            <CommandList className="max-h-[220px]">
+                              <CommandEmpty className="py-2.5 text-center text-xs text-muted-foreground">
+                                {isLoadingSpaces ? "Loading spaces..." : "No items found."}
+                              </CommandEmpty>
 
-                          {/* List of accessible spaces */}
-                          {isSpaceType && (
-                            <CommandGroup>
-                              {spacesList.map((space) => {
-                                const isCurrent = !badge.isUnselected && String(space.id) === String(badge.currentId);
-                                return (
-                                  <CommandItem
-                                    key={space.id}
-                                    value={space.name}
-                                    onSelect={() => {
-                                      handleSelectSpace(badge.type, space, badge.currentId);
-                                      setOpenPopoverBadgeId(null);
-                                    }}
-                                    className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer"
-                                  >
-                                    {/* {badge.icon && badge.icon} */}
-                                    <span className="truncate flex-1">{space.name}</span>
-                                    {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
-                          )}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                );
-              })}
+                              {/* List of accessible spaces */}
+                              {isSpaceType && (
+                                <CommandGroup>
+                                  {spacesList.map((space) => {
+                                    const isCurrent = !badge.isUnselected && String(space.id) === String(badge.currentId);
+                                    return (
+                                      <CommandItem
+                                        key={space.id}
+                                        value={space.name}
+                                        onSelect={() => {
+                                          handleSelectSpace(badge.type, space, badge.currentId);
+                                          setOpenPopoverBadgeId(null);
+                                        }}
+                                        className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer"
+                                      >
+                                        {/* {badge.icon && badge.icon} */}
+                                        <span className="truncate flex-1">{space.name}</span>
+                                        {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </CommandGroup>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Document Attachment Badges (same row & same size as space badge) */}
+              {attachments.map((att, idx) => (
+                <Badge
+                  key={idx}
+                  variant="outline"
+                  className="py-0.5 pl-2 pr-1 text-xs gap-1.5 select-none shadow-none bg-muted/30 hover:bg-muted/50 transition-all font-normal text-foreground border-border cursor-default"
+                >
+                  <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="font-semibold text-foreground truncate max-w-[170px]">{att.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    ({Math.round(att.size / 1024) || 1} KB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAttachments((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="text-muted-foreground hover:text-destructive p-0.5 rounded hover:bg-muted cursor-pointer transition-colors ml-0.5 flex items-center justify-center"
+                    title="Remove attachment"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </Badge>
+              ))}
             </div>
           )}
 
           <div className="relative flex items-end w-full shadow-none">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.doc,.txt,.csv,.md,.json"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
             <textarea
               ref={textareaRef}
               value={input}
@@ -2231,17 +2425,30 @@ export function CopilotChatView({
                   handleSubmit(e as any);
                 }
               }}
-              placeholder={inputPlaceholder}
-              className="w-full min-h-[56px] max-h-[200px] py-[18px] bg-transparent pl-4 pr-14 text-sm focus:outline-none resize-none overflow-y-auto shadow-none"
+              placeholder={isReadingFile ? "Reading document..." : (attachments.length > 0 ? "Add instructions or press Enter to analyze document..." : inputPlaceholder)}
+              className="w-full min-h-[56px] max-h-[200px] py-[18px] bg-transparent pl-4 pr-24 text-sm focus:outline-none resize-none overflow-y-auto shadow-none"
               rows={1}
             />
-            <Button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 bottom-2 h-10 w-10 p-0 rounded-full shadow-none"
-            >
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+            <div className="absolute right-2 bottom-2 flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || isReadingFile}
+                className="h-10 w-10 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-full cursor-pointer"
+                title="Attach document (PDF, DOCX, TXT, CSV)"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Button
+                type="submit"
+                disabled={(!input.trim() && attachments.length === 0) || isLoading || isReadingFile}
+                className="h-10 w-10 p-0 rounded-full shadow-none cursor-pointer"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </form>
         <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-2">

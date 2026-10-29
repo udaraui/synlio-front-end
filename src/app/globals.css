@@ -763,3 +763,29 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px oklch(15.952% 0.0021 286.039) inset !important;
   -webkit-text-fill-color: white !important;
 }
+
+/* Copilot Card Grid and Action Card Container Responsiveness */
+.copilot-card-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  width: 100%;
+}
+
+@container (min-width: 520px) {
+  .copilot-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@container (min-width: 800px) {
+  .copilot-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@container (min-width: 520px) {
+  .copilot-bulk-action-card {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+}

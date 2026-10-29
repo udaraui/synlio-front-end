@@ -959,11 +959,15 @@ export function InlineEditableAssignee({
           className="inline-flex items-center group/assignee rounded-full transition-all disabled:cursor-not-allowed disabled:opacity-50"
           onClick={(e) => e.stopPropagation()}
           disabled={showLoading || readonly}
-          title={localAssignee ? `${localAssignee.first_name || localAssignee.firstName || localAssignee.userFirstName} ${localAssignee.last_name || localAssignee.lastName || localAssignee.userLastName}` : "Add Assignee"}
+          title={localAssignee?.isUnknown ? undefined : (localAssignee ? `${localAssignee.first_name || localAssignee.firstName || localAssignee.userFirstName} ${localAssignee.last_name || localAssignee.lastName || localAssignee.userLastName}` : "Add Assignee")}
         >
           {showLoading ? (
             <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
               <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+            </div>
+          ) : localAssignee?.isUnknown ? (
+            <div className="w-6 h-6 rounded-full border border-dashed border-gray-400 dark:border-gray-500 flex items-center justify-center flex-shrink-0 ring-1 ring-transparent group-hover/assignee:ring-2 group-hover/assignee:ring-primary/50 transition-all">
+              <span className="text-amber-500 font-bold text-xs select-none">?</span>
             </div>
           ) : localAssignee ? (
             <UserAvatar
