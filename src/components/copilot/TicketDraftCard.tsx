@@ -137,6 +137,9 @@ function SingleTicketDraftItem({
   spacePrefix,
   spaceData,
   warnings = [],
+  createdTicketProp,
+  isSubmittingProp,
+  onCreated,
   onUpdateDraft,
   onDismiss,
 }: {
@@ -146,18 +149,24 @@ function SingleTicketDraftItem({
   spacePrefix: string;
   spaceData?: any;
   warnings?: string[];
+  createdTicketProp?: { id: number; code?: string; name: string; ticketSpaceId?: number } | null;
+  isSubmittingProp?: boolean;
+  onCreated?: (created: { id: number; code?: string; name: string; ticketSpaceId?: number }) => void;
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
 }) {
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdTicket, setCreatedTicket] = useState<{
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
+  const [internalCreatedTicket, setInternalCreatedTicket] = useState<{
     id: number;
     code?: string;
     name: string;
     ticketSpaceId?: number;
   } | null>(null);
+
+  const createdTicket = createdTicketProp || internalCreatedTicket;
+  const isSubmitting = isSubmittingProp || internalIsSubmitting;
 
   // Sync when initialDraft or spaceConfigs update
   useEffect(() => {
@@ -292,7 +301,7 @@ function SingleTicketDraftItem({
       return;
     }
 
-    setIsSubmitting(true);
+    setInternalIsSubmitting(true);
     try {
       let finalAssigneeId = draft.assigneeId;
       const isMe =
@@ -335,12 +344,15 @@ function SingleTicketDraftItem({
       const ticketId = result?.ticketId || result?.id || 0;
       const code = result?.code || result?.prefixCode;
 
-      setCreatedTicket({
+      const createdObj = {
         id: ticketId,
         code,
         name: draft.name,
         ticketSpaceId: draft.ticketSpaceId || result?.ticketSpaceId,
-      });
+      };
+
+      setInternalCreatedTicket(createdObj);
+      onCreated?.(createdObj);
 
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -353,7 +365,7 @@ function SingleTicketDraftItem({
       console.error("Failed to create ticket:", err);
       toast.error(err?.response?.data?.message || "Failed to create ticket");
     } finally {
-      setIsSubmitting(false);
+      setInternalIsSubmitting(false);
     }
   };
 
@@ -492,11 +504,11 @@ function SingleTicketDraftItem({
   }, [warnings]);
 
   return (
-    <div className="w-full group bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between">
+    <div className="w-full group bg-card rounded-xl border border-border shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between">
       <div>
         {/* Section 1: Type Icon, Code/Draft Badge, and Status Tag */}
-        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-dashed border-border">
-          <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/40 border-b border-dashed border-border">
+          <div className="flex items-center gap-2 min-w-0">
             <InlineEditableTicketType
               ticketType={currentTicketType}
               ticketId={createdTicket?.id || 0}
@@ -516,7 +528,7 @@ function SingleTicketDraftItem({
             />
 
             <span
-              className="text-xs font-semibold tracking-wide text-blue-500 dark:text-blue-400 select-none whitespace-nowrap"
+              className="text-xs font-semibold tracking-wide text-primary select-none whitespace-nowrap"
               title={createdTicket?.code ? `Ticket ${createdTicket.code}` : "Ticket draft code"}
             >
               {createdTicket?.code || (spacePrefix ? `${spacePrefix}-?` : "DRAFT")}
@@ -563,8 +575,8 @@ function SingleTicketDraftItem({
         )}
 
         {/* Section 2: Name and Assignee Avatar */}
-        <div className="px-3 py-2.5 space-y-2">
-          <h3 className="text-sm leading-tight">
+        <div className="p-3.5 sm:p-4 space-y-3">
+          <h3 className="text-sm font-semibold leading-snug">
             <span className="inline-flex items-center gap-1.5 w-full">
               <InlineEditableTicketName
                 name={draft.name || ""}
@@ -573,7 +585,7 @@ function SingleTicketDraftItem({
                   setDraft(updated);
                   onUpdateDraft?.(updated);
                 }}
-                className="font-semibold text-gray-900 dark:text-gray-100 truncate"
+                className="font-semibold text-foreground truncate text-[14px]"
               />
               {(draft.description || (draft.name && draft.name.length > 35)) && (
                 <HoverCard openDelay={150}>
@@ -629,8 +641,8 @@ function SingleTicketDraftItem({
       </div>
 
       {/* Section 3: Severity, Queue, and Actions (X and Save) */}
-      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-t border-dashed border-border flex items-center justify-between gap-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="px-3.5 py-2.5 bg-muted/30 border-t border-dashed border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <InlineEditableSeverity
             severity={currentSeverity}
             severities={spaceConfigs.severities}
@@ -729,6 +741,7 @@ export function TicketDraftCard({
   onSelectOption,
   onCancel,
 }: TicketDraftCardProps) {
+  const { user } = useAuth();
   const [warnings, setWarnings] = useState<string[]>(payload.warnings || []);
   const [availableSpaces, setAvailableSpaces] = useState<Array<{ id: number; name: string }>>([]);
   const [spacePrefix, setSpacePrefix] = useState<string>("");
@@ -744,6 +757,9 @@ export function TicketDraftCard({
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [isOptionSelected, setIsOptionSelected] = useState(false);
   const [dismissedIndexSet, setDismissedIndexSet] = useState<Set<number>>(new Set());
+  const [isSubmittingAll, setIsSubmittingAll] = useState(false);
+  const [createdTicketsMap, setCreatedTicketsMap] = useState<Record<number, any>>({});
+  const [editedDraftsMap, setEditedDraftsMap] = useState<Record<number, TicketDraftData>>({});
 
   // Extract list of drafts (supports single draft, array of drafts, payload.drafts, payload.tickets)
   const draftsList: TicketDraftData[] = useMemo(() => {
@@ -774,6 +790,8 @@ export function TicketDraftCard({
     setSelectedSpaceId(null);
     setIsOptionSelected(false);
     setDismissedIndexSet(new Set());
+    setCreatedTicketsMap({});
+    setEditedDraftsMap({});
   }, [payload]);
 
   // Load allowed spaces for fallback / picker
@@ -890,6 +908,113 @@ export function TicketDraftCard({
     }
   };
 
+  // Filter visible drafts (excluding individually dismissed ones)
+  const visibleDrafts = draftsList
+    .map((d, index) => ({
+      draft: {
+        ...d,
+        ...(editedDraftsMap[index] || {}),
+        ticketSpaceId: (editedDraftsMap[index]?.ticketSpaceId) || d.ticketSpaceId || effectiveSpaceId || undefined,
+      },
+      index,
+    }))
+    .filter(({ index }) => !dismissedIndexSet.has(index));
+
+  const uncreatedCount = visibleDrafts.filter(({ index }) => !createdTicketsMap[index]).length;
+
+  const handleCreateAll = async () => {
+    if (isSubmittingAll) return;
+    setIsSubmittingAll(true);
+
+    try {
+      const uncreated = visibleDrafts.filter(({ index }) => !createdTicketsMap[index]);
+      if (uncreated.length === 0) return;
+
+      // Use Promise.all and send ticket array data one by one
+      const creationPromises = uncreated.map(async ({ draft: item, index }) => {
+        let finalAssigneeId = item.assigneeId;
+        const isMe =
+          item.assigneeName?.toLowerCase() === "me" ||
+          item.assigneeName?.toLowerCase() === "myself";
+
+        if ((!finalAssigneeId || isMe) && user?.email && spaceMembers.length > 0) {
+          const myMember = spaceMembers.find(
+            (m) =>
+              m.userEmail?.toLowerCase() === user.email?.toLowerCase() ||
+              Number(m.userId) === Number(user.id)
+          );
+          if (myMember) {
+            finalAssigneeId = Number(myMember.id);
+          }
+        } else if (finalAssigneeId && spaceMembers.length > 0) {
+          const matched = spaceMembers.find(
+            (m) =>
+              Number(m.userId) === Number(finalAssigneeId) ||
+              Number(m.id) === Number(finalAssigneeId)
+          );
+          if (matched) {
+            finalAssigneeId = Number(matched.id);
+          }
+        }
+
+        const createPayload: any = {
+          name: (item.name || "").trim(),
+          description: item.description || "",
+          ticketSpaceId: item.ticketSpaceId || effectiveSpaceId,
+          ticketTypeId: item.ticketTypeId,
+          severityId: item.severityId,
+          statusId: item.statusId,
+          queueId: item.queueId,
+          ticketSlaId: item.ticketSlaId,
+          assigneeId: finalAssigneeId,
+          completionDate: item.completionDate ? new Date(item.completionDate).toISOString() : undefined,
+          plannedEffort: item.plannedEffort,
+        };
+
+        const result = await createTicket(createPayload);
+        const ticketId = result?.ticketId || result?.id || 0;
+        const code = result?.code || result?.prefixCode;
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("synlio:ticket-created", { detail: { ticket: result } })
+          );
+        }
+
+        return {
+          index,
+          createdTicket: {
+            id: ticketId,
+            code,
+            name: item.name,
+            ticketSpaceId: item.ticketSpaceId || result?.ticketSpaceId,
+          },
+        };
+      });
+
+      const results = await Promise.all(creationPromises);
+
+      setCreatedTicketsMap((prev) => {
+        const next = { ...prev };
+        results.forEach(({ index, createdTicket }) => {
+          next[index] = createdTicket;
+        });
+        return next;
+      });
+
+      toast.success(
+        results.length === 1
+          ? "Ticket created successfully!"
+          : `Successfully created all ${results.length} tickets!`
+      );
+    } catch (err: any) {
+      console.error("Failed to create all tickets:", err);
+      toast.error(err?.response?.data?.message || "Failed to create some tickets");
+    } finally {
+      setIsSubmittingAll(false);
+    }
+  };
+
   if (isOptionSelected) {
     return null;
   }
@@ -945,46 +1070,99 @@ export function TicketDraftCard({
     );
   }
 
-  // Filter visible drafts (excluding individually dismissed ones)
-  const visibleDrafts = draftsList
-    .map((d, index) => ({
-      draft: {
-        ...d,
-        ticketSpaceId: d.ticketSpaceId || effectiveSpaceId || undefined,
-      },
-      index,
-    }))
-    .filter(({ index }) => !dismissedIndexSet.has(index));
-
   if (visibleDrafts.length === 0) {
     return null;
   }
 
-  // If multiple tickets: render in responsive grid view matching the ticket grid view
+  // If multiple tickets: render in 2-column responsive grid view with bulk action card below
   if (visibleDrafts.length > 1) {
     return (
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 w-full my-3">
-        {visibleDrafts.map(({ draft: draftItem, index }) => (
-          <SingleTicketDraftItem
-            key={index}
-            initialDraft={draftItem}
-            spaceConfigs={spaceConfigs}
-            spaceMembers={spaceMembers}
-            spacePrefix={spacePrefix}
-            spaceData={spaceData}
-            warnings={index === 0 ? warnings : []}
-            onUpdateDraft={onUpdateDraft}
-            onDismiss={() => handleDismissOne(index)}
-          />
-        ))}
+      <div className="w-full my-3 space-y-3">
+        {/* 2 cards in one row responsive grid with generous width */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          {visibleDrafts.map(({ draft: draftItem, index }) => (
+            <SingleTicketDraftItem
+              key={index}
+              initialDraft={draftItem}
+              spaceConfigs={spaceConfigs}
+              spaceMembers={spaceMembers}
+              spacePrefix={spacePrefix}
+              spaceData={spaceData}
+              warnings={index === 0 ? warnings : []}
+              createdTicketProp={createdTicketsMap[index]}
+              isSubmittingProp={isSubmittingAll}
+              onCreated={(created) => {
+                setCreatedTicketsMap((prev) => ({ ...prev, [index]: created }));
+              }}
+              onUpdateDraft={(updated) => {
+                setEditedDraftsMap((prev) => ({ ...prev, [index]: updated }));
+                onUpdateDraft?.(updated);
+              }}
+              onDismiss={() => handleDismissOne(index)}
+            />
+          ))}
+        </div>
+
+        {/* Bulk Action Card below generated tickets (Matching bring all data card UI) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 px-4 py-3 rounded-xl border border-border">
+          <div className="text-sm flex items-center gap-1.5">
+            {uncreatedCount > 0 ? (
+              <span>
+                There are <strong>{visibleDrafts.length}</strong> ticket drafts ready. Would you like to create them all?
+              </span>
+            ) : (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> All {visibleDrafts.length} tickets created successfully
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {uncreatedCount > 0 && (
+              <>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  disabled={isSubmittingAll}
+                  onClick={handleCreateAll}
+                  className="h-8 gap-1.5 text-xs font-medium cursor-pointer"
+                >
+                  {isSubmittingAll ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving ({uncreatedCount})...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save all ({uncreatedCount})</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSubmittingAll}
+                  onClick={handleDismissAll}
+                  className="h-8 gap-1.5 text-xs font-medium border-dashed text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Dismiss all</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Single ticket: dynamic width with reasonable max-width
+  // Single ticket: dynamic width with comfortable max-width
   const singleItem = visibleDrafts[0];
   return (
-    <div className="w-full max-w-[440px] my-3">
+    <div className="w-full max-w-[560px] my-3">
       <SingleTicketDraftItem
         initialDraft={singleItem.draft}
         spaceConfigs={spaceConfigs}
@@ -992,7 +1170,15 @@ export function TicketDraftCard({
         spacePrefix={spacePrefix}
         spaceData={spaceData}
         warnings={warnings}
-        onUpdateDraft={onUpdateDraft}
+        createdTicketProp={createdTicketsMap[singleItem.index]}
+        isSubmittingProp={isSubmittingAll}
+        onCreated={(created) => {
+          setCreatedTicketsMap((prev) => ({ ...prev, [singleItem.index]: created }));
+        }}
+        onUpdateDraft={(updated) => {
+          setEditedDraftsMap((prev) => ({ ...prev, [singleItem.index]: updated }));
+          onUpdateDraft?.(updated);
+        }}
         onDismiss={() => handleDismissOne(singleItem.index)}
       />
     </div>
