@@ -165,7 +165,7 @@ const formSchema = z.object({
   mobile: z.string().min(1, 'Phone number is required').refine((v) => !v || isValidPhoneNumber(v), {
     message: 'Please enter a valid phone number.',
   }),
-  profile_pic: z.any().optional(),
+  profile_pic: z.any().optional().nullable(),
   division: z.coerce.number().min(1, 'Division is required'),
   calendar: z.coerce.number().min(1, 'Calendar is required'),
   skills: z.array(z.object({
@@ -195,6 +195,8 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
   const [activeTab, setActiveTab] = useState("skills");
   const [loggedCompany, setLoggedCompany] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [hadServerProfilePic, setHadServerProfilePic] = useState(false);
+  const [isRemovingPic, setIsRemovingPic] = useState(false);
   const [reportingPopoverOpen, setReportingPopoverOpen] = useState(false);
 
   // Audit & Calendar state
@@ -323,6 +325,7 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
     } else if (open && type === 'create') {
       form.reset();
       setPreviewUrl(null);
+      setHadServerProfilePic(false);
       setStep(1);
       setInitialReportingPersonId(null);
       setInitialReportingPersonName('');
@@ -380,7 +383,13 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
     try {
       const res = await findOneResource(id);
       const data = res.data;
-      if (data.profile_pic) setPreviewUrl(data.profile_pic);
+      if (data.profile_pic) {
+        setPreviewUrl(data.profile_pic);
+        setHadServerProfilePic(true);
+      } else {
+        setPreviewUrl(null);
+        setHadServerProfilePic(false);
+      }
 
       setAuditInfo({
         createdBy: data.createdBy,
@@ -417,6 +426,7 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
         email: data.email || '',
         mobile: data.mobile ? String(data.mobile) : '',
         working_hours: data.working_hours || 8,
+        profile_pic: data.profile_pic || undefined,
         division: data.division?.id,
         calendar: data.calendar?.id,
         skills: mappedSkills,
@@ -443,6 +453,34 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
       setSkillsByCategory(prev => ({ ...prev, [categoryId]: sRes.data }));
       setSkillLevelsByCategory(prev => ({ ...prev, [categoryId]: lRes.data }));
     } catch (e) { console.error(e); }
+  };
+
+  const handleRemoveProfilePic = async () => {
+    // Immediately clear from UI and set form state to null
+    setPreviewUrl(null);
+    form.setValue('profile_pic', null, { shouldDirty: true, shouldValidate: true });
+    const fileInput = document.getElementById('pic') as HTMLInputElement | null;
+    if (fileInput) fileInput.value = '';
+
+    // Trigger backend API request to set profile_pic to null when editing an existing resource
+    if (type === 'edit' && resourceId && hadServerProfilePic) {
+      setIsRemovingPic(true);
+      try {
+        const removeFormData = new FormData();
+        removeFormData.append('profile_pic', 'null');
+        removeFormData.append('remove_profile_pic', 'true');
+        const res = await updateResource(resourceId, removeFormData);
+        if (res.status === 200 || res.status === 201) {
+          setHadServerProfilePic(false);
+          toast.success('Profile picture removed');
+          onResourceUpdate?.(res.data, 'edit');
+        }
+      } catch {
+        toast.error('Failed to remove profile picture');
+      } finally {
+        setIsRemovingPic(false);
+      }
+    }
   };
 
   const handleFinalSubmit = async (values: FormValues) => {
@@ -516,6 +554,9 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
 
     if (values.profile_pic instanceof File) {
       formData.append('profile_pic', values.profile_pic);
+    } else if (values.profile_pic === null) {
+      formData.append('profile_pic', 'null');
+      formData.append('remove_profile_pic', 'true');
     } else if (typeof values.profile_pic === 'string' && values.profile_pic) {
       formData.append('profile_pic_url', values.profile_pic);
     }
@@ -631,10 +672,10 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                     {/* Profile Section */}
                     <div className="flex flex-col md:flex-row gap-8 items-center">
                       <FormField control={form.control} name="profile_pic" render={({ field }) => (
-                        <div className="flex flex-col items-center gap-3 group">
-                          <div className="relative">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="relative group">
                             <Avatar className="h-25 w-25 shadow-md">
-                              <AvatarImage src={previewUrl || ""} className="object-cover" />
+                              <AvatarImage src={previewUrl || undefined} className="object-cover" />
                               <AvatarFallback className="text-3xl font-semibold bg-primary text-white">
                                 {form.watch("first_name") || form.watch("last_name") ? (
                                   `${(form.watch("first_name") || "").trim().charAt(0)}${(form.watch("last_name") || "").trim().charAt(0)}`.toUpperCase()
@@ -643,10 +684,28 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                 )}
                               </AvatarFallback>
                             </Avatar>
+                            {previewUrl && (
+                              <button
+                                type="button"
+                                title="Remove profile picture"
+                                aria-label="Remove profile picture"
+                                disabled={isRemovingPic}
+                                onClick={handleRemoveProfilePic}
+                                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 cursor-pointer z-10"
+                              >
+                                {isRemovingPic ? (
+                                  <Loader2 className="w-5 h-5 animate-spin text-white" />
+                                ) : (
+                                  <Trash2 className="w-5 h-5 text-red-400 hover:text-red-300 transition-colors" />
+                                )}
+                              </button>
+                            )}
                             <button
                               type="button"
+                              title="Upload profile picture"
+                              aria-label="Upload profile picture"
                               onClick={() => document.getElementById('pic')?.click()}
-                              className="absolute bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
+                              className="absolute z-20 bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95 cursor-pointer"
                             >
                               <Camera className="w-4 h-4" />
                             </button>
@@ -767,21 +826,10 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                 >
                                   {selectedPerson ? (
                                     <div className="flex items-center gap-2 truncate w-full">
-                                      {/* <Avatar className="h-5 w-5 shrink-0">
-                                        <AvatarImage src={selectedPerson.profile_pic || ''} className="object-cover" />
-                                        <AvatarFallback className="bg-primary text-white text-xs font-semibold">
-                                          {((selectedPerson.first_name?.[0] || '') + (selectedPerson.last_name?.[0] || '')).toUpperCase() || '?'}
-                                        </AvatarFallback>
-                                      </Avatar> */}
                                       <div className="flex flex-col items-start leading-tight min-w-0">
                                         <span className="truncate text-foreground text-sm">
                                           {selectedPerson.first_name} {selectedPerson.last_name}
                                         </span>
-                                        {/* {selectedPerson.email && (
-                                          <span className="text-[11px] text-muted-foreground truncate w-full">
-                                            {selectedPerson.email}
-                                          </span>
-                                        )} */}
                                       </div>
                                     </div>
                                   ) : (
@@ -896,9 +944,6 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 h-[72px]">
                           <div className="space-y-0.5">
                             <FormLabel className="text-sm font-semibold">Resource Type <span className="text-red-500">*</span></FormLabel>
-                            {/* <p className="text-[11px] text-muted-foreground">
-                              Select internal or external.
-                            </p> */}
                           </div>
                           <FormControl>
                             <ToggleGroup

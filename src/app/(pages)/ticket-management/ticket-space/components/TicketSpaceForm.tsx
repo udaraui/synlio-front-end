@@ -28,13 +28,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { UnsavedChangesDialog } from '@/components/common/UnsavedChangesDialog';
 import { Settings, Loader2, Save } from 'lucide-react';
-import { generatePrefix } from '@/lib/prefix-generator';
+import {
+  generatePrefix,
+  generatePrefixAlternatives,
+} from '@/lib/prefix-generator';
+import { getAllDivisionsByCompanyId } from '@/services/company-management/division-services';
+import {
+  getTicketSpaceById,
+  checkPrefixExists as checkPrefixService,
+  createTicketSpace,
+  updateTicketSpace,
+} from '@/services/ticket-management/ticket-space.service';
 
 interface TicketSpaceFormProps {
   open: boolean;
@@ -87,144 +97,155 @@ export function TicketSpaceForm({
     mode: 'onChange',
   });
 
-  // Load initial data
+  // Load initial data directly inside useEffect
   useEffect(() => {
-    if (open) {
-      // Reset form to default values
-      form.reset({
-        name: '',
-        prefix: '',
-        description: '',
-        divisionId: 0,
-      });
-      setPrefixManuallyEdited(false);
-      setHasUnsavedChanges(false);
-      setPrefixError('');
-      setCreatedTicketSpaceId(null);
-      setUpdatedTicketSpaceId(null);
-      setUpdatedTicketSpaceId(null);
-      loadFormData();
-    }
-  }, [open, type, id]);
+    if (!open) return;
 
-  const loadFormData = async () => {
+    let isMounted = true;
+
+    // Reset form to default values
+    form.reset({
+      name: '',
+      prefix: '',
+      description: '',
+      divisionId: 0,
+    });
+    setPrefixManuallyEdited(false);
+    setHasUnsavedChanges(false);
+    setPrefixError('');
+    setCreatedTicketSpaceId(null);
+    setUpdatedTicketSpaceId(null);
     setIsInitializing(true);
-    try {
-      // Get active company from localStorage
-      const activeCompany = JSON.parse(localStorage.getItem('active_company') || '{}');
 
-      if (activeCompany?.companyId) {
-        setActiveCompanyId(activeCompany.companyId);
-        // Load divisions for the active company
-        await loadDivisions(activeCompany.companyId);
-      } else {
-        toast.error('No active company found. Please select a company');
-      }
+    const initializeForm = async () => {
+      try {
+        // Get active company from localStorage
+        const activeCompany = JSON.parse(localStorage.getItem('active_company') || '{}');
+        const companyId = activeCompany?.companyId;
 
-      // If editing, load existing data AFTER divisions are loaded
-      if (type === 'edit' && id) {
-        try {
-          const { getTicketSpaceById } = await import('@/services/ticket-management/ticket-space.service');
-          const response = await getTicketSpaceById(id);
-          const ticketSpace = response.data;
+        if (companyId) {
+          if (isMounted) {
+            setActiveCompanyId(companyId);
+            setIsDivisionLoading(true);
+          }
 
-          // Populate form with existing data
-          form.reset({
-            name: ticketSpace.name,
-            prefix: ticketSpace.prefix,
-            description: ticketSpace.description || '',
-            divisionId: ticketSpace.divisionId,
-          });
+          try {
+            const response = await getAllDivisionsByCompanyId(companyId);
+            const divisionsData = response.data || [];
 
-          setPrefixManuallyEdited(true); // Prevent prefix auto-generation in edit mode
-        } catch (error) {
-          console.error('Error loading ticket space:', error);
-          toast.error('Failed to load ticket space data');
+            if (isMounted) {
+              setDivisions(divisionsData);
+              if (divisionsData.length === 1 && type === 'create') {
+                const divisionId = divisionsData[0].id;
+                form.setValue('divisionId', divisionId, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+                form.trigger('divisionId');
+              }
+            }
+          } catch (error) {
+            console.error('Error loading divisions:', error);
+            if (isMounted) {
+              toast.error('Failed to load divisions');
+              setDivisions([]);
+            }
+          } finally {
+            if (isMounted) {
+              setIsDivisionLoading(false);
+            }
+          }
+        } else if (isMounted) {
+          toast.error('No active company found. Please select a company');
         }
-      }
-    } catch (error) {
-      console.error('Error loading form data:', error);
-      toast.error('Failed to load form data');
-    } finally {
-      setIsInitializing(false);
-    }
-  };
 
-  const loadDivisions = async (companyId: number) => {
-    if (companyId === null || companyId === undefined) return;
+        // If editing, load existing data AFTER divisions are loaded
+        if (type === 'edit' && id) {
+          try {
+            const response = await getTicketSpaceById(id);
+            const ticketSpace = response.data;
 
-    setIsDivisionLoading(true);
-    try {
-      const { getAllDivisionsByCompanyId } = await import('@/services/company-management/division-services');
-      const response = await getAllDivisionsByCompanyId(companyId);
-      const divisionsData = response.data || [];
-
-      setDivisions(divisionsData);
-      if (divisionsData.length === 1 && type === 'create') {
-        const divisionId = divisionsData[0].id;
-        form.setValue('divisionId', divisionId, {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true
-        });
-        // Force trigger validation
-        form.trigger('divisionId');
-      }
-    } catch (error) {
-      console.error('Error loading divisions:', error);
-      toast.error('Failed to load divisions');
-      setDivisions([]);
-    } finally {
-      setIsDivisionLoading(false);
-    }
-  };
-
-  const checkPrefixExists = async (prefix: string) => {
-    if (!prefix || !activeCompanyId || prefix.length === 0) {
-      setPrefixError('');
-      return false;
-    }
-
-    setIsPrefixChecking(true);
-    try {
-      const { checkPrefixExists: checkPrefix } = await import('@/services/ticket-management/ticket-space.service');
-
-      let currentPrefix = prefix.toUpperCase();
-      let response = await checkPrefix(activeCompanyId, currentPrefix);
-
-      if (response.data.exists && !prefixManuallyEdited) {
-        const nameVal = form.getValues('name');
-        if (nameVal) {
-          const { generatePrefixAlternatives } = await import('@/lib/prefix-generator');
-          const alts = generatePrefixAlternatives(nameVal);
-          for (const alt of alts) {
-            if (alt === currentPrefix) continue;
-            response = await checkPrefix(activeCompanyId, alt);
-            if (!response.data.exists) {
-              currentPrefix = alt;
-              form.setValue('prefix', currentPrefix);
-              break;
+            if (isMounted) {
+              form.reset({
+                name: ticketSpace.name,
+                prefix: ticketSpace.prefix,
+                description: ticketSpace.description || '',
+                divisionId: ticketSpace.divisionId,
+              });
+              setPrefixManuallyEdited(true); // Prevent prefix auto-generation in edit mode
+            }
+          } catch (error) {
+            console.error('Error loading ticket space:', error);
+            if (isMounted) {
+              toast.error('Failed to load ticket space data');
             }
           }
         }
+      } catch (error) {
+        console.error('Error loading form data:', error);
+        if (isMounted) {
+          toast.error('Failed to load form data');
+        }
+      } finally {
+        if (isMounted) {
+          setIsInitializing(false);
+        }
       }
+    };
 
-      if (response.data.exists) {
-        setPrefixError('Prefix already taken in this company');
-        return true;
-      } else {
+    initializeForm();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, type, id, form]);
+
+  const checkPrefixExists = useCallback(
+    async (prefix: string) => {
+      if (!prefix || !activeCompanyId || prefix.length === 0) {
         setPrefixError('');
         return false;
       }
-    } catch (error) {
-      console.error('Error checking prefix:', error);
-      setPrefixError('');
-      return false;
-    } finally {
-      setIsPrefixChecking(false);
-    }
-  };
 
+      setIsPrefixChecking(true);
+      try {
+        let currentPrefix = prefix.toUpperCase();
+        let response = await checkPrefixService(activeCompanyId, currentPrefix);
+
+        if (response.data.exists && !prefixManuallyEdited) {
+          const nameVal = form.getValues('name');
+          if (nameVal) {
+            const alts = generatePrefixAlternatives(nameVal);
+            for (const alt of alts) {
+              if (alt === currentPrefix) continue;
+              response = await checkPrefixService(activeCompanyId, alt);
+              if (!response.data.exists) {
+                currentPrefix = alt;
+                form.setValue('prefix', currentPrefix);
+                break;
+              }
+            }
+          }
+        }
+
+        if (response.data.exists) {
+          setPrefixError('Prefix already taken in this company');
+          return true;
+        } else {
+          setPrefixError('');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error checking prefix:', error);
+        setPrefixError('');
+        return false;
+      } finally {
+        setIsPrefixChecking(false);
+      }
+    },
+    [activeCompanyId, prefixManuallyEdited, form]
+  );
 
   // Watch name field and auto-generate prefix
   const watchedName = form.watch('name');
@@ -233,7 +254,7 @@ export function TicketSpaceForm({
       const newPrefix = generatePrefix(watchedName);
       form.setValue('prefix', newPrefix);
     }
-  }, [watchedName, prefixManuallyEdited, type]);
+  }, [watchedName, prefixManuallyEdited, type, form]);
 
   // Watch prefix field and validate
   const watchedPrefix = form.watch('prefix');
@@ -244,7 +265,7 @@ export function TicketSpaceForm({
       }, 800);
       return () => clearTimeout(timeoutId);
     }
-  }, [watchedPrefix, activeCompanyId, type]);
+  }, [watchedPrefix, activeCompanyId, type, checkPrefixExists]);
 
   // Track form changes
   useEffect(() => {
@@ -254,12 +275,7 @@ export function TicketSpaceForm({
       }
     });
     return () => subscription.unsubscribe();
-  }, [form.watch, isSubmitting]);
-
-  // Debug: Watch divisionId changes
-  const watchedDivisionId = form.watch('divisionId');
-  useEffect(() => {
-  }, [watchedDivisionId]);
+  }, [form, isSubmitting]);
 
   const handleSubmit = async (values: TicketSpaceFormValues) => {
     // Check prefix only when creating (not when editing)
@@ -285,14 +301,12 @@ export function TicketSpaceForm({
       };
 
       if (type === 'create') {
-        const { createTicketSpace } = await import('@/services/ticket-management/ticket-space.service');
         const response = await createTicketSpace(submitData);
         setCreatedTicketSpaceId(response.data.id);
         toast.success('Ticket space created');
         setHasUnsavedChanges(false);
         if (onUpdate) onUpdate(response.data, 'create');
       } else {
-        const { updateTicketSpace } = await import('@/services/ticket-management/ticket-space.service');
         const response = await updateTicketSpace(id!, submitData);
         setUpdatedTicketSpaceId(id!);
         toast.success('Ticket space updated');
@@ -459,29 +473,33 @@ export function TicketSpaceForm({
                   <FormItem>
                     <FormLabel>Division *</FormLabel>
                     <Select
+                      key={divisions.length ? 'loaded' : 'empty'}
                       onValueChange={(value) => {
                         const numValue = Number(value);
                         field.onChange(numValue);
                       }}
-                      value={field.value && field.value > 0 ? String(field.value) : ""}
-                      disabled={isInitializing || isSubmitting || isDivisionLoading || divisions.length === 1 || type === 'edit'}
+                      value={field.value && field.value > 0 ? String(field.value) : ''}
+                      disabled={
+                        isInitializing ||
+                        isSubmitting ||
+                        isDivisionLoading ||
+                        divisions.length === 1 ||
+                        type === 'edit'
+                      }
                     >
                       <FormControl>
-                        <SelectTrigger className={field.value && field.value > 0 ? "" : ""}>
-                          <SelectValue placeholder={
-                            isDivisionLoading
-                              ? "Loading divisions..."
-                              : "Select division"
-                          } />
+                        <SelectTrigger className={field.value && field.value > 0 ? '' : ''}>
+                          <SelectValue
+                            placeholder={
+                              isDivisionLoading ? 'Loading divisions...' : 'Select division'
+                            }
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {divisions.length > 0 ? (
                           divisions.map((division: any) => (
-                            <SelectItem
-                              key={division.id}
-                              value={String(division.id)}
-                            >
+                            <SelectItem key={division.id} value={String(division.id)}>
                               {division.division}
                             </SelectItem>
                           ))
@@ -518,7 +536,7 @@ export function TicketSpaceForm({
           </Form>
 
           <DialogFooter>
-            {(createdTicketSpaceId || updatedTicketSpaceId) ? (
+            {createdTicketSpaceId || updatedTicketSpaceId ? (
               <>
                 <Button
                   type="button"
@@ -595,4 +613,3 @@ export function TicketSpaceForm({
     </>
   );
 }
-

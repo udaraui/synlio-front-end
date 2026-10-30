@@ -51,7 +51,8 @@ import {
   Camera,
   Save,
   UserCheck,
-  AlertTriangle
+  AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createUser, searchUserByEmail } from "@/services/user-management/user-service";
@@ -79,7 +80,7 @@ const formSchema = z.object({
       message: "Please enter a valid phone number.",
     }),
   password: z.string().optional(),
-  profile_picture: z.instanceof(File).optional(),
+  profile_picture: z.union([z.instanceof(File), z.null(), z.undefined()]).optional(),
   companies: z.array(z.number()).optional().default([]),
   divisions: z.array(z.number()).optional().default([]),
   userCompanyRoles: z
@@ -219,6 +220,9 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
             form.setValue("first_name", response.data.first_name);
             form.setValue("last_name", response.data.last_name);
             form.setValue("phone_number", response.data.mobile_number || "");
+            if (response.data.profile_picture) {
+              setPreviewUrl(response.data.profile_picture);
+            }
           } else {
             setExistingUser(null);
           }
@@ -245,6 +249,13 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
       const response = await getAllDivisionsByCompanyId(active_company.companyId);
       if (response.status === 200) setDivisions(response.data);
     }
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setPreviewUrl(null);
+    form.setValue("profile_picture", null as any, { shouldDirty: true });
+    const fileInput = document.getElementById("user-pic-create") as HTMLInputElement | null;
+    if (fileInput) fileInput.value = "";
   };
 
   const onSubmit = async (data: any) => {
@@ -293,6 +304,7 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
         onOpenChange(false);
         form.reset();
         setExistingUser(null);
+        setPreviewUrl(null);
         setIsAlreadyInCompany(false);
         onSubmitCallback?.(payload);
       } else {
@@ -326,13 +338,13 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
 
               {/* Profile picture + name + contact */}
               <div className="flex flex-col md:flex-row gap-6 items-start">
-                {/* Avatar with camera button */}
+                {/* Avatar with camera button and hover remove button */}
                 <FormField
                   control={form.control}
                   name="profile_picture"
                   render={({ field: { onChange, value, ...rest } }) => (
                     <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                      <div className="relative">
+                      <div className="relative group">
                         <Avatar className="h-24 w-24 border-2 border-background ring-1 ring-border">
                           <AvatarImage
                             src={previewUrl || undefined}
@@ -342,10 +354,23 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                             {getInitials(watchedFirstName, watchedLastName)}
                           </AvatarFallback>
                         </Avatar>
+                        {previewUrl && (
+                          <button
+                            type="button"
+                            title="Remove profile picture"
+                            aria-label="Remove profile picture"
+                            onClick={handleRemoveProfilePicture}
+                            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 cursor-pointer z-10"
+                          >
+                            <Trash2 className="w-5 h-5 text-red-400 hover:text-red-300 transition-colors" />
+                          </button>
+                        )}
                         <button
                           type="button"
+                          title="Upload profile picture"
+                          aria-label="Upload profile picture"
                           onClick={() => document.getElementById("user-pic-create")?.click()}
-                          className="absolute cursor-pointer bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
+                          className="absolute z-20 cursor-pointer bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
                         >
                           <Camera className="w-4 h-4" />
                         </button>
@@ -364,7 +389,6 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                         }}
                         {...rest}
                       />
-                      {/* <span className="text-xs text-muted-foreground">Click icon to change</span> */}
                     </div>
                   )}
                 />

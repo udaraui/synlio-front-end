@@ -14,6 +14,8 @@ import {
   ChevronsUpDown,
   Loader2,
   Save,
+  Trash2,
+  User as UserIcon,
 } from "lucide-react";
 import {
   Select,
@@ -77,7 +79,7 @@ const formSchema = z.object({
     .refine((v) => !v || isValidPhoneNumber(v), {
       message: "Please enter a valid phone number.",
     }),
-  profile_picture: z.union([z.instanceof(File), z.undefined()]).optional(),
+  profile_picture: z.union([z.instanceof(File), z.null(), z.undefined()]).optional(),
   companies: z.array(z.number()).optional().default([]),
   divisions: z.array(z.number()).optional().default([]),
   userCompanyRoles: z
@@ -102,6 +104,8 @@ export function UserEditDrawer({
   const [allCompanies, setAllCompanies] = useState<any[]>([]);
   const [isSystemUser, setIsSystemUser] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isProfilePicRemoved, setIsProfilePicRemoved] = useState(false);
+  const [isRemovingPic, setIsRemovingPic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
 
@@ -127,7 +131,7 @@ export function UserEditDrawer({
   const getInitials = (first: string, last: string) => {
     const f = first.trim();
     const l = last.trim();
-    if (!f && !l) return "?";
+    if (!f && !l) return <UserIcon className="w-12 h-12" />;
     return `${f.charAt(0) || ""}${l.charAt(0) || ""}`.toUpperCase();
   };
 
@@ -177,7 +181,8 @@ export function UserEditDrawer({
 
   useEffect(() => {
     setPreviewUrl(null);
-  }, [user?.id]);
+    setIsProfilePicRemoved(false);
+  }, [user?.id, open]);
 
   useEffect(() => {
     if (user) {
@@ -241,6 +246,47 @@ export function UserEditDrawer({
     setIsLoadingDropdowns(false);
   };
 
+  const existingAvatarUrl =
+    !isProfilePicRemoved &&
+    user?.profile_picture &&
+    (user.profile_picture.startsWith("http") ||
+      user.profile_picture.startsWith("data:") ||
+      user.profile_picture.startsWith("blob:"))
+      ? user.profile_picture
+      : undefined;
+
+  const activeAvatarUrl = previewUrl || existingAvatarUrl;
+
+  const handleRemoveProfilePicture = async () => {
+    const hadServerPic = Boolean(!isProfilePicRemoved && user?.profile_picture);
+
+    // Immediately clear from UI and set form state to null
+    setPreviewUrl(null);
+    setIsProfilePicRemoved(true);
+    form.setValue("profile_picture", null as any, { shouldDirty: true });
+    const fileInput = document.getElementById("user-pic-edit") as HTMLInputElement | null;
+    if (fileInput) fileInput.value = "";
+
+    // Trigger backend API request to set profile_picture to null
+    if (user?.id && hadServerPic) {
+      setIsRemovingPic(true);
+      try {
+        const response = await updateUser({
+          id: user.id,
+          profile_picture: null,
+          remove_profile_picture: true,
+        });
+        if (response.status === 200) {
+          toast.success("Profile picture removed");
+        }
+      } catch {
+        toast.error("Failed to remove profile picture");
+      } finally {
+        setIsRemovingPic(false);
+      }
+    }
+  };
+
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
     const localCompanies = safeParse(localStorage.getItem("companies")) || [];
@@ -270,7 +316,12 @@ export function UserEditDrawer({
       })),
     };
 
-    if (!data.profile_picture) delete payload.profile_picture;
+    if (isProfilePicRemoved || data.profile_picture === null) {
+      payload.profile_picture = null;
+      payload.remove_profile_picture = true;
+    } else if (!data.profile_picture) {
+      delete payload.profile_picture;
+    }
     delete payload.email; // Email is immutable after creation
     delete payload.companies;
     delete payload.divisions;
@@ -310,31 +361,44 @@ export function UserEditDrawer({
 
               {/* Profile picture + name + contact */}
               <div className="flex flex-col md:flex-row gap-8 items-start">
-                {/* Avatar with camera button */}
+                {/* Avatar with camera button and hover remove button */}
                 <FormField
                   control={form.control}
                   name="profile_picture"
                   render={({ field: { onChange, value, ...rest } }) => (
                     <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                      <div className="relative">
+                      <div className="relative group">
                         <Avatar className="h-24 w-24 border-2 border-background ring-1 ring-border">
                           <AvatarImage
-                            src={
-                              previewUrl ||
-                              (user?.profile_picture && (user.profile_picture.startsWith('http') || user.profile_picture.startsWith('data:') || user.profile_picture.startsWith('blob:'))
-                                ? user.profile_picture
-                                : undefined)
-                            }
+                            src={activeAvatarUrl}
                             className="object-cover"
                           />
                           <AvatarFallback className="text-2xl font-semibold bg-primary text-white">
                             {getInitials(watchedFirstName, watchedLastName)}
                           </AvatarFallback>
                         </Avatar>
+                        {activeAvatarUrl && (
+                          <button
+                            type="button"
+                            title="Remove profile picture"
+                            aria-label="Remove profile picture"
+                            disabled={isRemovingPic}
+                            onClick={handleRemoveProfilePicture}
+                            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 cursor-pointer z-10"
+                          >
+                            {isRemovingPic ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-white" />
+                            ) : (
+                              <Trash2 className="w-5 h-5 text-red-400 hover:text-red-300 transition-colors" />
+                            )}
+                          </button>
+                        )}
                         <button
                           type="button"
+                          title="Upload profile picture"
+                          aria-label="Upload profile picture"
                           onClick={() => document.getElementById("user-pic-edit")?.click()}
-                          className="absolute cursor-pointer bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
+                          className="absolute z-20 cursor-pointer bottom-0.5 right-0.5 p-1.5 ring-1 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95"
                         >
                           <Camera className="w-4 h-4" />
                         </button>
@@ -349,11 +413,11 @@ export function UserEditDrawer({
                           if (file) {
                             onChange(file);
                             setPreviewUrl(URL.createObjectURL(file));
+                            setIsProfilePicRemoved(false);
                           }
                         }}
                         {...rest}
                       />
-                      {/* <span className="text-xs text-muted-foreground">Click icon to change</span> */}
                     </div>
                   )}
                 />
