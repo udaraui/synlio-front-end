@@ -62,6 +62,9 @@ export const createUser = async (data: any): Promise<any> => {
     Object.keys(data).forEach(key => {
       if (key === 'profile_picture' && data[key] instanceof File) {
         formData.append(key, data[key]);
+      } else if (key === 'profile_picture' && data[key] === null) {
+        formData.append(key, 'null');
+        formData.append('remove_profile_picture', 'true');
       } else if (key === 'companyIds' || key === 'divisionIds' || key === 'userCompanyRoles') {
         formData.append(key, JSON.stringify(data[key]));
       } else if (data[key] !== undefined && data[key] !== null) {
@@ -94,6 +97,9 @@ export const updateUser = async (data: any): Promise<any> => {
     Object.keys(data).forEach(key => {
       if (key === 'profile_picture' && data[key] instanceof File) {
         formData.append(key, data[key]);
+      } else if (key === 'profile_picture' && data[key] === null) {
+        formData.append(key, 'null');
+        formData.append('remove_profile_picture', 'true');
       } else if (key === 'companyIds' || key === 'divisionIds' || key === 'userCompanyRoles') {
         formData.append(key, JSON.stringify(data[key]));
       } else if (data[key] !== undefined && data[key] !== null) {
@@ -185,20 +191,6 @@ export const findAllUsers = async (): Promise<any> => {
   // }
 };
 
-// export const findAllUsersByCompany= async (): Promise<any> => {
-//   try {
-
-//     const response = await axiosInstance.get(`${API_URL}/user/company`, {
-//       withCredentials: true,
-//     });
-//     console.log("response", response)
-//     return response;
-//   } catch (error) {
-//     console.error("Error getting user:", error);
-//     throw error;
-//   }
-// };
-
 export const findAllUsersByCompanyAndDivision = async (
   companyId: number,
   divisionId: number
@@ -246,71 +238,3 @@ export const getCompanyUsers = async (): Promise<any[]> => {
     throw error;
   }
 };
-
-// export const getUserDivisionsByCompany = async (
-//   companyId: number
-// ): Promise<any> => {
-//   try {
-//     const response = await axiosInstance.get(
-//       `${API_URL}/user/divisions/company/${companyId}`,
-//       {
-//         withCredentials: true,
-//       }
-//     );
-//     return response;
-//   } catch (error) {
-//     console.error("Error getting user divisions by company:", error);
-//     throw error;
-//   }
-// };
-
-// export const getAllUserDivisions = async (): Promise<any> => {
-//   try {
-//     const response = await axiosInstance.get(
-//       `${API_URL}/user/divisions`,
-//       {
-//         withCredentials: true,
-//       }
-//     );
-//     return response;
-//   } catch (error) {
-//     console.error("Error getting all user divisions:", error);
-//     throw error;
-//   }
-// };
-
-// export const getSpecificUserDivisionsByCompany = async (
-//   userId: number,
-//   companyId: number
-// ): Promise<any> => {
-//   try {
-//     const response = await axiosInstance.get(
-//       `${API_URL}/user/${userId}/divisions/company/${companyId}`,
-//       {
-//         withCredentials: true,
-//       }
-//     );
-//     return response;
-//   } catch (error) {
-//     console.error("Error getting specific user divisions by company:", error);
-//     throw error;
-//   }
-// };
-
-// export const getSpecificUserDivisions = async (
-//   userId: number
-// ): Promise<any> => {
-//   try {
-//     const response = await axiosInstance.get(
-//       `${API_URL}/user/${userId}/divisions`,
-//       {
-//         withCredentials: true,
-//       }
-//     );
-//     return response;
-//   } catch (error) {
-//     console.error("Error getting specific user divisions:", error);
-//     throw error;
-//   }
-// };
-
