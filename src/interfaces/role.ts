@@ -5,12 +5,14 @@ interface Role {
   id: number;
   role: string;
   company?: Company;
+  companyId?: number | string;
+  group?: string;
   privileges?: Privilege[];
   active_status?: boolean;
   createdBy?: string;
-  createdAt?: Date;
+  createdAt?: Date | string;
   updatedBy?: string;
-  updatedAt?: Date;
+  updatedAt?: Date | string;
 }
 
 export type { Role };

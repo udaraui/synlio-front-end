@@ -304,20 +304,20 @@ const CalendarList: React.FC<CalendarListProps> = () => {
             company_id?: number;
             company?: number;
             created_by?: string;
-            created_at?: string;
+            created_at?: Date | string;
             updated_by?: string;
-            updated_at?: string;
-          }) => ({
+            updated_at?: Date | string;
+          }): Calendar => ({
             id: c.id,
             name: c.name || "",
             year: c.year || 0,
             isActive: c.isActive,
-            companyId: c.companyId || c.company_id || c.company,
+            companyId: c.companyId || c.company_id || c.company || 0,
             createdBy: c.created_by || "",
             createdAt: c.created_at || new Date().toISOString(),
             updatedBy: c.updated_by || "",
             updatedAt: c.updated_at || new Date().toISOString(),
-          })) as Calendar[],
+          })),
         );
       } else {
         setCalendars([]);

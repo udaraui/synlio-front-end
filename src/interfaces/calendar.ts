@@ -7,9 +7,9 @@ interface Calendar {
   isActive: boolean;
   companyId: number;
   createdBy: string;
-  createdAt: Date;
+  createdAt: Date | string;
   updatedBy: string;
-  updatedAt: Date;
+  updatedAt: Date | string;
 //   resources?: Resource[];
   company?: Company;
 }

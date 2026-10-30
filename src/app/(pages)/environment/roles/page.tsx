@@ -107,16 +107,16 @@ function Page() {
 
         if (result && Array.isArray(result.data)) {
           setTotalRecords(result.total || result.data.length);
-          const transformedRoles = result.data.map((role: {
+          const transformedRoles: Role[] = result.data.map((role: {
             id: number;
             role?: string;
             companyId?: number | string;
             group?: string;
             isActive?: boolean;
-            createdAt?: string;
-            created_at?: string;
-            updatedAt?: string;
-            updated_at?: string;
+            createdAt?: Date | string;
+            created_at?: Date | string;
+            updatedAt?: Date | string;
+            updated_at?: Date | string;
             createdBy?: string;
             created_by?: string;
             updatedBy?: string;
@@ -132,7 +132,7 @@ function Page() {
             createdBy: role.createdBy || role.created_by || "",
             updatedBy: role.updatedBy || role.updated_by || "",
           }));
-          setRoles(transformedRoles as Role[]);
+          setRoles(transformedRoles);
         } else {
           toast.error("Failed to fetch roles");
           setRoles([]);
