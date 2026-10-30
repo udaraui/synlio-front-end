@@ -19,6 +19,7 @@ import {
   ChartNoAxesCombined,
   Sparkles,
   Lightbulb,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../../public/logo.png";
@@ -42,6 +43,7 @@ import {
 } from "@/services/auth/auth-service";
 import { usePrivilege } from "@/contexts/userPrivilege.context";
 import { useMenuAccess } from "@/hooks/use-menu-access";
+import { cn } from "@/lib/utils";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [activeCompany, setActiveCompany] = useState<any>(null);
@@ -57,6 +59,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { canAccess } = useMenuAccess();
   const { toggleSidebar } = useSidebar();
   const [isSystemUser, setIsSystemUser] = useState(false);
+  const [isTeamOpen, setIsTeamOpen] = useState(false);
+  const [isSystemOpen, setIsSystemOpen] = useState(false);
+  const sectionGapClass = isTeamOpen ? "gap-3" : isSystemOpen ? "gap-5" : "gap-1";
 
   useEffect(() => {
     const localCompanies = safeParse(localStorage.getItem("companies")) || [];
@@ -205,7 +210,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         target.closest("[data-sidebar='menu-sub-button']") ||
         target.closest("[data-sidebar='menu-action']") ||
         target.closest("[data-slot='sidebar-menu-button']") ||
-        target.closest("[data-radix-collection-item]")
+        target.closest("[data-radix-collection-item]") ||
+        target.closest("[data-slot='collapsible-trigger']") ||
+        target.closest("[data-sidebar='group-label']") ||
+        target.closest("[data-slot='sidebar-group-label']")
       ) {
         return;
       }
@@ -229,12 +237,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <CompanySwitcher companies={companies as Company[]} fistActiveCompany={activeCompany} />
       </SidebarHeader>
-      <SidebarContent className="sidebar gap-3 pt-1">
+      <SidebarContent className="sidebar gap-3 pt-1 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {visibleMySpaceItems.length > 0 && <NavMain items={visibleMySpaceItems} label="My Space" />}
         {visibleAiItems.length > 0 && (<NavMain items={visibleAiItems} label="Intelligence" />)}
         {visibleSpacesItems.length > 0 && (<NavMain items={visibleSpacesItems} label="Spaces" />)}
-        {visibleResourceItems.length > 0 && <NavMain items={visibleResourceItems} label="Team" />}
-        <NavMasters masters={visibleMastersItems} />
+        {(visibleResourceItems.length > 0 || visibleMastersItems.length > 0) && (
+          <div className={cn("flex flex-col transition-[gap] duration-200 group-data-[collapsible=icon]:gap-3", sectionGapClass)}>
+            {visibleResourceItems.length > 0 && (
+              <NavMain
+                items={visibleResourceItems}
+                label="Team"
+                collapsible
+                open={isTeamOpen}
+                onOpenChange={setIsTeamOpen}
+                icon={Users}
+              />
+            )}
+            {visibleMastersItems.length > 0 && (
+              <NavMasters
+                masters={visibleMastersItems}
+                collapsible
+                open={isSystemOpen}
+                onOpenChange={setIsSystemOpen}
+                icon={Settings}
+              />
+            )}
+          </div>
+        )}
         {/* Clickable empty area that fills the remaining vertical space */}
         <div className="flex-1 min-h-12 cursor-pointer" />
       </SidebarContent>
