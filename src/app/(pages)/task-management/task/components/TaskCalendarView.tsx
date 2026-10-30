@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
+  Flag,
   Loader2,
   Plus,
   Search,
@@ -37,6 +38,11 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import InlineTaskCreateCard from "./InlineTaskCreateCard";
 import {
   patchTaskDates,
@@ -111,13 +117,23 @@ type Person = {
   first_name?: string;
   last_name?: string;
   profile_pic?: string | null;
+  profile_picture?: string | null;
+  profilePicUrl?: string | null;
 };
 
 function initials(p?: Person | null): string {
   if (!p) return "?";
-  const f = p.first_name?.trim()?.[0] ?? "";
-  const l = p.last_name?.trim()?.[0] ?? "";
-  return (f + l).toUpperCase() || "?";
+  const f = p.first_name?.trim() ?? "";
+  const l = p.last_name?.trim() ?? "";
+  if (f && l) return (f[0] + l[0]).toUpperCase();
+  if (f && f.includes(" ")) {
+    const parts = f.split(" ").filter(Boolean);
+    if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return f.substring(0, 2).toUpperCase();
+  }
+  if (f) return f.substring(0, 2).toUpperCase();
+  if (l) return l.substring(0, 2).toUpperCase();
+  return "?";
 }
 
 function fullName(p?: Person | null): string {
@@ -125,7 +141,7 @@ function fullName(p?: Person | null): string {
   return `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim();
 }
 
-/** Single avatar — uses profile_pic <img> if available, otherwise initials. */
+/** Single avatar — uses initials immediately and overlays profile_pic <img> if available. */
 function PersonAvatar({
   person,
   size,
@@ -144,27 +160,48 @@ function PersonAvatar({
       ? "bg-primary text-white"
       : "bg-primary/15 dark:bg-primary/30 text-primary";
 
-  if (person.profile_pic) {
-    return (
-      <img
-        src={person.profile_pic}
-        alt={fullName(person)}
-        title={title ?? fullName(person)}
-        className={`rounded-full object-cover flex-shrink-0 ${ringClass}`}
-        style={{ width: size, height: size }}
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-    );
-  }
+  const rawPic = person.profile_pic || person.profile_picture || person.profilePicUrl;
+  const pic =
+    rawPic &&
+    typeof rawPic === "string" &&
+    rawPic.trim().length > 0 &&
+    rawPic !== "null" &&
+    rawPic !== "undefined"
+      ? rawPic.startsWith("http") ||
+        rawPic.startsWith("data:") ||
+        rawPic.startsWith("blob:") ||
+        rawPic.startsWith("/")
+        ? rawPic
+        : undefined
+      : undefined;
+
+  const displayTitle = title ?? fullName(person);
+
   return (
     <div
-      className={`rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${ringClass} ${fallbackClass}`}
-      style={{ width: size, height: size, fontSize }}
-      title={title ?? fullName(person)}
+      className={`relative rounded-full flex-shrink-0 select-none overflow-hidden flex items-center justify-center text-center leading-none font-semibold ${ringClass} ${fallbackClass}`}
+      style={{ width: size, height: size }}
+      title={displayTitle}
     >
-      {initials(person)}
+      {/* Fallback initials render immediately with 0 delay, optically centered */}
+      <span
+        className="inline-flex items-center justify-center text-center leading-none tracking-tight select-none uppercase pointer-events-none"
+        style={{ fontSize, lineHeight: 1 }}
+      >
+        {initials(person)}
+      </span>
+
+      {/* If picture exists, it overlays seamlessly once loaded. If it fails or 404s, it hides. */}
+      {pic && (
+        <img
+          src={pic}
+          alt={fullName(person)}
+          className="absolute inset-0 w-full h-full object-cover rounded-full"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -338,6 +375,26 @@ function UnscheduledPanel({
             const statusName = t.statusName ?? t.status?.name ?? null;
             const levelConfig = hierarchyLevels.find((l: any) => l.id === t.hierarchyLevelConfigId);
             const LevelIcon = levelConfig?.icon ? getHierarchyLevelIcon(levelConfig.icon) : null;
+            const fallbackAssignee = t.assigneeId
+              ? {
+                  id: t.assigneeId,
+                  first_name: t.assigneeName?.split(" ")[0] ?? "",
+                  last_name: t.assigneeName?.split(" ").slice(1).join(" ") ?? "",
+                  profile_pic: t.assigneeProfilePicUrl || t.assigneeProfilePic || null,
+                  email: t.assigneeEmail,
+                }
+              : null;
+            const assignee = t.assignee
+              ? {
+                  ...t.assignee,
+                  profile_pic:
+                    t.assignee.profile_pic ??
+                    (t.assignee as any).profile_picture ??
+                    (t.assignee as any).profilePicUrl ??
+                    t.assigneeProfilePicUrl ??
+                    null,
+                }
+              : fallbackAssignee;
             return (
               <div
                 key={t.id}
@@ -362,19 +419,19 @@ function UnscheduledPanel({
                     isExpanded: false,
                     sortKey: "999",
                     progressPercentage: 0,
-                    assignee: t.assignee ?? null,
+                    assignee: assignee ?? null,
                     coAssignees: t.coAssignees ?? [],
                   },
                 })}
               >
                 {/* Assignee only — top right corner */}
-                {t.assignee && (
+                {assignee && (
                   <div className="absolute top-3 right-3 z-10">
                     <PersonAvatar
-                      person={t.assignee}
+                      person={assignee}
                       size={22}
                       variant="assignee"
-                      title={`Assignee: ${fullName(t.assignee)}`}
+                      title={`Assignee: ${fullName(assignee)}`}
                     />
                   </div>
                 )}
@@ -702,6 +759,74 @@ export default function TaskCalendarView({
         const end = toFcEnd(t.dueDate);
         const isLocked = lockedTaskIds.has(t.id);
 
+        // Resolve severity / priority
+        const severity = t.severityName
+          ? {
+              id: t.severityId,
+              name: t.severityName,
+              color: t.severityColor,
+            }
+          : (configData.severities ?? []).find((s: any) => s.id === t.severityId) ??
+            t.severity ??
+            null;
+
+        // Resolve assignee with fallback (matches TaskCard and TaskTableView)
+        const resAssignee = t.assigneeId
+          ? (configData.resources ?? []).find((r: any) => r.id === t.assigneeId)
+          : null;
+
+        const fallbackAssignee = t.assigneeId || t.assigneeName
+          ? {
+              id: t.assigneeId ?? 0,
+              first_name: t.assigneeName?.split(" ")[0] ?? resAssignee?.first_name ?? "",
+              last_name: t.assigneeName?.split(" ").slice(1).join(" ") ?? resAssignee?.last_name ?? "",
+              profile_pic: t.assigneeProfilePicUrl || t.assigneeProfilePic || resAssignee?.profile_pic || null,
+              email: t.assigneeEmail ?? resAssignee?.email,
+            }
+          : null;
+
+        const resolvedAssignee = t.assignee
+          ? {
+              ...t.assignee,
+              first_name:
+                t.assignee.first_name ??
+                t.assigneeName?.split(" ")[0] ??
+                resAssignee?.first_name ??
+                "",
+              last_name:
+                t.assignee.last_name ??
+                t.assigneeName?.split(" ").slice(1).join(" ") ??
+                resAssignee?.last_name ??
+                "",
+              profile_pic:
+                t.assignee.profile_pic ??
+                (t.assignee as any).profile_picture ??
+                (t.assignee as any).profilePicUrl ??
+                t.assigneeProfilePicUrl ??
+                resAssignee?.profile_pic ??
+                null,
+            }
+          : resAssignee
+          ? {
+              ...resAssignee,
+              profile_pic:
+                resAssignee.profile_pic ??
+                resAssignee.profile_picture ??
+                resAssignee.profilePicUrl ??
+                t.assigneeProfilePicUrl ??
+                null,
+            }
+          : fallbackAssignee;
+
+        const resolvedCoAssignees = (t.coAssignees ?? []).map((ca: any) => ({
+          ...ca,
+          profile_pic:
+            ca.profile_pic ??
+            ca.profile_picture ??
+            ca.profilePicUrl ??
+            null,
+        }));
+
         return {
           id: String(t.id),
           title: t.name ?? "(Untitled)",
@@ -726,14 +851,15 @@ export default function TaskCalendarView({
             parentId: t.parentTaskId,
             statusColor: t.statusColor ?? t.status?.color ?? configData.statuses?.find((s:any) => s.id === t.statusId)?.color ?? null,
             statusName: t.statusName ?? t.status?.name ?? configData.statuses?.find((s:any) => s.id === t.statusId)?.name ?? null,
+            severity,
             hasChildren: (t.childTaskCount ?? 0) > 0 || (childrenMap[t.id]?.length ?? 0) > 0,
             childTaskCount: t.childTaskCount ?? childrenMap[t.id]?.length ?? 0,
             isExpanded: !!expandedIds[t.id],
             isLoadingExpand: expandLoadingSet.has(t.id),
             sortKey: sortKeyMap[t.id] ?? "999",
             progressPercentage: t.progressPercentage ?? 0,
-            assignee: t.assignee ?? null,
-            coAssignees: t.coAssignees ?? [],
+            assignee: resolvedAssignee,
+            coAssignees: resolvedCoAssignees,
             isLocked,
           },
         };
@@ -909,11 +1035,13 @@ export default function TaskCalendarView({
         levelSequence,
         statusColor,
         statusName,
+        severity,
         hasChildren,
         childTaskCount,
         isExpanded,
         isLoadingExpand,
         assignee,
+        coAssignees,
         isLocked,
       } = eventInfo.event.extendedProps as {
         taskId: number;
@@ -923,11 +1051,13 @@ export default function TaskCalendarView({
         levelIcon: string | null;
         statusColor: string | null;
         statusName: string | null;
+        severity: { id?: number; name?: string; color?: string } | null;
         hasChildren: boolean;
         childTaskCount: number;
         isExpanded: boolean;
         isLoadingExpand: boolean;
         assignee: Person | null;
+        coAssignees: Person[];
         isLocked: boolean;
         levelSequence: number;
       };
@@ -949,7 +1079,11 @@ export default function TaskCalendarView({
       if (code) tooltipParts.push(code);
       if (eventTitle) tooltipParts.push(eventTitle);
       if (statusName) tooltipParts.push(`Status: ${statusName}`);
+      if (severity?.name) tooltipParts.push(`Priority: ${severity.name}`);
       if (assignee) tooltipParts.push(`Assignee: ${fullName(assignee)}`);
+      if (coAssignees && coAssignees.length > 0) {
+        tooltipParts.push(`Co-Assignees: ${coAssignees.map((c) => fullName(c)).join(", ")}`);
+      }
       if (isLocked) {
         tooltipParts.push("Dates rolled up from children");
       }
@@ -998,18 +1132,128 @@ export default function TaskCalendarView({
                     e.stopPropagation();
                     onTaskClick?.(taskId);
                   }}
-                  title={tooltipText}
+                  title={'Click to view details'}
                 >
                   {code}
                 </span>
               )}
 
-              {/* Ellipsis for narrow (≤2 day) bars */}
+              {/* Ellipsis for narrow (≤1 day) bars with rich hover card */}
               {isNarrow && (
-                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 flex-shrink-0 z-10">…</span>
+                <HoverCard openDelay={150} closeDelay={100}>
+                  <HoverCardTrigger asChild>
+                    <span
+                      className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary hover:bg-gray-200/60 dark:hover:bg-gray-700/60 px-1 py-0.5 rounded cursor-pointer transition-colors flex-shrink-0 z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      …
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent
+                    className="w-72 p-3 text-left shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg z-50 pointer-events-auto space-y-2.5"
+                    side="top"
+                    align="start"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Header: Level Icon then Code */}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {LevelIcon && (
+                        <LevelIcon
+                          className="w-3.5 h-3.5 flex-shrink-0"
+                          style={{ color: levelColor }}
+                        />
+                      )}
+                      {code && (
+                        <span
+                          className="text-xs font-semibold hover:underline cursor-pointer flex-shrink-0"
+                          style={{ color: "#3B82F6" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTaskClick?.(taskId);
+                          }}
+                        >
+                          {code}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Task Title */}
+                    <div
+                      className="text-sm font-semibold text-gray-800 dark:text-gray-100 hover:text-primary transition-colors cursor-pointer leading-snug line-clamp-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTaskClick?.(taskId);
+                      }}
+                    >
+                      {eventTitle}
+                    </div>
+
+                    {/* Badges: Status & Priority + Assignee Avatar at the end */}
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {statusColor && statusName && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300">
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: statusColor }}
+                            />
+                            {statusName}
+                          </span>
+                        )}
+                        {severity && severity.name && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-xs font-medium flex-shrink-0"
+                            title={`Priority: ${severity.name}`}
+                          >
+                            <Flag
+                              className="w-3 h-3 flex-shrink-0"
+                              fill={severity.color || "#6b7280"}
+                              color={severity.color || "#6b7280"}
+                            />
+                            <span className="text-gray-700 dark:text-gray-300 text-[11px]">{severity.name}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Assignee / Co-Assignees Avatar only (no name) */}
+                      {(assignee || (coAssignees && coAssignees.length > 0)) && (
+                        <div className="flex items-center -space-x-1 flex-shrink-0 ml-auto">
+                          {assignee && (
+                            <PersonAvatar
+                              person={assignee}
+                              size={22}
+                              variant="assignee"
+                              title={`Assignee: ${fullName(assignee)}`}
+                            />
+                          )}
+                          {coAssignees && coAssignees.slice(0, 2).map((ca) => (
+                            <PersonAvatar
+                              key={ca.id}
+                              person={ca}
+                              size={20}
+                              variant="coAssignee"
+                              title={`Co-Assignee: ${fullName(ca)}`}
+                            />
+                          ))}
+                          {coAssignees && coAssignees.length > 2 && (
+                            <span className="text-[9px] font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-full px-1 z-10">
+                              +{coAssignees.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {isLocked && (
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 italic pt-1">
+                        Dates rolled up from child tasks
+                      </div>
+                    )}
+                  </HoverCardContent>
+                </HoverCard>
               )}
 
-              {/* Full details: name + status + assignee — only for 3+ day bars */}
+              {/* Full details: name + status + priority + assignee — only for 2+ day bars */}
               {!isNarrow && (
                 <div className="flex items-center gap-1.5 flex-1 min-w-0 z-10">
                   <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200 truncate min-w-0 shrink">
@@ -1026,6 +1270,19 @@ export default function TaskCalendarView({
                       {statusName}
                     </span>
                   )}
+                  {severity && severity.name && (
+                    <span
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium flex-shrink-0"
+                      title={`Priority: ${severity.name}`}
+                    >
+                      <Flag
+                        className="w-3 h-3 flex-shrink-0"
+                        fill={severity.color || "#6b7280"}
+                        color={severity.color || "#6b7280"}
+                      />
+                      <span className="text-gray-700 dark:text-gray-300 text-[11px]">{severity.name}</span>
+                    </span>
+                  )}
                   {assignee && (
                     <PersonAvatar
                       person={assignee}
@@ -1033,6 +1290,24 @@ export default function TaskCalendarView({
                       variant="assignee"
                       title={`Assignee: ${fullName(assignee)}`}
                     />
+                  )}
+                  {coAssignees && coAssignees.length > 0 && (
+                    <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                      {coAssignees.slice(0, 2).map((ca) => (
+                        <PersonAvatar
+                          key={ca.id}
+                          person={ca}
+                          size={18}
+                          variant="coAssignee"
+                          title={`Co-Assignee: ${fullName(ca)}`}
+                        />
+                      ))}
+                      {coAssignees.length > 2 && (
+                        <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-full px-1 z-10">
+                          +{coAssignees.length - 2}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
