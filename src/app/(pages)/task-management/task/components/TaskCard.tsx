@@ -350,7 +350,7 @@ export default function TaskCard({
       </div>
 
       {/* Section 2: Name + Assignee + Co-Assignees */}
-      <div className="px-3 py-2.5 space-y-2">
+      <div className="px-3 py-2.5 space-y-2 cursor-pointer" onClick={handleCardClick}>
         <h3 className="text-sm leading-tight">
           <span className="inline-flex items-center gap-1 w-full">
             {configData && onUpdateTask ? (

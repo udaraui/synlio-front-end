@@ -1,7 +1,7 @@
 "use client";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
 import { Role } from "@/interfaces/role";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { toast } from "sonner";
 import { getRoleById, loadRoles } from "@/services/user-management/role-services";
@@ -11,6 +11,10 @@ import RoleEditDrawer from "./components/role_edit_drawer";
 import RoleView from "./components/role_view";
 import { safeParse } from "@/services/auth/auth-service";
 import { getAllCompany } from "@/services/company-management/company-services";
+import {
+  CompanyFilterOption,
+  isCompanyActive,
+} from "@/components/common/CompanyFilterCombobox";
 
 function Page() {
   const { setBreadcrumbs } = useBreadcrumb();
@@ -33,9 +37,11 @@ function Page() {
   const [editRole, setEditRole] = useState<Role | null>(null);
 
   const [isSystemUser, setIsSystemUser] = useState(false);
-  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+  const [allCompanies, setAllCompanies] = useState<CompanyFilterOption[]>([]);
   const [filterCompanyId, setFilterCompanyId] = useState<string>("");
   const [debouncedFilterCompanyId, setDebouncedFilterCompanyId] = useState("");
+
+  const fetchIdRef = useRef(0);
 
   type SortOption = 'name-asc' | 'name-desc' | 'updatedAt-desc' | 'updatedAt-asc' | 'createdAt-desc' | 'createdAt-asc' | '';
   const [sortOption, setSortOption] = useState<SortOption>('');
@@ -55,7 +61,8 @@ function Page() {
         try {
           const result = await getAllCompany();
           const list = result.data || [];
-          setAllCompanies(list);
+          const activeCompanies = (Array.isArray(list) ? list : []).filter(isCompanyActive);
+          setAllCompanies(activeCompanies);
         } catch (error) {
           console.error("Failed to fetch companies:", error);
         }
@@ -65,6 +72,7 @@ function Page() {
   }, []);
 
   const fetchRoles = async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setAllRolesGetIsLoading(true);
     const selectedCompany = safeParse(localStorage.getItem("active_company"));
     try {
@@ -95,9 +103,25 @@ function Page() {
 
       if (canViewRole) {
         const result = await loadRoles(params);
+        if (currentFetchId !== fetchIdRef.current) return;
+
         if (result && Array.isArray(result.data)) {
           setTotalRecords(result.total || result.data.length);
-          const transformedRoles = result.data.map((role: any) => ({
+          const transformedRoles = result.data.map((role: {
+            id: number;
+            role?: string;
+            companyId?: number | string;
+            group?: string;
+            isActive?: boolean;
+            createdAt?: string;
+            created_at?: string;
+            updatedAt?: string;
+            updated_at?: string;
+            createdBy?: string;
+            created_by?: string;
+            updatedBy?: string;
+            updated_by?: string;
+          }) => ({
             id: role.id,
             role: role.role || "",
             companyId: role.companyId || "",
@@ -108,21 +132,27 @@ function Page() {
             createdBy: role.createdBy || role.created_by || "",
             updatedBy: role.updatedBy || role.updated_by || "",
           }));
-          setRoles(transformedRoles);
+          setRoles(transformedRoles as Role[]);
         } else {
           toast.error("Failed to fetch roles");
           setRoles([]);
           setTotalRecords(0);
         }
       } else {
-        toast.error("Not authorized to view roles");
-        setRoles([]);
-        setTotalRecords(0);
+        if (currentFetchId === fetchIdRef.current) {
+          toast.error("Not authorized to view roles");
+          setRoles([]);
+          setTotalRecords(0);
+        }
       }
-    } catch (error) {
-      toast.error("Failed to fetch roles");
+    } catch {
+      if (currentFetchId === fetchIdRef.current) {
+        toast.error("Failed to fetch roles");
+      }
     } finally {
-      setAllRolesGetIsLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setAllRolesGetIsLoading(false);
+      }
     }
   };
 
@@ -134,6 +164,20 @@ function Page() {
       { label: "Roles", href: "/environment/roles" },
       { label: roleName, isCurrentPage: true },
     ]);
+  };
+
+  const handleCompanyChange = (newCompanyId: string) => {
+    fetchIdRef.current += 1;
+    setRoles([]);
+    setTotalRecords(0);
+    setSelectedRole(null);
+    setSelectedRoleName("");
+    setOpenViewDialog(false);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+    setFilterCompanyId(newCompanyId);
+    setDebouncedFilterCompanyId(newCompanyId);
   };
 
   const handleCloseRoleView = () => {
@@ -229,7 +273,7 @@ function Page() {
           selectedRole={selectedRole || undefined}
           isSystemUser={isSystemUser}
           companies={allCompanies}
-          onCompanySearchChange={setFilterCompanyId}
+          onCompanySearchChange={handleCompanyChange}
           companyTerm={filterCompanyId}
           sortOption={sortOption}
           onSortChange={(opt) => setSortOption(opt as SortOption)}

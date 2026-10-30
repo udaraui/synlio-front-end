@@ -197,7 +197,7 @@ export default function TicketCard({
       </div>
 
       {/* Section 2: Name, Assignee Avatar, and Participants */}
-      <div className="px-3 py-2.5 space-y-2">
+      <div className="px-3 py-2.5 space-y-2 cursor-pointer" onClick={() => (onCardClick ?? onEdit)(ticket)}>
         <h3 className="text-sm leading-tight">
           <span className="inline-flex items-center gap-1 w-full">
             <InlineEditableTicketName
@@ -261,7 +261,7 @@ export default function TicketCard({
         </h3>
 
         <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center">
+          <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
             <InlineEditableAssignee
               assignee={assignee}
               members={members}
@@ -273,7 +273,7 @@ export default function TicketCard({
               }}
             />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <InlineEditableParticipants
               participants={participants}
               members={members}

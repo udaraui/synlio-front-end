@@ -23,6 +23,12 @@ interface Company {
   notificationEmail?: string;
   emailProvider?: 'gmail' | 'outlook' | 'mail_service';
   weekEndDay?: number;
+  is_self_registered_company?: boolean;
+  is_self_created_company?: boolean;
+  creatorEmail?: string | null;
+  creator?: {
+    email?: string;
+  } | null;
 }
 
 export type { Company };

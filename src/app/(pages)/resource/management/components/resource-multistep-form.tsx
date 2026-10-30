@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePrivilegeGuard } from '@/hooks/use-privilege-guard';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -206,6 +206,10 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
 
   // Email check state (create mode only)
   const [emailCheckStatus, setEmailCheckStatus] = useState<EmailCheckStatus>('idle');
+  const [existingResourceEmailMsg, setExistingResourceEmailMsg] = useState<string>('');
+  const [highlightEmailError, setHighlightEmailError] = useState(false);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emailCheckSeqRef = useRef(0);
 
   // Data Stores
   const [divisions, setDivisions] = useState<any[]>([]);
@@ -247,6 +251,7 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
   const watchedSkills = useWatch({ control: form.control, name: 'skills' });
   const watchedReportingPersonId = useWatch({ control: form.control, name: 'reportingPersonId' });
   const watchedCalendarId = useWatch({ control: form.control, name: 'calendar' });
+  const watchedEmail = useWatch({ control: form.control, name: 'email' });
 
   useEffect(() => {
     if (watchedCalendarId) {
@@ -330,53 +335,121 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
       setInitialReportingPersonId(null);
       setInitialReportingPersonName('');
       setEmailCheckStatus('idle');
+      setExistingResourceEmailMsg('');
+      setHighlightEmailError(false);
     }
   }, [open, type, resourceId]);
 
-  // --- Email check on blur (create mode only) ---
-  const handleEmailBlur = useCallback(async (email: string) => {
+  const isEmailTaken = type === 'create' && emailCheckStatus === 'exists_in_resource';
+  const isSubmitDisabled = loadingStates.submitting || isEmailTaken;
+
+  const triggerEmailErrorHighlight = useCallback(() => {
+    if (step !== 1) {
+      setStep(1);
+    }
+    if (isEmailTaken && existingResourceEmailMsg) {
+      form.setError('email', {
+        type: 'manual',
+        message: existingResourceEmailMsg,
+      });
+    }
+    setHighlightEmailError(false);
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+    }
+    requestAnimationFrame(() => {
+      setHighlightEmailError(true);
+      const emailInputEl = document.getElementById('resource-email-input') as HTMLInputElement | null;
+      emailInputEl?.focus({ preventScroll: false });
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightEmailError(false);
+      }, 800);
+    });
+  }, [step, isEmailTaken, existingResourceEmailMsg, form]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // --- Email check (debounced & on blur, create mode only) ---
+  const handleEmailBlur = useCallback(async (email: string, isBlur = true) => {
     if (type !== 'create') return;
     const trimmedEmail = email?.trim();
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) return;
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setEmailCheckStatus('idle');
+      setExistingResourceEmailMsg('');
+      return;
+    }
 
+    const currentSeq = ++emailCheckSeqRef.current;
     setEmailCheckStatus('checking');
 
     // Step 1: Check if email already exists in the resource table
     const resourceCheck = await checkResourceEmail(trimmedEmail);
+    if (currentSeq !== emailCheckSeqRef.current) return;
+
     if (resourceCheck.exists) {
+      const errMsg = `A resource with this email already exists (${resourceCheck.resource?.first_name} ${resourceCheck.resource?.last_name}).`;
+      setExistingResourceEmailMsg(errMsg);
       setEmailCheckStatus('exists_in_resource');
       form.setError('email', {
         type: 'manual',
-        message: `A resource with this email already exists (${resourceCheck.resource?.first_name} ${resourceCheck.resource?.last_name}).`,
+        message: errMsg,
       });
       return;
     }
 
+    setExistingResourceEmailMsg('');
+
     // Step 2: Check user table for same-company user to pre-fill details
     try {
       const userRes = await searchUserByEmail(trimmedEmail);
+      if (currentSeq !== emailCheckSeqRef.current) return;
       const user = userRes?.data ?? userRes;
       if (user && user.id) {
         form.clearErrors('email');
-        form.setValue('first_name', user.first_name || '', { shouldValidate: true });
-        form.setValue('last_name', user.last_name || '', { shouldValidate: true });
-        form.setValue('mobile', user.mobile_number ? String(user.mobile_number) : '', { shouldValidate: true });
-        if (user.profile_picture) {
-          setPreviewUrl(user.profile_picture);
-          // Store the URL so it can be sent as a string reference (backend handles this)
-          form.setValue('profile_pic', user.profile_picture);
+        if (isBlur) {
+          form.setValue('first_name', user.first_name || '', { shouldValidate: true });
+          form.setValue('last_name', user.last_name || '', { shouldValidate: true });
+          form.setValue('mobile', user.mobile_number ? String(user.mobile_number) : '', { shouldValidate: true });
+          if (user.profile_picture) {
+            setPreviewUrl(user.profile_picture);
+            // Store the URL so it can be sent as a string reference (backend handles this)
+            form.setValue('profile_pic', user.profile_picture);
+          }
+          toast.success('User found — profile details have been pre-filled');
         }
         setEmailCheckStatus('prefilled_from_user');
-        toast.success('User found — profile details have been pre-filled');
       } else {
         form.clearErrors('email');
         setEmailCheckStatus('not_found');
       }
     } catch {
+      if (currentSeq !== emailCheckSeqRef.current) return;
       form.clearErrors('email');
       setEmailCheckStatus('not_found');
     }
   }, [type, form]);
+
+  // Debounced email validation while typing in create mode
+  useEffect(() => {
+    if (!open || type !== 'create') return;
+    const trimmed = (watchedEmail || '').trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      emailCheckSeqRef.current += 1;
+      setEmailCheckStatus('idle');
+      setExistingResourceEmailMsg('');
+      return;
+    }
+    const timer = setTimeout(() => {
+      handleEmailBlur(trimmed, false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [watchedEmail, open, type, handleEmailBlur]);
 
   const loadResourceData = async (id: number) => {
     setLoadingStates(p => ({ ...p, main: true }));
@@ -484,6 +557,11 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
   };
 
   const handleFinalSubmit = async (values: FormValues) => {
+    if (isEmailTaken) {
+      triggerEmailErrorHighlight();
+      return;
+    }
+
     const rawSkills = values.skills || [];
     const validSkills = rawSkills.filter(
       (s) => (s.skillCategoryId && s.skillCategoryId > 0) || (s.skillId && s.skillId > 0) || (s.skillLevelId && s.skillLevelId > 0)
@@ -663,7 +741,17 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFinalSubmit)} className="flex-1 flex flex-col overflow-hidden">
+            <form
+              onSubmit={(e) => {
+                if (isEmailTaken) {
+                  e.preventDefault();
+                  triggerEmailErrorHighlight();
+                  return;
+                }
+                form.handleSubmit(handleFinalSubmit)(e);
+              }}
+              className="flex-1 flex flex-col overflow-hidden"
+            >
 
               <div className="flex-1 overflow-y-auto pt-2 pb-6 px-1">
                 {step === 1 ? (
@@ -739,15 +827,42 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                             <div className="relative">
                               <FormControl>
                                 <Input
+                                  id="resource-email-input"
                                   type="email"
                                   placeholder="e.g. john.doe@company.com"
-                                  className={`shadow-none ${type === 'edit' ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
+                                  aria-invalid={isEmailTaken || !!form.formState.errors.email}
+                                  aria-describedby={
+                                    isEmailTaken || form.formState.errors.email
+                                      ? 'resource-email-error'
+                                      : undefined
+                                  }
+                                  aria-errormessage={
+                                    isEmailTaken || form.formState.errors.email
+                                      ? 'resource-email-error'
+                                      : undefined
+                                  }
+                                  className={`shadow-none transition-all duration-300 ${
+                                    type === 'edit' ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
+                                  } ${
+                                    isEmailTaken
+                                      ? 'border-destructive focus-visible:ring-destructive/40'
+                                      : ''
+                                  } ${
+                                    highlightEmailError
+                                      ? 'animate-shake ring-2 ring-destructive ring-offset-2 border-destructive bg-destructive/5'
+                                      : ''
+                                  }`}
                                   disabled={type === 'edit'}
                                   {...field}
-                                  onChange={(e) => field.onChange(e.target.value.trimStart())}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.value.trimStart());
+                                    if (highlightEmailError) {
+                                      setHighlightEmailError(false);
+                                    }
+                                  }}
                                   onBlur={(e) => {
                                     field.onChange(e.target.value.trim());
-                                    if (type === 'create') handleEmailBlur(e.target.value.trim());
+                                    if (type === 'create') handleEmailBlur(e.target.value.trim(), true);
                                   }}
                                 />
                               </FormControl>
@@ -757,7 +872,18 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                 </div>
                               )}
                             </div>
-                            <FormMessage />
+                            <FormMessage
+                              id="resource-email-error"
+                              role="alert"
+                              aria-live="polite"
+                              className={`transition-all duration-300 ${
+                                highlightEmailError
+                                  ? 'font-bold text-destructive animate-pulse scale-[1.02] origin-left'
+                                  : ''
+                              }`}
+                            >
+                              {isEmailTaken ? existingResourceEmailMsg : undefined}
+                            </FormMessage>
                             {type === 'create' && emailCheckStatus === 'prefilled_from_user' && (
                               <p className="text-xs text-emerald-600 flex items-center gap-1 mt-0.5">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Profile details pre-filled from existing user account.
@@ -1291,10 +1417,23 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                     {step === 1 ? (
                       <>
                         {canEditResource && (
-                          <Button type="submit" className="shadow-lg shadow-primary/20 px-6 font-semibold" disabled={loadingStates.submitting}>
-                            {loadingStates.submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            Save Profile
-                          </Button>
+                          <div
+                            onClick={() => {
+                              if (isEmailTaken) {
+                                triggerEmailErrorHighlight();
+                              }
+                            }}
+                            className={isSubmitDisabled ? 'cursor-not-allowed inline-flex' : 'inline-flex'}
+                          >
+                            <Button
+                              type="submit"
+                              className="shadow-lg shadow-primary/20 px-6 font-semibold disabled:cursor-not-allowed"
+                              disabled={isSubmitDisabled}
+                            >
+                              {loadingStates.submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                              Save Profile
+                            </Button>
+                          </div>
                         )}
                         <Button
                           type="button"
@@ -1302,6 +1441,10 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                           className="font-semibold px-5"
                           onClick={async (e) => {
                             e.preventDefault();
+                            if (isEmailTaken) {
+                              triggerEmailErrorHighlight();
+                              return;
+                            }
                             const isValid = await form.trigger(['first_name', 'last_name', 'email', 'division', 'calendar', 'mobile']);
                             if (isValid) setStep(2);
                           }}
@@ -1312,10 +1455,23 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                     ) : (
                       <>
                         {canEditResource && (
-                          <Button type="submit" className="shadow-lg shadow-primary/20 px-8 font-semibold" disabled={loadingStates.submitting}>
-                            {loadingStates.submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {type === 'create' ? 'Complete & Create' : 'Update Changes'}
-                          </Button>
+                          <div
+                            onClick={() => {
+                              if (isEmailTaken) {
+                                triggerEmailErrorHighlight();
+                              }
+                            }}
+                            className={isSubmitDisabled ? 'cursor-not-allowed inline-flex' : 'inline-flex'}
+                          >
+                            <Button
+                              type="submit"
+                              className="shadow-lg shadow-primary/20 px-8 font-semibold disabled:cursor-not-allowed"
+                              disabled={isSubmitDisabled}
+                            >
+                              {loadingStates.submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                              {type === 'create' ? 'Complete & Create' : 'Update Changes'}
+                            </Button>
+                          </div>
                         )}
                       </>
                     )}

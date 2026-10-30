@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Calendar } from "@/interfaces/calendar";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,11 @@ import DeleteModal from "@/components/DeleteModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaginationControls } from "@/components/common/PaginationControls";
+import {
+  CompanyFilterCombobox,
+  CompanyFilterOption,
+  isCompanyActive,
+} from "@/components/common/CompanyFilterCombobox";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -115,7 +120,7 @@ const CalendarWeekInfo: React.FC<{ calendarId: number }> = ({ calendarId }) => {
             <Info className="h-4 w-4 text-muted-foreground" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-none">
+        <TooltipContent side="top" className="max-w-[280px]">
           {isLoading ? (
             <p className="text-xs">Loading…</p>
           ) : failed ? (
@@ -154,7 +159,7 @@ interface CalendarListProps {
   // Navigation is now handled internally
 }
 
-const CalendarList: React.FC<CalendarListProps> = ({ }) => {
+const CalendarList: React.FC<CalendarListProps> = () => {
   const router = useRouter();
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -169,9 +174,11 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
 
   const [isSystemUser, setIsSystemUser] = useState(false);
-  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+  const [allCompanies, setAllCompanies] = useState<CompanyFilterOption[]>([]);
   const [filterCompanyId, setFilterCompanyId] = useState<string>("");
   const [debouncedCompanyId, setDebouncedCompanyId] = useState("");
+
+  const fetchIdRef = useRef(0);
 
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -184,7 +191,16 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
   const canEdit = usePrivilegeGuard("32") as boolean;
   const canDelete = usePrivilegeGuard("31") as boolean;
 
-  const totalPages = Math.ceil(totalRecords / itemsPerPage);
+  const handleCompanyChange = (newCompanyId: string) => {
+    fetchIdRef.current += 1;
+    setCalendars([]);
+    setTotalRecords(0);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+    setFilterCompanyId(newCompanyId);
+    setDebouncedCompanyId(newCompanyId);
+  };
 
   // System user detection + companies list (for system user filter)
   useEffect(() => {
@@ -196,7 +212,9 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
       (async () => {
         try {
           const result = await getAllCompany();
-          setAllCompanies(result.data || []);
+          const list = result.data || [];
+          const activeList = (Array.isArray(list) ? list : []).filter(isCompanyActive);
+          setAllCompanies(activeList);
         } catch {
           // ignore
         }
@@ -222,12 +240,15 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
   }, [debouncedNameTerm, statusTerm, debouncedCompanyId, sortOption]);
 
   const fetchCalendars = async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setIsLoading(true);
     try {
       if (!canView) {
-        toast.error("Not authorized to view calendars");
-        setCalendars([]);
-        setTotalRecords(0);
+        if (currentFetchId === fetchIdRef.current) {
+          toast.error("Not authorized to view calendars");
+          setCalendars([]);
+          setTotalRecords(0);
+        }
         return;
       }
 
@@ -269,10 +290,24 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
       };
 
       const result = await loadCalendars(params);
+      if (currentFetchId !== fetchIdRef.current) return;
+
       if (result && Array.isArray(result.data)) {
         setTotalRecords(result.total || result.data.length);
         setCalendars(
-          result.data.map((c: any) => ({
+          result.data.map((c: {
+            id: number;
+            name?: string;
+            year?: number;
+            isActive: boolean;
+            companyId?: number;
+            company_id?: number;
+            company?: number;
+            created_by?: string;
+            created_at?: string;
+            updated_by?: string;
+            updated_at?: string;
+          }) => ({
             id: c.id,
             name: c.name || "",
             year: c.year || 0,
@@ -282,16 +317,20 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
             createdAt: c.created_at || new Date().toISOString(),
             updatedBy: c.updated_by || "",
             updatedAt: c.updated_at || new Date().toISOString(),
-          })),
+          })) as Calendar[],
         );
       } else {
         setCalendars([]);
         setTotalRecords(0);
       }
     } catch {
-      toast.error("Failed to fetch calendars");
+      if (currentFetchId === fetchIdRef.current) {
+        toast.error("Failed to fetch calendars");
+      }
     } finally {
-      setIsLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -340,7 +379,7 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
                   size="sm"
                   variant="outline"
                   title="Sort"
-                  className={`h-7 w-7 p-0`}
+                  className="h-7 w-7 p-0"
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>
@@ -423,33 +462,11 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
               </Select>
 
               {isSystemUser && (
-                <Select
+                <CompanyFilterCombobox
+                  companies={allCompanies}
                   value={filterCompanyId}
-                  onValueChange={(v) => setFilterCompanyId(v)}
-                >
-                  <SelectTrigger className="h-7 w-[160px] text-xs border border-border shadow-none flex gap-1">
-                    <SelectValue placeholder="Company" className="flex-1 text-left truncate" />
-                    {filterCompanyId && (
-                      <div
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFilterCompanyId("");
-                        }}
-                        className="ml-auto hover:text-destructive cursor-pointer flex items-center justify-center shrink-0"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allCompanies.map((c) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        {c.company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(v) => handleCompanyChange(v)}
+                />
               )}
             </div>
           </div>
@@ -535,10 +552,10 @@ const CalendarList: React.FC<CalendarListProps> = ({ }) => {
                             <TableCell className="py-2.5 px-4 hidden lg:table-cell">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-transparent text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
                                 {(() => {
-                                  const cId = cal.companyId || (cal as any).company_id;
+                                  const cId = cal.companyId || (cal as { company_id?: number }).company_id;
                                   if (!cId || !allCompanies) return 'Unknown';
-                                  const c = allCompanies.find((comp: any) => comp.id === cId || comp.companyId === cId);
-                                  return c ? (c.company || c.name || c.companyName) : 'Unknown';
+                                  const c = allCompanies.find((comp) => comp.id === cId || (comp as { companyId?: number }).companyId === cId);
+                                  return c ? c.company : 'Unknown';
                                 })()}
                               </span>
                             </TableCell>

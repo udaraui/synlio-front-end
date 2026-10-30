@@ -255,7 +255,11 @@ const Page = () => {
         try {
           const result = await getAllCompany();
           const companiesList = result.data || [];
-          setAllCompanies(companiesList);
+          const activeCompanies = (Array.isArray(companiesList) ? companiesList : []).filter(
+            (c: { isActive?: boolean | string; active_status?: boolean | string }) =>
+              c.isActive === true || c.isActive === "active" || c.active_status === true || c.active_status === "active"
+          );
+          setAllCompanies(activeCompanies);
         } catch (error) {
           console.error("Failed to fetch companies:", error);
         }

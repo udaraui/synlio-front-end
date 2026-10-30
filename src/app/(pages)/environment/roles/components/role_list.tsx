@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PaginationControls } from '@/components/common/PaginationControls';
+import {
+  CompanyFilterCombobox,
+  CompanyFilterOption,
+} from '@/components/common/CompanyFilterCombobox';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -69,11 +73,11 @@ interface RoleListProps {
   totalRecords?: number;
   useServerPagination?: boolean;
   onRoleUpdate?: () => void;
+  isLoading?: boolean;
   selectedRole?: number;
   onRoleCreateClick?: () => void;
-  isLoading?: boolean;
   isSystemUser?: boolean;
-  companies?: any[];
+  companies?: CompanyFilterOption[];
   onCompanySearchChange?: (value: string) => void;
   companyTerm?: string;
   sortOption?: string;
@@ -157,7 +161,7 @@ function RoleList({
                   size="sm"
                   variant="outline"
                   title="Sort"
-                  className={`h-7 w-7 p-0`}
+                  className="h-7 w-7 p-0"
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>
@@ -234,37 +238,13 @@ function RoleList({
                 </SelectContent>
               </Select>
 
-
-
               {/* Company filter (system users only) */}
               {isSystemUser && (
-                <Select
+                <CompanyFilterCombobox
+                  companies={companies}
                   value={companyTerm}
-                  onValueChange={(v) => onCompanySearchChange?.(v)}
-                >
-                  <SelectTrigger className="h-7 w-[180px] text-xs flex-shrink-0 border border-border shadow-none flex gap-1">
-                    <SelectValue placeholder="Company" className="flex-1 text-left truncate" />
-                    {companyTerm && (
-                      <div
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCompanySearchChange?.("");
-                        }}
-                        className="ml-auto hover:text-destructive cursor-pointer flex items-center justify-center shrink-0"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        {c.company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(v) => onCompanySearchChange?.(v)}
+                />
               )}
             </div>
           </div>
@@ -272,7 +252,7 @@ function RoleList({
       </div>
 
       {/* ── Body: table + panel side-by-side ── */}
-      <div className="flex px-1  flex-1 overflow-hidden min-h-0">
+      <div className="flex px-1 flex-1 overflow-hidden min-h-0">
         <div
           className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelOpen ? "flex-1 min-w-0" : "w-full"
             }`}
@@ -294,7 +274,6 @@ function RoleList({
                           Company
                         </TableHead>
                       )}
-
                       <TableHead className="w-[25%] h-10 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </TableHead>
@@ -315,7 +294,6 @@ function RoleList({
                               <Skeleton className="h-4 w-24" />
                             </TableCell>
                           )}
-
                           <TableCell className="py-2 px-4">
                             <Skeleton className="h-5 w-16 rounded-full" />
                           </TableCell>
@@ -359,15 +337,14 @@ function RoleList({
                             <TableCell className="py-2 px-4 hidden lg:table-cell">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-transparent text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
                                 {(() => {
-                                  const cId = (role as any).companyId || role.company?.id || (role as any).company_id;
+                                  const cId = (role as { companyId?: number }).companyId || role.company?.id || (role as { company_id?: number }).company_id;
                                   if (!cId || !companies) return 'Unknown';
-                                  const c = companies.find((comp: any) => comp.id === cId || comp.companyId === cId);
-                                  return c ? (c.company || c.name || c.companyName) : 'Unknown';
+                                  const c = companies.find((comp) => comp.id === cId || (comp as { companyId?: number }).companyId === cId);
+                                  return c ? c.company : 'Unknown';
                                 })()}
                               </span>
                             </TableCell>
                           )}
-
 
                           {/* Status */}
                           <TableCell className="py-2 px-4">
@@ -449,7 +426,7 @@ function RoleList({
                                         if (canEditRole) {
                                           onRoleEditClick?.(role.id);
                                         } else {
-                                          toast.error('Not authorized to edit a role');
+                                          toast.error('Not authorized to edit the role');
                                         }
                                       }}
                                     >
@@ -489,7 +466,6 @@ function RoleList({
                   </TableBody>
                 </Table>
               </div>
-
             </div>
           </div>
 

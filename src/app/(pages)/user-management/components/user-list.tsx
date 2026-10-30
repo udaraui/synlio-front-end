@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react'; // Added useRef
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,6 +27,10 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { PaginationControls } from '@/components/common/PaginationControls';
+import {
+  CompanyFilterCombobox,
+  CompanyFilterOption,
+} from '@/components/common/CompanyFilterCombobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePrivilegeGuard } from '@/hooks/use-privilege-guard';
 import {
@@ -75,7 +79,7 @@ interface UserListProps {
   onUserCreateDrawerClick?: () => void;
   selectedUser?: User | null;
   isSystemUser?: boolean;
-  companies?: any[];
+  companies?: CompanyFilterOption[];
   onCompanySearchChange?: (value: string) => void;
   companyTerm?: string;
   sortOption?: string;
@@ -137,10 +141,8 @@ const UserList: React.FC<UserListProps> = ({
     return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase();
   };
 
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
-
       {/* ── Toolbar section — spans full page width above the split ── */}
       <div className="flex-none">
         <div className="px-3 pt-3 pb-1">
@@ -171,7 +173,7 @@ const UserList: React.FC<UserListProps> = ({
                   size="sm"
                   variant="outline"
                   title="Sort"
-                  className={`h-7 w-7 p-0`}
+                  className="h-7 w-7 p-0"
                 >
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </Button>
@@ -251,33 +253,11 @@ const UserList: React.FC<UserListProps> = ({
               </Select>
 
               {isSystemUser && (
-                <Select
+                <CompanyFilterCombobox
+                  companies={companies}
                   value={companyTerm}
-                  onValueChange={(value) => onCompanySearchChange?.(value)}
-                >
-                  <SelectTrigger className="h-7 w-[180px] text-xs flex-shrink-0 border border-border shadow-none flex gap-1">
-                    <SelectValue placeholder="Company" className="flex-1 text-left truncate" />
-                    {companyTerm && (
-                      <div
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCompanySearchChange?.("");
-                        }}
-                        className="ml-auto hover:text-destructive cursor-pointer flex items-center justify-center shrink-0"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id.toString()}>
-                        {company.company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => onCompanySearchChange?.(value)}
+                />
               )}
             </div>
           </div>
@@ -422,7 +402,7 @@ const UserList: React.FC<UserListProps> = ({
                             {(() => {
                               const roles = (user.userCompanyRoles || []);
                               const filtered = companyTerm
-                                ? roles.filter(r => r.company?.id === parseInt(companyTerm) || (r as any).company_id === parseInt(companyTerm))
+                                ? roles.filter(r => r.company?.id === parseInt(companyTerm) || (r as { company_id?: number }).company_id === parseInt(companyTerm))
                                 : roles;
                               if (!filtered.length) return <span className="text-muted-foreground text-sm">—</span>;
                               const [first, ...rest] = filtered;
@@ -464,10 +444,11 @@ const UserList: React.FC<UserListProps> = ({
                                 const companiesMap = new Map();
                                 (user.userCompanyRoles || []).forEach(r => {
                                   if (r.company) {
-                                    companiesMap.set(r.company.id, (r.company as any).company || r.company.company);
-                                  } else if ((r as any).company_id) {
-                                    const c = companies.find((comp: any) => comp.id === (r as any).company_id || comp.companyId === (r as any).company_id);
-                                    if (c) companiesMap.set(c.id || c.companyId, c.company || c.name || c.companyName);
+                                    companiesMap.set(r.company.id, r.company.company);
+                                  } else if ((r as { company_id?: number }).company_id) {
+                                    const targetId = (r as { company_id?: number }).company_id;
+                                    const c = companies.find((comp) => comp.id === targetId || (comp as { companyId?: number }).companyId === targetId);
+                                    if (c) companiesMap.set(c.id, c.company);
                                   }
                                 });
                                 const uniqueCompanies = Array.from(companiesMap.values());
@@ -552,10 +533,10 @@ const UserList: React.FC<UserListProps> = ({
 
                                 <Info_button
                                   id={user.id || 0}
-                                  createdBy={user.createdBy || (user as any).created_by || 'Unknown'}
-                                  createdAt={user.createdAt || (user as any).created_at || ''}
-                                  updatedBy={user.updatedBy || (user as any).updated_by || 'Unknown'}
-                                  updatedAt={user.updatedAt || (user as any).updated_at || ''}
+                                  createdBy={user.createdBy || (user as { created_by?: string }).created_by || 'Unknown'}
+                                  createdAt={user.createdAt || (user as { created_at?: string }).created_at || ''}
+                                  updatedBy={user.updatedBy || (user as { updated_by?: string }).updated_by || 'Unknown'}
+                                  updatedAt={user.updatedAt || (user as { updated_at?: string }).updated_at || ''}
                                 />
 
                                 <Tooltip>
