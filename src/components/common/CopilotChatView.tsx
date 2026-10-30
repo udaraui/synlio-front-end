@@ -2437,7 +2437,7 @@ export function CopilotChatView({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading || isReadingFile}
                 className="h-10 w-10 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-full cursor-pointer"
-                title="Attach document (PDF, DOCX, TXT, CSV)"
+                title="Attach document (PDF, DOCX, TXT, CSV, MD, JSON)"
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
