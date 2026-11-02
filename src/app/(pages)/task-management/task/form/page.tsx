@@ -523,6 +523,18 @@ export default function TaskFormPage() {
   const confirmRemoveMember = () => {
     if (!memberToRemove) return;
     const id = memberToRemove;
+    // Validation Guard: Ensure member is not assigned to any child tasks
+    const hasAssignedChildren = childTasks.some((c: any) => {
+      const isAssignee = c.assigneeId === id || c.assignee?.id === id;
+      const isCoAssignee = Array.isArray(c.coAssignees) && c.coAssignees.some((ca: any) => ca.id === id || ca === id);
+      return isAssignee || isCoAssignee;
+    });
+
+    if (hasAssignedChildren) {
+      toast.error('Cannot remove a member who is currently assigned to child tasks');
+      return;
+    }
+
     const next = formData.memberIds.filter((x) => x !== id);
 
     if (isEditMode && taskId) {
@@ -1218,7 +1230,7 @@ export default function TaskFormPage() {
   // The form now renders immediately, showing granular loaders in dropdowns instead.
 
   return (
-    <div className="flex flex-col h-full bg-background pt-8">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Back to Pulse banner — only shown when navigating from Pulse link-task flow */}
       {meetingId && (
         <div className="flex-none px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 flex items-center gap-2">
@@ -1226,7 +1238,7 @@ export default function TaskFormPage() {
           <span className="text-xs text-yellow-600 dark:text-yellow-500">You are viewing this task from the Pulse meeting link flow. Edit freely — use the back button to return and link.</span>
         </div>
       )}
-      <div className="flex-1 overflow-hidden flex">
+      <div className="flex-1 overflow-hidden flex pt-8">
 
         {/* -- Left ? main content ------------------------------------------- */}
         <div className="flex flex-col"
@@ -2623,7 +2635,9 @@ export default function TaskFormPage() {
 
             <div className="min-h-[225px]">
               {activeTab === 'details' && (
-                <DetailsTable
+                <div className="overflow-x-auto w-full scrollbar-thin">
+                  <div className="min-w-[460px]">
+                    <DetailsTable
                   rows={[
                     {
                       label: "Start Date",
@@ -2841,7 +2855,9 @@ export default function TaskFormPage() {
                       )
                     }
                   ]}
-                />
+                    />
+                  </div>
+                </div>
               )}
               {activeTab === 'logs' && (
                 <WorkLogTable
@@ -2866,9 +2882,10 @@ export default function TaskFormPage() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* -- TEAM ------------------------------------------- */}
-          <div className="px-5 py-4 mt-auto">
+        {/* -- TEAM ------------------------------------------- */}
+          <div className="px-5 py-4 flex-shrink-0 border-t border-border bg-background z-10">
             {/*<h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Team</h3>*/}
 
             {/* Assignee | Co-Assignees */}
@@ -3321,7 +3338,6 @@ export default function TaskFormPage() {
             })()}
 
             </div>
-          </div>
 
           {/* -- METADATA (Frozen Footer) ----------------------- */}
           {isEditMode && (
@@ -3355,26 +3371,87 @@ export default function TaskFormPage() {
           setMemberRemoveError(null);
         }
       }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Guest Member</AlertDialogTitle>
-            <AlertDialogDescription className={memberRemoveError ? "text-red-500 font-medium" : ""}>
-              {memberRemoveError ? memberRemoveError : "Are you sure you want to remove this guest member from the task?"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isRemovingMember} onClick={() => setMemberRemoveError(null)}>Cancel</AlertDialogCancel>
-            {!memberRemoveError && (
-              <Button
-                variant="destructive"
-                onClick={(e) => { e.preventDefault(); confirmRemoveMember(); }}
-                disabled={isRemovingMember}
-              >
-                {isRemovingMember ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Remove
-              </Button>
-            )}
-          </AlertDialogFooter>
+        <AlertDialogContent className="max-w-md">
+          {(() => {
+            const memberObj = memberToRemove
+              ? (config?.resources ?? []).find((x: any) => x.id === memberToRemove) ?? memberResourceCache[memberToRemove]
+              : null;
+            const memberName = memberObj
+              ? `${memberObj.first_name ?? ''} ${memberObj.last_name ?? ''}`.trim() || 'this guest member'
+              : 'this guest member';
+
+            const assignedChildren = memberToRemove
+              ? childTasks.filter((c: any) => {
+                  const isAssignee = c.assigneeId === memberToRemove || c.assignee?.id === memberToRemove;
+                  const isCoAssignee = Array.isArray(c.coAssignees) && c.coAssignees.some((ca: any) => ca.id === memberToRemove || ca === memberToRemove);
+                  return isAssignee || isCoAssignee;
+                })
+              : [];
+
+            const isBlocked = assignedChildren.length > 0;
+
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {isBlocked ? (
+                      "Cannot Remove Guest Member"
+                    ) : (
+                      "Remove Guest Member"
+                    )}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3 pt-1 text-sm !text-gray-800 dark:!text-gray-200">
+                      {isBlocked ? (
+                        <>
+                          <p className="text-gray-800 dark:text-gray-200">
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">{memberName}</span> cannot be removed from this project because they are currently assigned to {assignedChildren.length} child task{assignedChildren.length > 1 ? 's' : ''}.
+                          </p>
+                          <ul className="space-y-1 max-h-36 overflow-y-auto text-gray-800 dark:text-gray-200">
+                            {assignedChildren.map((c: any) => (
+                              <li key={c.id} className="flex items-center gap-1.5">
+                                <span className="font-semibold text-primary">{c.code}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {/* <p className="text-gray-800 dark:text-gray-200">
+                            Please reassign or unassign these child work before continuing.
+                          </p> */}
+                        </>
+                      ) : memberRemoveError ? (
+                        <p className="text-destructive font-medium">{memberRemoveError}</p>
+                      ) : (
+                        <p>
+                          Are you sure you want to remove <span className="font-medium text-foreground">{memberName}</span> from this task?
+                        </p>
+                      )}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  {isBlocked ? (
+                    <Button onClick={() => setMemberToRemove(null)}>
+                      Got it
+                    </Button>
+                  ) : (
+                    <>
+                      <AlertDialogCancel disabled={isRemovingMember} onClick={() => setMemberRemoveError(null)}>Cancel</AlertDialogCancel>
+                      {!memberRemoveError && (
+                        <Button
+                          variant="destructive"
+                          onClick={(e) => { e.preventDefault(); confirmRemoveMember(); }}
+                          disabled={isRemovingMember}
+                        >
+                          {isRemovingMember ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Remove
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
         </AlertDialogContent>
       </AlertDialog>
     </div>

@@ -1327,7 +1327,7 @@ export default function CreateTicketPage() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Main Content - Two Column Layout */}
       <div className="flex-1 overflow-hidden flex pt-8">
         {/* Left Side - Form */}
@@ -2404,7 +2404,7 @@ export default function CreateTicketPage() {
           style={{ width: "40%" }}
         >
           {/* Middle content area - Scrollable */}
-          <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
             {/* ── STATUS / TYPE / SEVERITY / QUEUE / IMPACT ─────── */}
             <div className="px-2 py-3 flex flex-col gap-2 pb-6">
             {/* Status */}
@@ -3145,9 +3145,10 @@ export default function CreateTicketPage() {
             )} */}
             </div>
           </div>
+        </div>
 
-          {/* ── TEAM ─────────────────────────────────────────── */}
-          <div className="px-5 py-4 mt-auto">
+        {/* ── TEAM ─────────────────────────────────────────── */}
+          <div className="px-5 py-4 flex-shrink-0 border-t border-border bg-background z-10">
             {/* Assignee | Participants */}
             <div className="flex gap-0 min-h-[30px]">
               {/* Assignee column */}
@@ -3638,7 +3639,6 @@ export default function CreateTicketPage() {
               </div>
             </div>
           </div>
-        </div>
 
         {/* ── METADATA (Frozen Footer) ─────────────────────────── */}
           {isEditMode && (
