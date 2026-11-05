@@ -352,11 +352,22 @@ input:-webkit-autofill:active {
   /* Light text when selected */
 }
 
+/* Global thin scrollbars across the entire system */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(156, 163, 175, 0.25) transparent;
+}
+
 /* Scrollbar width */
 ::-webkit-scrollbar {
   width: 5px;
+  height: 5px;
   /* vertical scrollbar */
-  /* height: 8px;  horizontal scrollbar */
+  /* vertical and horizontal scrollbar thickness */
 }
 
 /* Hide scrollbar utility */
@@ -394,18 +405,18 @@ input:-webkit-autofill:active {
 
 /* Scrollbar track */
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 
 /* Scrollbar handle */
 ::-webkit-scrollbar-thumb {
-  background: #a8a8a8;
-  border-radius: 20px;
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
 }
 
 /* Scrollbar handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #6e6e6e;
+  background: rgba(156, 163, 175, 0.7);
 }
 
 /* Color Picker Styles */
