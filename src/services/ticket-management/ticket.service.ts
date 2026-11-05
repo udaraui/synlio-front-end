@@ -426,4 +426,17 @@ export const deleteTicket = async (id: number): Promise<any> => {
   }
 };
 
+export const mutateTickets = async (payload: any): Promise<any> => {
+  try {
+    const response = await axiosInstance.post(
+      `/chat/mutate`,
+      payload,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error mutating tickets:", error);
+    throw error;
+  }
+};
 

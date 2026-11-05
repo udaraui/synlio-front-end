@@ -312,7 +312,7 @@ export default function TicketTableView({
                               <div>
                                 <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">Description</p>
                                 <div
-                                  className="text-xs text-gray-600 dark:text-gray-400 prose prose-sm max-w-none"
+                                  className="text-xs text-gray-600 dark:text-gray-400 prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_strong]:font-bold [&_b]:font-bold [&_em]:italic [&_i]:italic [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_a]:text-primary [&_a]:underline"
                                   dangerouslySetInnerHTML={{ __html: ticket.description }}
                                 />
                               </div>

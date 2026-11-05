@@ -1309,8 +1309,10 @@ function TicketPage() {
     };
 
     window.addEventListener("synlio:ticket-created", handleTicketCreated);
+    window.addEventListener("synlio:ticket-updated", handleTicketCreated);
     return () => {
       window.removeEventListener("synlio:ticket-created", handleTicketCreated);
+      window.removeEventListener("synlio:ticket-updated", handleTicketCreated);
     };
   }, [fetchData, selectedTicketSpaceFilter]);
 

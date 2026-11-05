@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth.context";
 import { useViewPreference } from "@/hooks/use-view-preference";
 import { Button } from "@/components/ui/button";
-import { createTicket } from "@/services/ticket-management/ticket.service";
+import { createTicket, mutateTickets } from "@/services/ticket-management/ticket.service";
 import {
   searchTicketSpaces,
   getTicketSpaceById,
@@ -56,6 +56,8 @@ import {
 } from "@/app/(pages)/ticket-management/ticket/components/InlineEditableTicketComponents";
 
 export interface TicketDraftData {
+  id?: number;
+  code?: string;
   name?: string;
   description?: string;
   ticketSpaceId?: number;
@@ -86,10 +88,12 @@ export interface TicketDraftCardProps {
     drafts?: TicketDraftData[];
     tickets?: TicketDraftData[];
     warnings?: string[];
+    options?: any[];
+    candidateTickets?: any[];
     needs?: Array<{
       field: string;
       label: string;
-      options: Array<{ id: number; name: string; prefix?: string }>;
+      options: Array<{ id: number; name: string; label?: string; prefix?: string }>;
     }>;
   };
   onUpdateDraft?: (updated: TicketDraftData) => void;
@@ -308,6 +312,26 @@ function resolveTicketDraftEntities(
   return next;
 }
 
+// Renders ticket description as formatted HTML if tags exist, or styled text otherwise
+function FormattedDescription({ content }: { content?: string }) {
+  if (!content || !content.trim()) {
+    return <p className="text-muted-foreground italic">No description provided</p>;
+  }
+
+  // Detect whether string contains HTML tags
+  const hasHtml = /<[a-z][\s\S]*>/i.test(content);
+  if (!hasHtml) {
+    return <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">{content}</p>;
+  }
+
+  return (
+    <div
+      className="text-xs text-muted-foreground prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_strong]:font-bold [&_b]:font-bold [&_em]:italic [&_i]:italic [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_a]:text-primary [&_a]:underline"
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
+  );
+}
+
 // Single Ticket Draft Card component
 function SingleTicketDraftItem({
   initialDraft,
@@ -321,6 +345,7 @@ function SingleTicketDraftItem({
   onCreated,
   onUpdateDraft,
   onDismiss,
+  isUpdateAction = false,
 }: {
   initialDraft: TicketDraftData;
   spaceConfigs: SpaceConfigs;
@@ -333,6 +358,7 @@ function SingleTicketDraftItem({
   onCreated?: (created: { id: number; code?: string; name: string; ticketSpaceId?: number }) => void;
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
+  isUpdateAction?: boolean;
 }) {
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
@@ -388,6 +414,128 @@ function SingleTicketDraftItem({
         if (matched) {
           finalAssigneeId = Number(matched.id);
         }
+      }
+
+      if (isUpdateAction) {
+        const updatePayload: any = {
+          action: "UPDATE_TICKET",
+          targets: [draft.code || String(draft.id)],
+          changes: {
+            name: draft.name.trim(),
+            description: draft.description || "",
+            ticketTypeId: draft.ticketTypeId,
+            severityId: draft.severityId,
+            statusId: draft.statusId,
+            queueId: draft.queueId,
+            ticketSlaId: draft.ticketSlaId,
+            assigneeId: finalAssigneeId,
+            completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
+            plannedEffort: draft.plannedEffort,
+          },
+          tickets: [{ ...draft, assigneeId: finalAssigneeId }],
+        };
+
+        const result = await mutateTickets(updatePayload);
+        const updated = result?.tickets?.[0] || draft;
+        const updatedObj = {
+          id: updated.id || draft.id,
+          code: updated.code || draft.code,
+          name: updated.name || draft.name,
+          ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
+        };
+
+        setInternalCreatedTicket(updatedObj);
+        onCreated?.(updatedObj);
+
+        window.dispatchEvent(
+          new CustomEvent("synlio:ticket-updated", {
+            detail: { ticket: updated },
+          })
+        );
+        toast.success(`Ticket ${draft.code || ""} updated successfully`);
+        return;
+      }
+
+      if (isUpdateAction) {
+        const updatePayload: any = {
+          action: "UPDATE_TICKET",
+          targets: [draft.code || String(draft.id)],
+          changes: {
+            name: draft.name.trim(),
+            description: draft.description || "",
+            ticketTypeId: draft.ticketTypeId,
+            severityId: draft.severityId,
+            statusId: draft.statusId,
+            queueId: draft.queueId,
+            ticketSlaId: draft.ticketSlaId,
+            assigneeId: finalAssigneeId,
+            completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
+            plannedEffort: draft.plannedEffort,
+          },
+          tickets: [{ ...draft, assigneeId: finalAssigneeId }],
+        };
+
+        const result = await mutateTickets(updatePayload);
+        const updated = result?.tickets?.[0] || draft;
+        const updatedObj = {
+          id: updated.id || draft.id,
+          code: updated.code || draft.code,
+          name: updated.name || draft.name,
+          ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
+        };
+
+        setInternalCreatedTicket(updatedObj);
+        onCreated?.(updatedObj);
+
+        window.dispatchEvent(
+          new CustomEvent("synlio:ticket-updated", {
+            detail: { ticket: updated },
+          })
+        );
+        toast.success(`Ticket ${draft.code || ""} updated successfully`);
+        return;
+      }
+
+      if (isUpdateAction) {
+        const updatePayload: any = {
+          action: "UPDATE_TICKET",
+          targets: [draft.code || String(draft.id)],
+          changes: {
+            name: draft.name.trim(),
+            description: draft.description || "",
+            ticketTypeId: draft.ticketTypeId,
+            severityId: draft.severityId,
+            statusId: draft.statusId,
+            queueId: draft.queueId,
+            ticketSlaId: draft.ticketSlaId,
+            assigneeId: finalAssigneeId,
+            completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
+            plannedEffort: draft.plannedEffort,
+          },
+          tickets: [{ ...draft, assigneeId: finalAssigneeId }],
+        };
+
+        const result = await mutateTickets(updatePayload);
+        const updated = result?.tickets?.[0] || draft;
+        const updatedObj = {
+          id: updated.id || draft.id,
+          code: updated.code || draft.code,
+          name: updated.name || draft.name,
+          ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
+        };
+
+        setInternalCreatedTicket(updatedObj);
+        onCreated?.(updatedObj);
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("synlio:ticket-updated", {
+              detail: { ticket: updated },
+            })
+          );
+        }
+        toast.success(`Ticket ${draft.code || ""} updated successfully`);
+        return;
       }
 
       const createPayload: any = {
@@ -629,7 +777,7 @@ function SingleTicketDraftItem({
               className="text-xs font-semibold tracking-wide text-primary select-none whitespace-nowrap"
               title={createdTicket?.code ? `Ticket ${createdTicket.code}` : "Ticket draft code"}
             >
-              {createdTicket?.code || (spacePrefix ? `${spacePrefix}-?` : "DRAFT")}
+              {createdTicket?.code || draft?.code || (spacePrefix ? `${spacePrefix}-?` : "DRAFT")}
             </span>
 
             {/* {draft.ticketSpaceName && (
@@ -702,11 +850,11 @@ function SingleTicketDraftItem({
                     align="start"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">Description</p>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {draft.description || draft.name}
-                      </p>
+                    <div className="space-y-1.5 text-xs">
+                      <div className="font-semibold text-foreground border-b border-border pb-1">
+                        {draft.name}
+                      </div>
+                      <FormattedDescription content={draft.description} />
                     </div>
                   </HoverCardContent>
                 </HoverCard>
@@ -883,6 +1031,7 @@ function SingleTicketDraftTableRow({
   onCreated,
   onUpdateDraft,
   onDismiss,
+  isUpdateAction = false,
 }: {
   initialDraft: TicketDraftData;
   spaceConfigs: SpaceConfigs;
@@ -895,6 +1044,7 @@ function SingleTicketDraftTableRow({
   onCreated?: (created: { id: number; code?: string; name: string; ticketSpaceId?: number }) => void;
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
+  isUpdateAction?: boolean;
 }) {
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
@@ -1169,7 +1319,7 @@ function SingleTicketDraftTableRow({
             className="text-xs font-semibold tracking-wide text-primary select-none whitespace-nowrap shrink-0"
             title={createdTicket?.code ? `Ticket ${createdTicket.code}` : "Ticket draft code"}
           >
-            {createdTicket?.code || (spacePrefix ? `${spacePrefix}-?` : "DRAFT")}
+            {createdTicket?.code || draft?.code || (spacePrefix ? `${spacePrefix}-?` : "DRAFT")}
           </span>
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <InlineEditableTicketName
@@ -1203,25 +1353,14 @@ function SingleTicketDraftTableRow({
                     <div className="font-semibold text-foreground border-b border-border pb-1">
                       {draft.name}
                     </div>
-                    {draft.description ? (
-                      <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                        {draft.description}
-                      </p>
-                    ) : (
-                      <p className="text-muted-foreground italic">No description provided</p>
-                    )}
+                    <FormattedDescription content={draft.description} />
                   </div>
                 </HoverCardContent>
               </HoverCard>
             )}
           </div>
         </div>
-        {filteredWarnings.length > 0 && (
-          <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
-            <AlertTriangle className="w-3 h-3 shrink-0" />
-            <span className="truncate">{filteredWarnings[0]}</span>
-          </div>
-        )}
+
       </td>
 
       {/* 2. Ticket Type (Icon + Name) */}
@@ -1565,6 +1704,7 @@ export function TicketDraftCard({
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [isOptionSelected, setIsOptionSelected] = useState(false);
   const [dismissedIndexSet, setDismissedIndexSet] = useState<Set<number>>(new Set());
+  const isUpdateAction = payload.action === "UPDATE_TICKET";
   const [isSubmittingAll, setIsSubmittingAll] = useState(false);
   const [createdTicketsMap, setCreatedTicketsMap] = useState<Record<number, any>>({});
   const [editedDraftsMap, setEditedDraftsMap] = useState<Record<number, TicketDraftData>>({});
@@ -1610,18 +1750,35 @@ export function TicketDraftCard({
   // Determine effective space ID (from selected or any draft)
   const effectiveSpaceId = useMemo(() => {
     if (selectedSpaceId) return selectedSpaceId;
-    return draftsList.find((d) => d.ticketSpaceId)?.ticketSpaceId || null;
+    return (
+      draftsList.find((d) => d.ticketSpaceId || (d as any).ticketSpace?.id)?.ticketSpaceId ||
+      (draftsList.find((d) => (d as any).ticketSpace?.id) as any)?.ticketSpace?.id ||
+      null
+    );
   }, [selectedSpaceId, draftsList]);
 
-  // Sync warnings from props
+  // Sync warnings and created status from props
   useEffect(() => {
     setWarnings(payload.warnings || []);
     setSelectedSpaceId(null);
     setIsOptionSelected(false);
     setDismissedIndexSet(new Set());
-    setCreatedTicketsMap({});
+
+    const initialCreated: Record<number, any> = {};
+    draftsList.forEach((d: any, idx: number) => {
+      // For updates, do NOT pre-mark as created/confirmed on initial load
+      if (d && !isUpdateAction && d.id) {
+        initialCreated[idx] = {
+          id: d.id,
+          code: d.code,
+          name: d.name,
+          ticketSpaceId: d.ticketSpaceId,
+        };
+      }
+    });
+    setCreatedTicketsMap(initialCreated);
     setEditedDraftsMap({});
-  }, [payload]);
+  }, [payload, draftsList]);
 
   // Load allowed spaces for fallback / picker
   useEffect(() => {
@@ -1848,7 +2005,75 @@ export function TicketDraftCard({
     return null;
   }
 
-  const isNeedsSpace = payload.status === "NEEDS_INPUT" || !effectiveSpaceId;
+  const isNeedsTarget =
+    payload.action === "UPDATE_TICKET" &&
+    payload.status === "NEEDS_INPUT";
+
+  // If this is an update mutation and no tickets were resolved, do not render any draft card
+  if (payload.action === "UPDATE_TICKET" && draftsList.length === 0 && !isNeedsTarget) {
+    return null;
+  }
+
+  if (isNeedsTarget) {
+    const rawOptions =
+      payload.needs?.find((n) => n.field === "targetTicket")?.options ||
+      payload.options ||
+      [];
+
+    return (
+      <div className="my-2.5 flex flex-wrap items-center gap-1.5 animate-in fade-in-50">
+        {rawOptions.map((opt: any, idx: number) => {
+          const isSelected = selectedSpaceId === (opt.id ?? idx);
+          const displayLabel = opt.label || opt.name;
+          const isAllOption = displayLabel.toLowerCase().startsWith("all");
+
+          return (
+            <button
+              key={opt.id ?? idx}
+              type="button"
+              disabled={selectedSpaceId !== null}
+              onClick={() => {
+                setIsOptionSelected(true);
+                setSelectedSpaceId(opt.id ?? idx);
+                onSelectOption?.("targetTicket", {
+                  id: opt.id ?? idx,
+                  name: opt.name || opt.actionText || displayLabel,
+                });
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer shadow-2xs select-none ${
+                isAllOption
+                  ? "bg-primary text-white dark:text-black hover:opacity-90 active:scale-95 border border-primary/20 font-bold"
+                  : "bg-muted text-foreground hover:bg-muted/80 active:scale-95 border border-border"
+              } ${
+                isSelected ? "opacity-85 ring-2 ring-primary ring-offset-1" : ""
+              } ${selectedSpaceId !== null && !isSelected ? "opacity-30 cursor-not-allowed" : ""}`}
+            >
+              {isSelected && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              )}
+              <span>{displayLabel}</span>
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          disabled={selectedSpaceId !== null}
+          onClick={handleDismissAll}
+          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent text-slate-700 dark:text-slate-300 border border-dashed border-slate-700 dark:border-slate-300 hover:text-slate-900 hover:dark:text-white hover:border-slate-900 hover:dark:border-white hover:bg-slate-100/60 dark:hover:bg-slate-800/40 transition-all duration-150 cursor-pointer select-none ${
+            selectedSpaceId !== null ? "opacity-30 cursor-not-allowed" : ""
+          }`}
+        >
+          <span>Dismiss</span>
+        </button>
+      </div>
+    );
+  }
+
+  const hasSpaceNeed = payload.needs?.some((n) => n.field === "ticketSpace");
+  const isNeedsSpace =
+    payload.action !== "UPDATE_TICKET" &&
+    (hasSpaceNeed || (!effectiveSpaceId && draftsList.some((d) => Boolean(d.name))));
 
   // When a space is required, present the space selection badges
   if (isNeedsSpace) {
@@ -1942,15 +2167,15 @@ export function TicketDraftCard({
         <div className="text-sm flex items-center gap-1.5">
           {uncreatedCount === 0 ? (
             <span className="font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> All {visibleDrafts.length} tickets created successfully
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> All {visibleDrafts.length} tickets {isUpdateAction ? "updated" : "created"} successfully
             </span>
           ) : createdCount > 0 ? (
             <span>
-              <strong>{createdCount}</strong> {createdCount === 1 ? "ticket is saved" : "tickets are saved"}. <strong>{uncreatedCount}</strong> {uncreatedCount === 1 ? "is ready to create" : "are ready to create"}. Would you like to create {uncreatedCount === 1 ? "it" : "them all"}?
+              <strong>{createdCount}</strong> {createdCount === 1 ? "ticket is saved" : "tickets are saved"}. <strong>{uncreatedCount}</strong> {uncreatedCount === 1 ? (isUpdateAction ? "is ready to update" : "is ready to create") : (isUpdateAction ? "are ready to update" : "are ready to create")}. Would you like to {isUpdateAction ? "update" : "create"} {uncreatedCount === 1 ? "it" : "them all"}?
             </span>
           ) : (
             <span>
-              There are <strong>{visibleDrafts.length}</strong> ticket drafts ready. Would you like to create them all?
+              There are <strong>{visibleDrafts.length}</strong> ticket {isUpdateAction ? "updates" : "drafts"} ready. Would you like to {isUpdateAction ? "update" : "create"} them all?
             </span>
           )}
         </div>
@@ -1980,12 +2205,12 @@ export function TicketDraftCard({
                 {isSubmittingAll ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Saving ({uncreatedCount})...</span>
+                    <span>{isUpdateAction ? "Updating" : "Saving"} ({uncreatedCount})...</span>
                   </>
                 ) : (
                   <>
                     <Save className="w-3.5 h-3.5" />
-                    <span>Save All ({uncreatedCount})</span>
+                    <span>{isUpdateAction ? "Update All" : "Save All"} ({uncreatedCount})</span>
                   </>
                 )}
               </Button>
@@ -2067,6 +2292,7 @@ export function TicketDraftCard({
                   onUpdateDraft?.(updated);
                 }}
                 onDismiss={() => handleDismissOne(index)}
+                isUpdateAction={isUpdateAction}
               />
             );
           })}
@@ -2080,6 +2306,9 @@ export function TicketDraftCard({
 
   // Single ticket card view
   const singleItem = visibleDrafts[0];
+  if (!singleItem) {
+    return null;
+  }
   return (
     <div className="@container w-full max-w-[560px] my-3 space-y-2" style={{ containerType: "inline-size" }}>
       {renderToolbar()}
@@ -2100,6 +2329,7 @@ export function TicketDraftCard({
           onUpdateDraft?.(updated);
         }}
         onDismiss={() => handleDismissOne(singleItem.index)}
+        isUpdateAction={isUpdateAction}
       />
     </div>
   );

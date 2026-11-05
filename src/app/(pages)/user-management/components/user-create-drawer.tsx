@@ -53,6 +53,7 @@ import {
   UserCheck,
   AlertTriangle,
   Trash2,
+  Info,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createUser, searchUserByEmail } from "@/services/user-management/user-service";
@@ -421,14 +422,14 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
                             />
                           </FormControl>
                          {existingUser && isAlreadyInCompany && (
-                            <div className="flex items-center gap-1.5 mt-1 text-sm text-amber-600 dark:text-amber-400">
+                            <div className="flex items-center gap-1.5 mt-1 text-sm">
                               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                               This user is already a member of this company.
                             </div>
                           )}
                           {existingUser && !isAlreadyInCompany && (
-                            <div className="flex items-center gap-1.5 mt-1 text-sm text-emerald-600 dark:text-emerald-400">
-                              <UserCheck className="h-3.5 w-3.5 shrink-0" />
+                            <div className="flex items-center gap-1.5 mt-1 text-sm">
+                              <Info className="h-3.5 w-3.5 shrink-0" />
                               Existing user found. Basic information filled automatically.
                             </div>
                           )}

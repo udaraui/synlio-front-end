@@ -197,7 +197,7 @@ export interface Message {
   isThinking?: boolean;
   isStreaming?: boolean;
   draftPayload?: any;
-  attachments?: Array<{ name: string; size?: number; type?: string }>;
+  attachments?: Array<{ name: string; size?: number; type?: string; base64?: string; contentText?: string }>;
 }
 
 // Helper to extract primary RGB values from CSS variable --primary
@@ -1088,6 +1088,8 @@ interface ChatMessageItemProps {
   mode?: "full" | "panel";
   onSelectOption?: (optionName: string, msgId?: string) => void;
   onCancelDraft?: (msgId: string) => void;
+  onRetry?: (msgId: string) => void;
+  isRetried?: boolean;
 }
 
 const ChatMessageItem = React.memo(function ChatMessageItem({
@@ -1100,8 +1102,20 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
   mode = "full",
   onSelectOption,
   onCancelDraft,
+  onRetry,
+  isRetried = false,
 }: ChatMessageItemProps) {
   const isFinished = !msg.isStreaming && !msg.isThinking;
+  const isError =
+    msg.role === "ai" &&
+    isFinished &&
+    !msg.isThinking &&
+    (
+      msg.content.includes("unexpected issue") ||
+      msg.content.includes("Something went wrong") ||
+      msg.content.includes("trying again") ||
+      msg.content.includes("encountered an issue")
+    );
   const previewMatch = msg.role === "ai" && isFinished
     ? msg.content.match(/<!--preview_count:(\d+)-->/) ||
     msg.content.match(/(?:out of|total of)\s+(\d+)\s+records/i) ||
@@ -1192,6 +1206,22 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                   />
                 )}
 
+                {isError && !isRetried && (
+                  <div className="mt-2.5 flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoading}
+                      onClick={() => onRetry?.(msg.id)}
+                      className="h-8 gap-1.5 text-xs font-semibold cursor-pointer border border-border bg-background hover:bg-muted text-foreground transition-all duration-150 rounded-lg shadow-2xs hover:border-foreground/30 select-none"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>Try Again</span>
+                    </Button>
+                  </div>
+                )}
+
                 {hasPreview && (
                   <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 px-4 py-3 rounded-xl border border-border">
                     <div className="text-sm flex items-center gap-1.5">
@@ -1245,7 +1275,8 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
     prevProps.msg.isStreaming === nextProps.msg.isStreaming &&
     prevProps.actionState === nextProps.actionState &&
     prevProps.isLoading === nextProps.isLoading &&
-    prevProps.mode === nextProps.mode
+    prevProps.mode === nextProps.mode &&
+    prevProps.isRetried === nextProps.isRetried
   );
 });
 
@@ -1285,6 +1316,7 @@ export function CopilotChatView({
   const [isLoading, setIsLoading] = useState(false);
   const [actionStates, setActionStates] = useState<Record<string, 'dismissed' | 'full_list'>>({});
   const [pendingDraft, setPendingDraft] = useState<any>(null);
+  const [retriedMessageIds, setRetriedMessageIds] = useState<Set<string>>(new Set());
 
   const [internalConvId, setInternalConvId] = useState<string>(() => {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -1301,6 +1333,7 @@ export function CopilotChatView({
       setMessages([]);
       setInput("");
       setActionStates({});
+      setRetriedMessageIds(new Set());
       setIsLoading(false);
     }
     prevConvIdRef.current = externalConvId;
@@ -1873,7 +1906,7 @@ export function CopilotChatView({
       id: Date.now().toString(),
       role: "user",
       content: displayContent,
-      attachments: hasAttachments ? attachedDocs.map((a) => ({ name: a.name, size: a.size, type: a.type })) : undefined,
+      attachments: hasAttachments ? attachedDocs.map((a) => ({ name: a.name, size: a.size, type: a.type, base64: a.base64, contentText: a.contentText })) : undefined,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -1958,6 +1991,40 @@ export function CopilotChatView({
 
           let displayChunk = rawChunk;
 
+          // Check if stream emitted a structured mutation result
+          if (accumulatedText.includes("__MUTATION_RESULT__")) {
+            const parts = accumulatedText.split("__MUTATION_RESULT__");
+            try {
+              const mutationRes = JSON.parse(parts[1].trim());
+              if (mutationRes?.success && mutationRes?.tickets?.length > 0) {
+                capturedPayload = {
+                  action: "UPDATE_TICKET",
+                  status: "READY",
+                  summary: mutationRes.summary || "Ticket updated.",
+                  draft: mutationRes.tickets[0],
+                  drafts: mutationRes.tickets,
+                  tickets: mutationRes.tickets,
+                  createdTicket: mutationRes.tickets[0],
+                  warnings: mutationRes.warnings || [],
+                  needs: [],
+                };
+                setPendingDraft(null);
+
+                mutationRes.tickets.forEach((t: any) => {
+                  window.dispatchEvent(
+                    new CustomEvent("synlio:ticket-updated", {
+                      detail: { ticket: t },
+                    })
+                  );
+                });
+              } else if (mutationRes?.status === "FAILED") {
+                capturedPayload = null;
+              }
+            } catch {
+              // Wait for full JSON chunk
+            }
+          }
+
           // Check if stream emitted a structured draft payload
           if (accumulatedText.includes("__DRAFT_PAYLOAD__")) {
             const parts = accumulatedText.split("__DRAFT_PAYLOAD__");
@@ -1966,9 +2033,12 @@ export function CopilotChatView({
               const draftsToSave =
                 capturedPayload?.drafts && Array.isArray(capturedPayload.drafts) && capturedPayload.drafts.length > 0
                   ? capturedPayload.drafts
-                  : capturedPayload?.draft;
-              if (draftsToSave) {
+                  : (capturedPayload?.draft && typeof capturedPayload.draft === "object" ? [capturedPayload.draft] : null);
+              if (draftsToSave && draftsToSave.length > 0) {
                 setPendingDraft(draftsToSave);
+              } else {
+                setPendingDraft(null);
+                capturedPayload = null;
               }
             } catch {
               // Wait for full JSON chunk
@@ -1985,13 +2055,19 @@ export function CopilotChatView({
 
                 if (displayChunk.includes("__FINAL__")) {
                   const finalContent = displayChunk.split("__FINAL__").pop() || "";
-                  const cleanContent = finalContent.split("__DRAFT_PAYLOAD__")[0];
+                  const cleanContent = finalContent
+                    .split("__DRAFT_PAYLOAD__")[0]
+                    .split("__MUTATION_PAYLOAD__")[0]
+                    .split("__MUTATION_RESULT__")[0];
                   return { ...nextMsg, content: cleanContent, isThinking: false, isStreaming: false };
                 }
                 if (displayChunk.includes("__REPLACE__")) {
                   return { ...nextMsg, content: displayChunk.split("__REPLACE__").pop() || "", isThinking: true, isStreaming: true };
                 }
-                const cleanChunk = displayChunk.split("__DRAFT_PAYLOAD__")[0];
+                const cleanChunk = displayChunk
+                  .split("__DRAFT_PAYLOAD__")[0]
+                  .split("__MUTATION_PAYLOAD__")[0]
+                  .split("__MUTATION_RESULT__")[0];
                 return { ...nextMsg, content: nextMsg.content + cleanChunk, isThinking: false, isStreaming: true };
               }
               return msg;
@@ -2003,7 +2079,10 @@ export function CopilotChatView({
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === aiMessageId) {
-            const finalContent = msg.content.split("__DRAFT_PAYLOAD__")[0];
+            const finalContent = msg.content
+              .split("__DRAFT_PAYLOAD__")[0]
+              .split("__MUTATION_PAYLOAD__")[0]
+              .split("__MUTATION_RESULT__")[0];
             return {
               ...msg,
               content: finalContent || (capturedPayload?.summary || ""),
@@ -2043,6 +2122,31 @@ export function CopilotChatView({
         ];
       });
       setIsLoading(false);
+    }
+  };
+
+  const handleRetry = (aiMsgId: string) => {
+    if (isLoading) return;
+
+    // 1. Hide the retry button on this AI message
+    setRetriedMessageIds((prev) => new Set(prev).add(aiMsgId));
+
+    // 2. Find the user message directly preceding this AI message
+    const msgIndex = messages.findIndex((m) => m.id === aiMsgId);
+    let targetUserMsg: Message | undefined;
+    if (msgIndex !== -1) {
+      for (let i = msgIndex - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          targetUserMsg = messages[i];
+          break;
+        }
+      }
+    } else {
+      targetUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    }
+
+    if (targetUserMsg && targetUserMsg.content?.trim()) {
+      sendMessage(targetUserMsg.content, targetUserMsg.attachments as any);
     }
   };
 
@@ -2203,6 +2307,8 @@ export function CopilotChatView({
                 actionState={actionState}
                 isLoading={isLoading}
                 mode={mode}
+                onRetry={handleRetry}
+                isRetried={retriedMessageIds.has(msg.id)}
                 onSelectOption={(optionName, msgId) => {
                   if (msgId) {
                     setMessages((prev) =>
