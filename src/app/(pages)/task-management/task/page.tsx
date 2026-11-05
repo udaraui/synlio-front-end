@@ -27,6 +27,8 @@ import {
   Star,
   Download,
   Sparkles,
+  UserCheck,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
@@ -75,6 +77,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import CalendarRange from "@/components/common/CalendarRange";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import {
@@ -108,6 +111,59 @@ import { useViewPreference } from "@/hooks/use-view-preference";
 const TASK_FILTERS_SESSION_KEY = "tmTaskPageFilters";
 const LS_SPACE_CONTEXT_KEY = "tmTaskSpaceContext";
 const LS_PINNED_FILTERS_KEY = "pinnedTaskFilters";
+
+/** Same { start, end } (yyyy-MM-dd) shape used by the Ticket page SLA range filters. */
+type OverdueRange = { start?: string | null; end?: string | null };
+const EMPTY_OVERDUE_RANGE: OverdueRange = { start: null, end: null };
+
+/** Parses a yyyy-MM-dd string as a LOCAL date (avoids UTC off-by-one). */
+function parseLocalDate(value: string): Date {
+  return new Date(`${value.slice(0, 10)}T00:00:00`);
+}
+
+/**
+ * Restores the Overdue range from a saved template / session payload.
+ * Backward compatible with the legacy single-date `overdueRangeFilter` ISO string.
+ */
+function parseOverdueRange(f: {
+  overdueRangeFilter?: OverdueRange | null;
+  overdueDateFilter?: string | null;
+}): OverdueRange {
+  const r = f?.overdueRangeFilter;
+  if (r && (r.start || r.end)) {
+    return { start: r.start ?? null, end: r.end ?? null };
+  }
+  if (f?.overdueDateFilter) {
+    const legacy = new Date(f.overdueDateFilter);
+    if (!isNaN(legacy.getTime())) {
+      return { start: format(legacy, "yyyy-MM-dd"), end: null };
+    }
+  }
+  return EMPTY_OVERDUE_RANGE;
+}
+
+/** Human-readable label: single date → "Before MMM d, yyyy", range → "MMM d – MMM d, yyyy". */
+function formatOverdueLabel(r: OverdueRange): string | null {
+  if (r.start && r.end) {
+    return `${format(parseLocalDate(r.start), "MMM d")} – ${format(parseLocalDate(r.end), "MMM d, yyyy")}`;
+  }
+  const cutoff = r.start ?? r.end;
+  return cutoff ? `Before ${format(parseLocalDate(cutoff), "MMM d, yyyy")}` : null;
+}
+
+/**
+ * Builds the API filter for Overdue. Backend contract (matchMode "overdue"):
+ *   { start }        → status NOT Complete AND dueDate <  start
+ *   { start, end }   → status NOT Complete AND start <= dueDate <= end
+ */
+function buildOverdueFilter(r: OverdueRange) {
+  if (!r.start && !r.end) return null;
+  return {
+    field: "overdueDate",
+    matchMode: "overdue",
+    value: { start: r.start ?? null, end: r.end ?? null },
+  };
+}
 
 type ParentTaskEntry = {
   id: number;
@@ -216,6 +272,13 @@ function Page() {
   const [createdBySearch, setCreatedBySearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [specialFilter, setSpecialFilter] = useState<boolean | null>(null);
+  const [assignedToMeFilter, setAssignedToMeFilter] = useState<boolean>(false);
+  const [dueTodayFilter, setDueTodayFilter] = useState<boolean>(false);
+  // Overdue: single date → dueDate < date; two dates → dueDate within range (Ticket SLA pattern)
+  const [overdueRangeFilter, setOverdueRangeFilter] = useState<OverdueRange>(
+    EMPTY_OVERDUE_RANGE,
+  );
+  const isOverdueActive = !!(overdueRangeFilter.start || overdueRangeFilter.end);
 
   // Debounced text filters
   const [debouncedNameFilter, setDebouncedNameFilter] = useState("");
@@ -297,7 +360,10 @@ function Page() {
     | "coAssignee"
     | "dateRange"
     | "special"
-    | "createdBy";
+    | "createdBy"
+    | "assignedToMe"
+    | "dueToday"
+    | "overdueDate";
   const [pinnedFilters, setPinnedFilters] = useState<FilterType[]>(() => {
     try {
       const saved = localStorage.getItem(LS_PINNED_FILTERS_KEY);
@@ -451,6 +517,9 @@ function Page() {
     setCreatedByFilter([]);
     setDateRange(undefined);
     setSpecialFilter(null);
+    setAssignedToMeFilter(false);
+    setDueTodayFilter(false);
+    setOverdueRangeFilter(EMPTY_OVERDUE_RANGE);
     setParentTaskStack([]);
     setSortOption("updatedAt-desc");
     setIsSortExplicit(false);
@@ -485,7 +554,10 @@ function Page() {
     coAssigneeFilter.length > 0 ||
     createdByFilter.length > 0 ||
     dateRange?.from ||
-    specialFilter !== null
+    specialFilter !== null ||
+    assignedToMeFilter ||
+    dueTodayFilter ||
+    isOverdueActive
   );
 
   const activeFilterCount = [
@@ -500,6 +572,9 @@ function Page() {
     createdByFilter.length > 0,
     dateRange?.from,
     specialFilter !== null,
+    assignedToMeFilter,
+    dueTodayFilter,
+    isOverdueActive,
   ].filter(Boolean).length;
 
   // filter template helpers
@@ -527,6 +602,9 @@ function Page() {
           dateRangeFrom: dateRange?.from?.toISOString(),
           dateRangeTo: dateRange?.to?.toISOString(),
           specialFilter,
+          assignedToMeFilter,
+          dueTodayFilter,
+          overdueRangeFilter,
           sortOption,
         },
       });
@@ -563,6 +641,9 @@ function Page() {
         : undefined,
     );
     setSpecialFilter(f.specialFilter ?? null);
+    setAssignedToMeFilter(Boolean(f.assignedToMeFilter));
+    setDueTodayFilter(Boolean(f.dueTodayFilter));
+    setOverdueRangeFilter(parseOverdueRange(f));
     const templateSort = f.sortOption || defaultSortOption;
     setSortOption(templateSort);
     setIsSortExplicit(!!f.sortOption || defaultSortOption !== "createdAt-desc");
@@ -618,6 +699,9 @@ function Page() {
         dateRangeFrom: dateRange?.from?.toISOString(),
         dateRangeTo: dateRange?.to?.toISOString(),
         specialFilter,
+        assignedToMeFilter,
+        dueTodayFilter,
+        overdueRangeFilter,
         sortOption,
         currentPage,
       }),
@@ -636,6 +720,9 @@ function Page() {
     createdByFilter,
     dateRange,
     specialFilter,
+    assignedToMeFilter,
+    dueTodayFilter,
+    overdueRangeFilter,
     sortOption,
     currentPage,
   ]);
@@ -1192,6 +1279,89 @@ function Page() {
             Special
           </Button>
         );
+      case "assignedToMe":
+        return (
+          <Button
+            key="assignedToMe"
+            size="sm"
+            variant="outline"
+            aria-pressed={assignedToMeFilter}
+            className={`h-7 text-xs px-2 shadow-none gap-1.5 ${assignedToMeFilter ? "border-primary bg-primary/5 font-medium text-primary" : "border-border"}`}
+            onClick={() => {
+              setAssignedToMeFilter((prev) => !prev);
+              setCurrentPage(1);
+            }}
+          >
+            <UserCheck
+              className={`w-3.5 h-3.5 ${assignedToMeFilter ? "text-primary" : "text-muted-foreground"}`}
+            />
+            Assigned to me
+          </Button>
+        );
+      case "dueToday":
+        return (
+          <Button
+            key="dueToday"
+            size="sm"
+            variant="outline"
+            aria-pressed={dueTodayFilter}
+            className={`h-7 text-xs px-2 shadow-none gap-1.5 ${dueTodayFilter ? "border-primary bg-primary/5 font-medium text-primary" : "border-border"}`}
+            onClick={() => {
+              setDueTodayFilter((prev) => !prev);
+              setCurrentPage(1);
+            }}
+          >
+            <Clock
+              className={`w-3.5 h-3.5 ${dueTodayFilter ? "text-primary" : "text-muted-foreground"}`}
+            />
+            Due today
+          </Button>
+        );
+      case "overdueDate": {
+        const overdueLabel = formatOverdueLabel(overdueRangeFilter);
+        return (
+          <Popover key="overdueDate">
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={overdueLabel ? `Overdue filter: ${overdueLabel}` : "Overdue filter"}
+                className={`h-7 text-xs px-2 gap-1.5 shadow-none ${isOverdueActive ? "border-primary bg-primary/5 font-medium text-primary" : "border-border"}`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>{overdueLabel ? `Overdue: ${overdueLabel}` : "Overdue"}</span>
+                {isOverdueActive && (
+                  <span
+                    role="button"
+                    aria-label="Clear overdue filter"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOverdueRangeFilter(EMPTY_OVERDUE_RANGE);
+                      setCurrentPage(1);
+                    }}
+                    className="ml-0.5 hover:text-destructive"
+                  >
+                    <X className="w-3 h-3" />
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarRange
+                value={overdueRangeFilter}
+                onChange={(r) => {
+                  setOverdueRangeFilter(r);
+                  setCurrentPage(1);
+                }}
+              />
+              <p className="px-3 py-2 text-[11px] text-muted-foreground">
+                One date: due before it. Two dates: due within the range.
+              </p>
+            </PopoverContent>
+          </Popover>
+        );
+      }
       default:
         return null;
     }
@@ -1228,6 +1398,12 @@ function Page() {
           to: f.dateRangeTo ? new Date(f.dateRangeTo) : undefined,
         });
       if (f.specialFilter !== undefined) setSpecialFilter(f.specialFilter);
+      if (f.assignedToMeFilter !== undefined)
+        setAssignedToMeFilter(Boolean(f.assignedToMeFilter));
+      if (f.dueTodayFilter !== undefined)
+        setDueTodayFilter(Boolean(f.dueTodayFilter));
+      if (f.overdueRangeFilter || f.overdueDateFilter)
+        setOverdueRangeFilter(parseOverdueRange(f));
       if (f.sortOption) {
         setSortOption(f.sortOption);
         setIsSortExplicit(true);
@@ -1253,6 +1429,9 @@ function Page() {
         setCreatedByFilter([]);
         setDateRange(undefined);
         setSpecialFilter(null);
+        setAssignedToMeFilter(false);
+        setDueTodayFilter(false);
+        setOverdueRangeFilter(EMPTY_OVERDUE_RANGE);
         setSortOption(defaultSortOption);
         setIsSortExplicit(defaultSortOption !== "createdAt-desc");
         setCurrentPage(1);
@@ -1635,6 +1814,9 @@ function Page() {
       createdByFilter,
       dateRange,
       specialFilter,
+      assignedToMeFilter,
+      dueTodayFilter,
+      overdueRangeFilter,
       sortOption,
       currentPage,
       itemsPerPage,
@@ -1659,7 +1841,10 @@ function Page() {
         coAssigneeFilter.length > 0 ||
         createdByFilter.length > 0 ||
         dateRange?.from ||
-        specialFilter !== null
+        specialFilter !== null ||
+        assignedToMeFilter ||
+        dueTodayFilter ||
+        isOverdueActive
       );
 
       const filters: any[] = [];
@@ -1790,6 +1975,20 @@ function Page() {
           value: specialFilter,
           matchMode: "equals",
         });
+      if (assignedToMeFilter)
+        filters.push({
+          field: "assignedToMe",
+          matchMode: "assignedToMe",
+          value: true,
+        });
+      if (dueTodayFilter)
+        filters.push({
+          field: "dueToday",
+          matchMode: "dueToday",
+          value: format(new Date(), "yyyy-MM-dd"),
+        });
+      const overdueFilter = buildOverdueFilter(overdueRangeFilter);
+      if (overdueFilter) filters.push(overdueFilter);
 
       // When any filter-dropdown filter is active → always sort by updated A→Z.
       // Otherwise use the user-selected sort option.
@@ -1922,6 +2121,9 @@ function Page() {
     createdByFilter,
     dateRange,
     specialFilter,
+    assignedToMeFilter,
+    dueTodayFilter,
+    overdueRangeFilter,
     sortOption,
     isSortExplicit,
     currentPage,
@@ -2140,6 +2342,22 @@ function Page() {
           value: specialFilter,
         });
       }
+      if (assignedToMeFilter) {
+        filters.push({
+          field: "assignedToMe",
+          matchMode: "assignedToMe",
+          value: true,
+        });
+      }
+      if (dueTodayFilter) {
+        filters.push({
+          field: "dueToday",
+          matchMode: "dueToday",
+          value: format(new Date(), "yyyy-MM-dd"),
+        });
+      }
+      const exportOverdueFilter = buildOverdueFilter(overdueRangeFilter);
+      if (exportOverdueFilter) filters.push(exportOverdueFilter);
 
       const queryParam = {
         filters,
@@ -2177,6 +2395,9 @@ function Page() {
     setCreatedByFilter([]);
     setDateRange(undefined);
     setSpecialFilter(null);
+    setAssignedToMeFilter(false);
+    setDueTodayFilter(false);
+    setOverdueRangeFilter(EMPTY_OVERDUE_RANGE);
 
     const newEntry: ParentTaskEntry = {
       id: task.id,
@@ -2417,6 +2638,9 @@ function Page() {
                 setCoAssigneeFilter([]);
                 setDateRange(undefined);
                 setSpecialFilter(null);
+                setAssignedToMeFilter(false);
+                setDueTodayFilter(false);
+                setOverdueRangeFilter(EMPTY_OVERDUE_RANGE);
                 setSortOption("updatedAt-desc");
                 setIsSortExplicit(false);
                 try {
@@ -3207,6 +3431,205 @@ function Page() {
                         {/*  {specialFilter === true ? 'ON' : 'OFF'}*/}
                         {/*</span>*/}
                       </button>
+                    </div>
+
+                    {/* ── Assigned to me ─────────────────────────────────── */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Assigned to me
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {assignedToMeFilter && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1 text-xs text-red-500 hover:text-red-600"
+                              onClick={() => {
+                                setAssignedToMeFilter(false);
+                                setCurrentPage(1);
+                              }}
+                            >
+                              Clear
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-5 w-5 p-0 ${isFilterPinned("assignedToMe") ? "text-primary" : "text-gray-400"}`}
+                            onClick={() => togglePinFilter("assignedToMe")}
+                            title={
+                              isFilterPinned("assignedToMe")
+                                ? "Unpin"
+                                : "Pin to toolbar"
+                            }
+                          >
+                            <Pin
+                              className="h-3.5 w-3.5"
+                              fill={
+                                isFilterPinned("assignedToMe")
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
+                          </Button>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        aria-pressed={assignedToMeFilter}
+                        onClick={() => {
+                          setAssignedToMeFilter((prev) => !prev);
+                          setCurrentPage(1);
+                        }}
+                        className={`w-full flex items-center gap-2 text-xs px-2 py-2 rounded-md border transition-colors ${
+                          assignedToMeFilter
+                            ? "border-primary bg-primary/5 dark:bg-primary/10 font-medium text-primary"
+                            : "border-gray-300 dark:border-gray-600 hover:bg-accent"
+                        }`}
+                      >
+                        <UserCheck
+                          className={`w-3.5 h-3.5 ${assignedToMeFilter ? "text-primary" : "text-gray-400"}`}
+                        />
+                        <span>Assigned to me</span>
+                      </button>
+                    </div>
+
+                    {/* ── Due today ──────────────────────────────────────── */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Due today
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {dueTodayFilter && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1 text-xs text-red-500 hover:text-red-600"
+                              onClick={() => {
+                                setDueTodayFilter(false);
+                                setCurrentPage(1);
+                              }}
+                            >
+                              Clear
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-5 w-5 p-0 ${isFilterPinned("dueToday") ? "text-primary" : "text-gray-400"}`}
+                            onClick={() => togglePinFilter("dueToday")}
+                            title={
+                              isFilterPinned("dueToday")
+                                ? "Unpin"
+                                : "Pin to toolbar"
+                            }
+                          >
+                            <Pin
+                              className="h-3.5 w-3.5"
+                              fill={
+                                isFilterPinned("dueToday")
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
+                          </Button>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        aria-pressed={dueTodayFilter}
+                        onClick={() => {
+                          setDueTodayFilter((prev) => !prev);
+                          setCurrentPage(1);
+                        }}
+                        className={`w-full flex items-center gap-2 text-xs px-2 py-2 rounded-md border transition-colors ${
+                          dueTodayFilter
+                            ? "border-primary bg-primary/5 dark:bg-primary/10 font-medium text-primary"
+                            : "border-gray-300 dark:border-gray-600 hover:bg-accent"
+                        }`}
+                      >
+                        <Clock
+                          className={`w-3.5 h-3.5 ${dueTodayFilter ? "text-primary" : "text-gray-400"}`}
+                        />
+                        <span>Due today or earlier</span>
+                      </button>
+                    </div>
+
+                    {/* ── Overdue (DateRange) ────────────────────────────── */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Overdue
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {isOverdueActive && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1 text-xs text-red-500 hover:text-red-600"
+                              onClick={() => {
+                                setOverdueRangeFilter(EMPTY_OVERDUE_RANGE);
+                                setCurrentPage(1);
+                              }}
+                            >
+                              Clear
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-5 w-5 p-0 ${isFilterPinned("overdueDate") ? "text-primary" : "text-gray-400"}`}
+                            onClick={() => togglePinFilter("overdueDate")}
+                            title={
+                              isFilterPinned("overdueDate")
+                                ? "Unpin"
+                                : "Pin to toolbar"
+                            }
+                          >
+                            <Pin
+                              className="h-3.5 w-3.5"
+                              fill={
+                                isFilterPinned("overdueDate")
+                                  ? "currentColor"
+                                  : "none"
+                              }
+                            />
+                          </Button>
+                        </div>
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={`w-full justify-start text-left font-normal h-8 text-xs border-gray-300 dark:border-gray-600 ${
+                              isOverdueActive
+                                ? "border-primary bg-primary/5 font-medium text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            <span className="truncate">
+                              {formatOverdueLabel(overdueRangeFilter) ??
+                                "Select a date or date range"}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarRange
+                            value={overdueRangeFilter}
+                            onChange={(r) => {
+                              setOverdueRangeFilter(r);
+                              setCurrentPage(1);
+                            }}
+                          />
+                          <p className="px-3 py-2 text-[11px] text-muted-foreground">
+                            One date: due before it. Two dates: due within the range.
+                          </p>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     {/* ── Code ───────────────────────────────────────────── */}
