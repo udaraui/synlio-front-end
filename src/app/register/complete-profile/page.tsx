@@ -57,7 +57,20 @@ const PUBLIC_DOMAINS = [
 ];
 
 const EMPLOYEE_COUNT_OPTIONS = ["1-10", "11-50", "51-200", "200+"] as const;
-const MANAGE_TYPE_OPTIONS = ["IT", "Sales", "HR", "Finance", "Other"] as const;
+const MANAGE_TYPE_OPTIONS = [
+  "Marketing",
+  "Creative & Design",
+  "Finance & Accounting",
+  "HR & Recruiting",
+  "Software Development",
+  "Support",
+  "Operations",
+  "IT",
+  "Sales & CRM",
+  "Professional Services",
+  "PMO",
+  "Other",
+] as const;
 
 function suggestCompanyName(email: string): string {
   if (!email) return "";
