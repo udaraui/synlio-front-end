@@ -72,7 +72,7 @@ export default function LoginPage() {
       try {
         const response = await axios.post(
           `${API_URL}/auth/google`,
-          { access_token: tokenResponse.access_token },
+          { access_token: tokenResponse.access_token, action: "login" },
           { withCredentials: true }
         );
 
