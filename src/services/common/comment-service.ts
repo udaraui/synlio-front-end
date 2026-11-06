@@ -24,16 +24,14 @@ export interface Comment {
   postId: number;
   postType: 'Task' | 'Ticket';
   parentId?: number;
+  userId: number;
+  userEmail: string;
+  username: string;
+  profilePicture?: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
   updatedBy?: string;
-  createdByUser?: {
-    username: string;
-    first_name?: string;
-    last_name?: string;
-    profile_picture?: string;
-  };
   parentComment?: Comment;
   childComments?: Comment[];
   commentAttachments?: CommentAttachment[];
@@ -266,5 +264,3 @@ export const uploadTaskAttachment = async (file: File): Promise<string> => {
     throw error;
   }
 };
-
-
