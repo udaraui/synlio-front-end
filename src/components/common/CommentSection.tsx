@@ -466,7 +466,10 @@ export function CommentSection({ postId, postType, onCommentCountChange, readOnl
       toast.success('Comment deleted');
       setDeleteConfirm(null);
       await loadComments();
-    } catch (err: any) { toast.error(err?.response?.data?.message || 'Failed to delete comment'); }
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(apiErr?.response?.data?.message || 'Failed to delete comment');
+    }
   };
 
   const toggleReplies = (id: number) => {
@@ -485,11 +488,10 @@ export function CommentSection({ postId, postType, onCommentCountChange, readOnl
     const hasReplies = (comment.childComments?.length ?? 0) > 0;
     const isReplying = replyingTo === comment.id;
 
-    const displayName = comment.createdByUser
-      ? `${comment.createdByUser.first_name || ''} ${comment.createdByUser.last_name || ''}`.trim() || comment.createdBy
-      : comment.createdBy;
+    const displayName =
+      comment.username?.trim() || comment.userEmail || comment.createdBy;
 
-    const picUrl = comment.createdByUser?.profile_picture;
+    const picUrl = comment.profilePicture ?? undefined;
 
     return (
       <div key={comment.id} className={cn('flex gap-1.5', depth > 0 && 'ml-5 mt-1')}>

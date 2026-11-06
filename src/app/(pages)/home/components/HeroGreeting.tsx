@@ -13,7 +13,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { getUserConfig, FilterTemplate } from "@/services/user-management/user-config-service";
+import {
+  CategorizedFilterTemplates,
+  FilterTemplate,
+  getCategorizedFilterTemplates,
+} from "@/services/filter-template/filter-template-service";
 import { searchTaskSpaces } from "@/services/task-management/task-space.service";
 import { searchTicketSpaces } from "@/services/ticket-management/ticket-space.service";
 
@@ -23,6 +27,16 @@ interface HeroGreetingProps {
   canMeetings?: boolean;
   onRefresh?: () => void;
   refreshing?: boolean;
+}
+
+interface SpaceItem {
+  id: number | string;
+  name: string;
+  prefix?: string | null;
+}
+
+interface ActiveCompanyStorage {
+  companyId?: number | string;
 }
 
 function getGreeting(): string {
@@ -91,7 +105,7 @@ function PillDropdown<T extends PillItem>({
                   {items.map((item) => (
                     <CommandItem
                       key={item.id}
-                      value={item.label}
+                      value={`${item.label} ${item.id}`}
                       onSelect={() => { setOpen(false); onSelect(item); }}
                       className="text-xs cursor-pointer"
                     >
@@ -120,9 +134,31 @@ function PillDropdown<T extends PillItem>({
   );
 }
 
-// ── Filter count helpers ───────────────────────────────────────────────────────
+// ── Filter count & template helpers ────────────────────────────────────────────
 
-function countTaskFilters(f: any): number {
+function flattenCategorizedTemplates(cat?: CategorizedFilterTemplates | null): FilterTemplate[] {
+  if (!cat) return [];
+  const merged = [
+    ...(cat.private ?? []),
+    ...(cat.sharedWithMe ?? []),
+    ...(cat.public ?? []),
+  ];
+  const seen = new Set<number | string>();
+  const unique = merged.filter((t) => {
+    if (seen.has(t.id)) return false;
+    seen.add(t.id);
+    return true;
+  });
+  unique.sort((a, b) => {
+    if (a.createdAt && b.createdAt) {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    return a.name.localeCompare(b.name);
+  });
+  return unique;
+}
+
+function countTaskFilters(f?: Record<string, unknown> | null): number {
   if (!f) return 0;
   let n = 0;
   if (f.nameFilter) n++;
@@ -137,7 +173,7 @@ function countTaskFilters(f: any): number {
   return n;
 }
 
-function countTicketFilters(f: any): number {
+function countTicketFilters(f?: Record<string, unknown> | null): number {
   if (!f) return 0;
   let n = 0;
   if (f.nameFilter) n++;
@@ -170,8 +206,9 @@ export default function HeroGreeting({
   // ── Filter templates (My Boards) ─────────────────────────────────────
   const [taskTemplates, setTaskTemplates] = useState<FilterTemplate[]>([]);
   const [ticketTemplates, setTicketTemplates] = useState<FilterTemplate[]>([]);
-  const [taskSpaces, setTaskSpaces] = useState<any[]>([]);
-  const [ticketSpaces, setTicketSpaces] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [taskSpaces, setTaskSpaces] = useState<SpaceItem[]>([]);
+  const [ticketSpaces, setTicketSpaces] = useState<SpaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const fetchedRef = useRef(false);
 
@@ -181,48 +218,71 @@ export default function HeroGreeting({
     setLoading(true);
 
     Promise.all([
-      getUserConfig(user.id),
-      canTasks ? searchTaskSpaces({}) : Promise.resolve({ data: [] }),
-      canTickets ? searchTicketSpaces(
-        !canViewTicketSpaces && user.id ? { filters: [{ field: 'userId', value: user.id, matchMode: 'member' }] } : {}
-      ) : Promise.resolve({ data: [] }),
+      canTasks
+        ? getCategorizedFilterTemplates("TASK")
+        : Promise.resolve<CategorizedFilterTemplates>({ private: [], sharedWithMe: [], public: [] }),
+      canTickets
+        ? getCategorizedFilterTemplates("TICKET")
+        : Promise.resolve<CategorizedFilterTemplates>({ private: [], sharedWithMe: [], public: [] }),
+      canTasks ? searchTaskSpaces({}) : Promise.resolve({ data: [] as SpaceItem[] }),
+      canTickets
+        ? searchTicketSpaces(
+            !canViewTicketSpaces && user.id
+              ? { filters: [{ field: "userId", value: user.id, matchMode: "member" }] }
+              : {}
+          )
+        : Promise.resolve({ data: [] as SpaceItem[] }),
     ])
-      .then(([config, taskSpacesRes, ticketSpacesRes]) => {
-        const activeCompany = (() => {
-          try { return JSON.parse(localStorage.getItem("active_company") || "null"); } catch { return null; }
+      .then(([taskTemplatesRes, ticketTemplatesRes, taskSpacesRes, ticketSpacesRes]) => {
+        const activeCompany = ((): ActiveCompanyStorage | null => {
+          try {
+            return JSON.parse(localStorage.getItem("active_company") || "null") as ActiveCompanyStorage | null;
+          } catch {
+            return null;
+          }
         })();
-        const activeCompanyId: number | undefined = activeCompany?.companyId;
+        const activeCompanyId =
+          activeCompany?.companyId !== undefined ? Number(activeCompany.companyId) : undefined;
 
-        const allTaskTemplates = (config?.filterTemplates?.task ?? []) as FilterTemplate[];
-        const allTicketTemplates = (config?.filterTemplates?.ticket ?? []) as FilterTemplate[];
+        const allTaskTemplates = flattenCategorizedTemplates(taskTemplatesRes);
+        const allTicketTemplates = flattenCategorizedTemplates(ticketTemplatesRes);
 
-        // Strictly show only templates for the active company.
+        // Strictly show only templates for the active company (or templates without an explicit companyId).
         const filteredTaskTemplates = activeCompanyId
-          ? allTaskTemplates.filter((t) => t.companyId === activeCompanyId)
+          ? allTaskTemplates.filter((t) => !t.companyId || Number(t.companyId) === activeCompanyId)
           : allTaskTemplates;
         const filteredTicketTemplates = activeCompanyId
-          ? allTicketTemplates.filter((t) => t.companyId === activeCompanyId)
+          ? allTicketTemplates.filter((t) => !t.companyId || Number(t.companyId) === activeCompanyId)
           : allTicketTemplates;
 
         setTaskTemplates(filteredTaskTemplates);
         setTicketTemplates(filteredTicketTemplates);
-        setTaskSpaces(taskSpacesRes.data ?? []);
-        setTicketSpaces(ticketSpacesRes.data ?? []);
+        setTaskSpaces((taskSpacesRes?.data ?? []) as SpaceItem[]);
+        setTicketSpaces((ticketSpacesRes?.data ?? []) as SpaceItem[]);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [user?.id, canTasks, canTickets, canViewTicketSpaces]);
 
   // ── Navigation handlers ───────────────────────────────────────────────
   const handleTaskBoard = (t: FilterTemplate) => {
-    try { sessionStorage.setItem("tmTaskPageFilters", JSON.stringify({ ...t.filters })); } catch { }
-    window.open(`/task-management/task?taskSpaceId=${(t.filters as any).spaceId}`, "_blank");
+    try {
+      sessionStorage.setItem("tmTaskPageFilters", JSON.stringify({ ...t.filters }));
+    } catch {}
+    const spaceId = t.filters?.spaceId;
+    const query = spaceId !== undefined && spaceId !== null && spaceId !== "" ? `?taskSpaceId=${spaceId}` : "";
+    window.open(`/task-management/task${query}`, "_blank");
   };
   const handleTicketBoard = (t: FilterTemplate) => {
-    try { sessionStorage.setItem("ticketPageFilters", JSON.stringify({ ...t.filters })); } catch { }
-    window.open(`/ticket-management/ticket?ticketSpaceId=${(t.filters as any).selectedTicketSpaceFilter}`, "_blank");
+    try {
+      sessionStorage.setItem("ticketPageFilters", JSON.stringify({ ...t.filters }));
+    } catch {}
+    const spaceId = t.filters?.selectedTicketSpaceFilter;
+    const query = spaceId !== undefined && spaceId !== null && spaceId !== "" ? `?ticketSpaceId=${spaceId}` : "";
+    window.open(`/ticket-management/ticket${query}`, "_blank");
   };
-  const handleCreateTicket = (s: any) => window.open(`/ticket-management/ticket/form?ticketSpaceId=${s.id}`, "_blank");
+  const handleCreateTicket = (s: PillItem) =>
+    window.open(`/ticket-management/ticket/form?ticketSpaceId=${s.id}`, "_blank");
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1a3a5c] to-[#2563a8] dark:from-slate-900 dark:to-slate-800/80 px-5 py-4 shadow-md h-full">
@@ -288,7 +348,7 @@ export default function HeroGreeting({
             <button
               onClick={onRefresh}
               disabled={refreshing}
-              title={'Refresh'}
+              title={"Refresh"}
               className="ml-auto inline-flex items-center rounded-full border-2 border-white/40 px-2 py-1 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />

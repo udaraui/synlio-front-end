@@ -1566,10 +1566,9 @@ function TicketPage() {
         try { return JSON.parse(localStorage.getItem("active_company") || "null"); } catch { return null; }
       })();
       const activeCompanyId: number | undefined = activeCompany?.companyId;
-      const newTemplate = {
-        id: Date.now().toString(),
+      await createFilterTemplate({
         name: name.trim(),
-        companyId: activeCompanyId,
+        type: "TICKET",
         filters: {
           nameFilter,
           descriptionFilter,
@@ -1587,7 +1586,7 @@ function TicketPage() {
           selectedTicketSpaceFilter,
           sortOption,
         },
-      };
+      });
       await fetchTicketFilterTemplates();
       toast.success(`Filter template "${name}" saved`);
     } catch (error) {
