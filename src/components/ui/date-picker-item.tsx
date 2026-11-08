@@ -20,7 +20,7 @@ export const parseManualDate = (s: string): Date | null => {
 export const DatePickerItem = ({
   date,
   onSelect,
-  placeholder = 'Not set',
+  placeholder = 'Set date',
   isStatusComplete = false,
   showOverdue = true,
   minDate,
@@ -81,20 +81,31 @@ export const DatePickerItem = ({
           e.stopPropagation();
         }
       }}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 ${className} bg-white dark:bg-gray-800 border ${isOverdue ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 ${className} ${disabled ? 'bg-white dark:bg-transparent' : 'bg-white dark:bg-gray-800'} border ${
+        isOverdue
+          ? 'border-red-500'
+          : !date && !disabled
+          ? 'border-dashed border-gray-300 dark:border-gray-600'
+          : 'border-gray-300 dark:border-gray-600'
         } rounded-md text-xs font-medium transition-colors ${disabled
-          ? 'opacity-60 bg-gray-50 dark:bg-gray-900 pointer-events-none'
+          ? 'pointer-events-none'
           : 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
         } text-gray-700 dark:text-gray-300`}
     >
       {isOverdue ? (
         <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" />
       ) : disabled ? (
-        <Lock className="w-3 h-3 shrink-0 text-gray-500 dark:text-gray-400" strokeWidth={2.5} />
+        <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
       ) : (
         <CalendarDays className="w-3 h-3 shrink-0" />
       )}
-      {date ? format(new Date(date), 'LLL dd, y') : <span className="text-gray-400">{placeholder}</span>}
+      {date ? (
+        format(new Date(date), 'LLL dd, y')
+      ) : disabled ? (
+        <span>Unscheduled</span>
+      ) : (
+        <span className="text-gray-400">{placeholder}</span>
+      )}
     </button>
   );
 

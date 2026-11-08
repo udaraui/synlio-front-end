@@ -70,6 +70,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
+import {
   HoverCard,
   HoverCardTrigger,
   HoverCardContent,
@@ -92,6 +103,7 @@ import {
 } from "@/services/ticket-management/ticket-space.service";
 import {
   createTicket,
+  deleteTicket,
   getTicketBaseById,
   getTicketAssignees,
   getTicketEvents,
@@ -208,6 +220,10 @@ export default function CreateTicketPage() {
   const { setBreadcrumbs } = useBreadcrumb();
   const { user } = useAuth();
   const updatedBy = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || undefined;
+  const canDelete = usePrivilegeGuard("102") as boolean;
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isConfigLoading, setIsConfigLoading] = useState(false);
@@ -1016,6 +1032,21 @@ export default function CreateTicketPage() {
     router.push(
       `/ticket-management/ticket${ticketSpaceId ? `?ticketSpaceId=${ticketSpaceId}` : ""}`,
     );
+  };
+
+  const handleDeleteTicket = async () => {
+    if (!ticketId) return;
+    setIsDeleting(true);
+    try {
+      await deleteTicket(Number(ticketId));
+      toast.success("Ticket deleted");
+      setIsDeleteDialogOpen(false);
+      handleCancel();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to delete ticket");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   /**
@@ -2309,6 +2340,19 @@ export default function CreateTicketPage() {
                   >
                     <Copy className="w-4 h-4" />
                   </button>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      className="hover:opacity-75 transition-opacity text-red-500 hover:text-red-600 cursor-pointer"
+                      title="Delete Ticket"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -3698,6 +3742,38 @@ export default function CreateTicketPage() {
           )}
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(o) => {
+          if (!isDeleting) setIsDeleteDialogOpen(o);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Ticket</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete ticket{" "}
+              <strong>{ticketViewData?.code || formData.name || ""}</strong>? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteTicket();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

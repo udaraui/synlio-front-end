@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
+import { CopilotDrawer } from "@/components/common/CopilotDrawer";
 import { PaginationControls } from "@/components/common/PaginationControls";
 import { TaskSpaceForm } from "./components/TaskSpaceForm";
 import TaskSpaceGridView from "./components/TaskSpaceGridView";
@@ -46,6 +47,7 @@ function Page() {
   const [descTerm, setDescTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const canView = usePrivilegeGuard("44") as boolean;
   const canCreate = usePrivilegeGuard("45") as boolean;
   const canEdit = usePrivilegeGuard("46") as boolean;
@@ -344,7 +346,7 @@ function Page() {
             </div>
 
             <CopilotToolbarButton
-              onClick={() => toast.info("Project Analyst will be available soon!")}
+              onClick={() => setIsCopilotOpen(true)}
             />
           </div>
         </div>
@@ -465,6 +467,14 @@ function Page() {
         onDelete={confirmDelete}
         title="Delete Project Space"
         description="Are you sure you want to delete this project space? This action cannot be undone."
+      />
+
+      <CopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        agent="project_analytics"
+        pageScopeKey="task-spaces"
+        pageTitle="Task Spaces"
       />
     </div>
   );

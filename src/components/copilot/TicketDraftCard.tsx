@@ -19,8 +19,11 @@ import {
   ArrowUpRight,
   LayoutGrid,
   TableProperties,
+  FolderClosed,
+  Flag,
   type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth.context";
 import { useViewPreference } from "@/hooks/use-view-preference";
@@ -53,6 +56,7 @@ import {
   InlineEditableSeverity,
   InlineEditableQueue,
   InlineEditableAssignee,
+  UserAvatar,
 } from "@/app/(pages)/ticket-management/ticket/components/InlineEditableTicketComponents";
 
 export interface TicketDraftData {
@@ -346,6 +350,7 @@ function SingleTicketDraftItem({
   onUpdateDraft,
   onDismiss,
   isUpdateAction = false,
+  isLast = false,
 }: {
   initialDraft: TicketDraftData;
   spaceConfigs: SpaceConfigs;
@@ -359,6 +364,7 @@ function SingleTicketDraftItem({
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
   isUpdateAction?: boolean;
+  isLast?: boolean;
 }) {
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
@@ -755,23 +761,53 @@ function SingleTicketDraftItem({
         {/* Section 1: Type Icon, Code/Draft Badge, and Status Tag */}
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/40 border-b border-dashed border-border">
           <div className="flex items-center gap-2 min-w-0">
-            <InlineEditableTicketType
-              ticketType={currentTicketType}
-              ticketId={createdTicket?.id || 0}
-              types={spaceConfigs.types}
-              getIconComponent={getIconComponent}
-              iconOnly
-              onUpdate={async (typeId) => {
-                const t = spaceConfigs.types.find((item) => item.id === typeId);
-                const updated = {
-                  ...draft,
-                  ticketTypeId: typeId,
-                  ticketTypeName: t?.name,
-                };
-                setDraft(updated);
-                onUpdateDraft?.(updated);
-              }}
-            />
+            {createdTicket ? (
+              <div
+                className="inline-flex items-center justify-center w-6 h-6 rounded cursor-default select-none"
+                title={currentTicketType ? currentTicketType.name : "No type"}
+              >
+                {currentTicketType ? (
+                  (() => {
+                    const TypeIcon = getIconComponent(currentTicketType.icon);
+                    return TypeIcon ? (
+                      <TypeIcon
+                        className={cn(
+                          "w-3.5 h-3.5 flex-shrink-0",
+                          (!currentTicketType.color || currentTicketType.color.toLowerCase() === "#3b82f6") && "text-blue-500 dark:text-blue-400"
+                        )}
+                        style={
+                          currentTicketType.color && currentTicketType.color.toLowerCase() !== "#3b82f6"
+                            ? { color: currentTicketType.color }
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
+                    );
+                  })()
+                ) : (
+                  <div className="w-3 h-3 rounded-full bg-gray-300 flex-shrink-0" />
+                )}
+              </div>
+            ) : (
+              <InlineEditableTicketType
+                ticketType={currentTicketType}
+                ticketId={0}
+                types={spaceConfigs.types}
+                getIconComponent={getIconComponent}
+                iconOnly
+                onUpdate={async (typeId) => {
+                  const t = spaceConfigs.types.find((item) => item.id === typeId);
+                  const updated = {
+                    ...draft,
+                    ticketTypeId: typeId,
+                    ticketTypeName: t?.name,
+                  };
+                  setDraft(updated);
+                  onUpdateDraft?.(updated);
+                }}
+              />
+            )}
 
             <span
               className="text-xs font-semibold tracking-wide text-primary select-none whitespace-nowrap"
@@ -791,21 +827,42 @@ function SingleTicketDraftItem({
           </div>
 
           {/* Status Tag */}
-          <InlineEditableStatus
-            status={currentStatus}
-            statuses={spaceConfigs.statuses}
-            ticketId={0}
-            onUpdate={async (statusId) => {
-              const s = spaceConfigs.statuses.find((item) => item.id === statusId);
-              const updated = {
-                ...draft,
-                statusId,
-                statusName: s?.name,
-              };
-              setDraft(updated);
-              onUpdateDraft?.(updated);
-            }}
-          />
+          {createdTicket ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[140px] min-w-0 cursor-default select-none opacity-85"
+              title={currentStatus ? currentStatus.name : "No status"}
+            >
+              {currentStatus ? (
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: currentStatus.color }}
+                  />
+                  <span className="text-gray-700 dark:text-gray-300 truncate min-w-0 whitespace-nowrap">
+                    {currentStatus.name}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-gray-400 italic whitespace-nowrap">No status</span>
+              )}
+            </div>
+          ) : (
+            <InlineEditableStatus
+              status={currentStatus}
+              statuses={spaceConfigs.statuses}
+              ticketId={0}
+              onUpdate={async (statusId) => {
+                const s = spaceConfigs.statuses.find((item) => item.id === statusId);
+                const updated = {
+                  ...draft,
+                  statusId,
+                  statusName: s?.name,
+                };
+                setDraft(updated);
+                onUpdateDraft?.(updated);
+              }}
+            />
+          )}
         </div>
 
         {/* Warnings Banner if any */}
@@ -824,15 +881,21 @@ function SingleTicketDraftItem({
         <div className="p-3.5 sm:p-4 space-y-3">
           <h3 className="text-sm font-semibold leading-snug">
             <span className="inline-flex items-center gap-1.5 w-full">
-              <InlineEditableTicketName
-                name={draft.name || ""}
-                onUpdate={async (name) => {
-                  const updated = { ...draft, name };
-                  setDraft(updated);
-                  onUpdateDraft?.(updated);
-                }}
-                className="font-semibold text-foreground truncate text-[14px]"
-              />
+              {createdTicket ? (
+                <span className="font-semibold text-foreground truncate text-[14px] select-none block">
+                  {draft.name || ""}
+                </span>
+              ) : (
+                <InlineEditableTicketName
+                  name={draft.name || ""}
+                  onUpdate={async (name) => {
+                    const updated = { ...draft, name };
+                    setDraft(updated);
+                    onUpdateDraft?.(updated);
+                  }}
+                  className="font-semibold text-foreground truncate text-[14px]"
+                />
+              )}
               {(draft.description || (draft.name && draft.name.length > 35)) && (
                 <HoverCard openDelay={150}>
                   <HoverCardTrigger asChild>
@@ -864,7 +927,26 @@ function SingleTicketDraftItem({
 
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
-              {draft.assigneeWarning ? (
+              {createdTicket ? (
+                currentAssignee ? (
+                  <div
+                    className="inline-flex items-center gap-1.5 cursor-default opacity-85"
+                    title={`${currentAssignee.first_name || ""} ${currentAssignee.last_name || ""}`.trim()}
+                  >
+                    <UserAvatar
+                      firstName={currentAssignee.first_name}
+                      lastName={currentAssignee.last_name}
+                      profilePicture={currentAssignee.profile_picture}
+                      size="sm"
+                    />
+                    <span className="text-xs text-foreground truncate max-w-[120px]">
+                      {`${currentAssignee.first_name || ""} ${currentAssignee.last_name || ""}`.trim() || "Assignee"}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground/60 italic text-xs select-none cursor-default">—</span>
+                )
+              ) : draft.assigneeWarning ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="relative inline-flex items-center cursor-pointer">
@@ -926,39 +1008,74 @@ function SingleTicketDraftItem({
       {/* Section 3: Severity, Queue, and Actions (X and Save) */}
       <div className="px-3.5 py-2.5 bg-muted/30 border-t border-dashed border-border flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <InlineEditableSeverity
-            severity={currentSeverity}
-            severities={spaceConfigs.severities}
-            ticketId={0}
-            onUpdate={async (severityId) => {
-              const s = spaceConfigs.severities.find((item) => item.id === severityId);
-              const matchingSla = spaceConfigs.slas.find((sla) => Number(sla.severityId) === severityId);
-              const updated = {
-                ...draft,
-                severityId,
-                severityName: s?.name,
-                ticketSlaId: matchingSla ? Number(matchingSla.id) : prevDraftSlaId(draft.ticketSlaId),
-              };
-              setDraft(updated);
-              onUpdateDraft?.(updated);
-            }}
-          />
+          {createdTicket ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 cursor-default select-none opacity-85"
+              title={currentSeverity ? currentSeverity.name : "No severity"}
+            >
+              {currentSeverity ? (
+                <>
+                  <Flag
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    fill={currentSeverity.color || "#3b82f6"}
+                    color={currentSeverity.color || "#3b82f6"}
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">{currentSeverity.name}</span>
+                </>
+              ) : (
+                <>
+                  <Flag className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                  <span className="text-gray-400 italic">No severity</span>
+                </>
+              )}
+            </div>
+          ) : (
+            <InlineEditableSeverity
+              severity={currentSeverity}
+              severities={spaceConfigs.severities}
+              ticketId={0}
+              onUpdate={async (severityId) => {
+                const s = spaceConfigs.severities.find((item) => item.id === severityId);
+                const matchingSla = spaceConfigs.slas.find((sla) => Number(sla.severityId) === severityId);
+                const updated = {
+                  ...draft,
+                  severityId,
+                  severityName: s?.name,
+                  ticketSlaId: matchingSla ? Number(matchingSla.id) : prevDraftSlaId(draft.ticketSlaId),
+                };
+                setDraft(updated);
+                onUpdateDraft?.(updated);
+              }}
+            />
+          )}
 
-          <InlineEditableQueue
-            queue={currentQueue}
-            queues={spaceConfigs.queues}
-            ticketId={0}
-            onUpdate={async (queueId) => {
-              const q = spaceConfigs.queues.find((item) => item.id === queueId);
-              const updated = {
-                ...draft,
-                queueId: queueId || undefined,
-                queueName: q?.name,
-              };
-              setDraft(updated);
-              onUpdateDraft?.(updated);
-            }}
-          />
+          {createdTicket ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 cursor-default select-none opacity-85"
+              title={currentQueue ? currentQueue.name : "No queue"}
+            >
+              <FolderClosed className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
+                {currentQueue ? currentQueue.name : <span className="text-gray-400 italic">No queue</span>}
+              </span>
+            </div>
+          ) : (
+            <InlineEditableQueue
+              queue={currentQueue}
+              queues={spaceConfigs.queues}
+              ticketId={0}
+              onUpdate={async (queueId) => {
+                const q = spaceConfigs.queues.find((item) => item.id === queueId);
+                const updated = {
+                  ...draft,
+                  queueId: queueId || undefined,
+                  queueName: q?.name,
+                };
+                setDraft(updated);
+                onUpdateDraft?.(updated);
+              }}
+            />
+          )}
         </div>
 
         {/* Right: Dismiss (X) and Save, or Open once created */}
@@ -1032,6 +1149,7 @@ function SingleTicketDraftTableRow({
   onUpdateDraft,
   onDismiss,
   isUpdateAction = false,
+  isLast = false,
 }: {
   initialDraft: TicketDraftData;
   spaceConfigs: SpaceConfigs;
@@ -1045,6 +1163,7 @@ function SingleTicketDraftTableRow({
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
   isUpdateAction?: boolean;
+  isLast?: boolean;
 }) {
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
@@ -1311,7 +1430,7 @@ function SingleTicketDraftTableRow({
   }, [warnings, draft.assigneeId, currentAssignee]);
 
   return (
-    <tr className="hover:bg-muted/30 transition-colors border-b border-border/70 last:border-b-0 group">
+    <tr className={`hover:bg-muted/30 transition-colors group ${!isLast ? "border-b border-border/70" : ""}`}>
       {/* 1. Merged Code & Title (Pinned to Left End) */}
       <td className="py-2.5 px-3.5 align-middle min-w-[220px] max-w-[320px] sticky left-0 z-10 bg-card group-hover:bg-muted/40 transition-colors shadow-[1px_0_0_0_hsl(var(--border))]">
         <div className="flex items-center gap-2 min-w-0">
@@ -1322,15 +1441,21 @@ function SingleTicketDraftTableRow({
             {createdTicket?.code || draft?.code || (spacePrefix ? `${spacePrefix}-?` : "DRAFT")}
           </span>
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <InlineEditableTicketName
-              name={draft.name || ""}
-              onUpdate={async (name) => {
-                const updated = { ...draft, name };
-                setDraft(updated);
-                onUpdateDraft?.(updated);
-              }}
-              className="font-medium text-foreground truncate text-xs sm:text-sm"
-            />
+            {createdTicket ? (
+              <span className="font-medium text-foreground truncate text-xs sm:text-sm select-none">
+                {draft.name || ""}
+              </span>
+            ) : (
+              <InlineEditableTicketName
+                name={draft.name || ""}
+                onUpdate={async (name) => {
+                  const updated = { ...draft, name };
+                  setDraft(updated);
+                  onUpdateDraft?.(updated);
+                }}
+                className="font-medium text-foreground truncate text-xs sm:text-sm"
+              />
+            )}
             {(draft.description || (draft.name && draft.name.length > 30)) && (
               <HoverCard openDelay={150}>
                 <HoverCardTrigger asChild>
@@ -1365,85 +1490,193 @@ function SingleTicketDraftTableRow({
 
       {/* 2. Ticket Type (Icon + Name) */}
       <td className="py-2.5 px-3.5 align-middle whitespace-nowrap">
-        <InlineEditableTicketType
-          ticketType={currentTicketType}
-          ticketId={createdTicket?.id || 0}
-          types={spaceConfigs.types}
-          getIconComponent={getIconComponent}
-          onUpdate={async (typeId) => {
-            const t = spaceConfigs.types.find((item) => item.id === typeId);
-            const updated = {
-              ...draft,
-              ticketTypeId: typeId,
-              ticketTypeName: t?.name,
-            };
-            setDraft(updated);
-            onUpdateDraft?.(updated);
-          }}
-        />
+        {createdTicket ? (
+          <div
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 cursor-default select-none opacity-85"
+            title={currentTicketType ? currentTicketType.name : "No type"}
+          >
+            {currentTicketType ? (
+              <>
+                {(() => {
+                  const TypeIcon = getIconComponent(currentTicketType.icon);
+                  return TypeIcon ? (
+                    <TypeIcon
+                      className={cn(
+                        "w-3.5 h-3.5 flex-shrink-0",
+                        (!currentTicketType.color || currentTicketType.color.toLowerCase() === "#3b82f6") && "text-blue-500 dark:text-blue-400"
+                      )}
+                      style={
+                        currentTicketType.color && currentTicketType.color.toLowerCase() !== "#3b82f6"
+                          ? { color: currentTicketType.color }
+                          : undefined
+                      }
+                    />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
+                  );
+                })()}
+                <span>{currentTicketType.name}</span>
+              </>
+            ) : (
+              <span className="text-gray-400 italic">No type</span>
+            )}
+          </div>
+        ) : (
+          <InlineEditableTicketType
+            ticketType={currentTicketType}
+            ticketId={0}
+            types={spaceConfigs.types}
+            getIconComponent={getIconComponent}
+            onUpdate={async (typeId) => {
+              const t = spaceConfigs.types.find((item) => item.id === typeId);
+              const updated = {
+                ...draft,
+                ticketTypeId: typeId,
+                ticketTypeName: t?.name,
+              };
+              setDraft(updated);
+              onUpdateDraft?.(updated);
+            }}
+          />
+        )}
       </td>
 
       {/* 3. Status */}
       <td className="py-2.5 px-3 align-middle whitespace-nowrap">
-        <InlineEditableStatus
-          status={currentStatus}
-          statuses={spaceConfigs.statuses}
-          ticketId={0}
-          onUpdate={async (statusId) => {
-            const s = spaceConfigs.statuses.find((item) => item.id === statusId);
-            const updated = {
-              ...draft,
-              statusId,
-              statusName: s?.name,
-            };
-            setDraft(updated);
-            onUpdateDraft?.(updated);
-          }}
-        />
+        {createdTicket ? (
+          <div
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[140px] min-w-0 cursor-default select-none opacity-85"
+            title={currentStatus ? currentStatus.name : "No status"}
+          >
+            {currentStatus ? (
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: currentStatus.color }}
+                />
+                <span className="text-gray-700 dark:text-gray-300 truncate min-w-0 whitespace-nowrap">
+                  {currentStatus.name}
+                </span>
+              </span>
+            ) : (
+              <span className="text-gray-400 italic whitespace-nowrap">No status</span>
+            )}
+          </div>
+        ) : (
+          <InlineEditableStatus
+            status={currentStatus}
+            statuses={spaceConfigs.statuses}
+            ticketId={0}
+            onUpdate={async (statusId) => {
+              const s = spaceConfigs.statuses.find((item) => item.id === statusId);
+              const updated = {
+                ...draft,
+                statusId,
+                statusName: s?.name,
+              };
+              setDraft(updated);
+              onUpdateDraft?.(updated);
+            }}
+          />
+        )}
       </td>
 
       {/* 4. Severity */}
       <td className="py-2.5 px-3 align-middle whitespace-nowrap">
-        <InlineEditableSeverity
-          severity={currentSeverity}
-          severities={spaceConfigs.severities}
-          ticketId={0}
-          onUpdate={async (severityId) => {
-            const s = spaceConfigs.severities.find((item) => item.id === severityId);
-            const updated = {
-              ...draft,
-              severityId,
-              severityName: s?.name,
-            };
-            setDraft(updated);
-            onUpdateDraft?.(updated);
-          }}
-        />
+        {createdTicket ? (
+          <div
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 cursor-default select-none opacity-85"
+            title={currentSeverity ? currentSeverity.name : "No severity"}
+          >
+            {currentSeverity ? (
+              <>
+                <Flag
+                  className="w-3.5 h-3.5 flex-shrink-0"
+                  fill={currentSeverity.color || "#3b82f6"}
+                  color={currentSeverity.color || "#3b82f6"}
+                />
+                <span className="text-gray-700 dark:text-gray-300">{currentSeverity.name}</span>
+              </>
+            ) : (
+              <>
+                <Flag className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                <span className="text-gray-400 italic">No severity</span>
+              </>
+            )}
+          </div>
+        ) : (
+          <InlineEditableSeverity
+            severity={currentSeverity}
+            severities={spaceConfigs.severities}
+            ticketId={0}
+            onUpdate={async (severityId) => {
+              const s = spaceConfigs.severities.find((item) => item.id === severityId);
+              const updated = {
+                ...draft,
+                severityId,
+                severityName: s?.name,
+              };
+              setDraft(updated);
+              onUpdateDraft?.(updated);
+            }}
+          />
+        )}
       </td>
 
       {/* 5. Queue */}
       <td className="py-2.5 px-3 align-middle whitespace-nowrap">
-        <InlineEditableQueue
-          queue={currentQueue}
-          queues={spaceConfigs.queues}
-          ticketId={0}
-          onUpdate={async (queueId) => {
-            const q = spaceConfigs.queues.find((item) => item.id === queueId);
-            const updated = {
-              ...draft,
-              queueId: queueId || undefined,
-              queueName: q?.name,
-            };
-            setDraft(updated);
-            onUpdateDraft?.(updated);
-          }}
-        />
+        {createdTicket ? (
+          <div
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 cursor-default select-none opacity-85"
+            title={currentQueue ? currentQueue.name : "No queue"}
+          >
+            <FolderClosed className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
+              {currentQueue ? currentQueue.name : <span className="text-gray-400 italic">No queue</span>}
+            </span>
+          </div>
+        ) : (
+          <InlineEditableQueue
+            queue={currentQueue}
+            queues={spaceConfigs.queues}
+            ticketId={0}
+            onUpdate={async (queueId) => {
+              const q = spaceConfigs.queues.find((item) => item.id === queueId);
+              const updated = {
+                ...draft,
+                queueId: queueId || undefined,
+                queueName: q?.name,
+              };
+              setDraft(updated);
+              onUpdateDraft?.(updated);
+            }}
+          />
+        )}
       </td>
 
       {/* 7. Assignee */}
       <td className="py-2.5 px-3.5 align-middle whitespace-nowrap">
         <div className="flex items-center gap-1.5">
-          {draft.assigneeWarning ? (
+          {createdTicket ? (
+            currentAssignee ? (
+              <div
+                className="inline-flex items-center gap-1.5 cursor-default opacity-85"
+                title={`${currentAssignee.first_name || ""} ${currentAssignee.last_name || ""}`.trim()}
+              >
+                <UserAvatar
+                  firstName={currentAssignee.first_name}
+                  lastName={currentAssignee.last_name}
+                  profilePicture={currentAssignee.profile_picture}
+                  size="sm"
+                />
+                <span className="text-xs text-foreground truncate max-w-[120px]">
+                  {`${currentAssignee.first_name || ""} ${currentAssignee.last_name || ""}`.trim() || "Assignee"}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted-foreground/60 italic text-xs select-none cursor-default">—</span>
+            )
+          ) : draft.assigneeWarning ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="relative inline-flex items-center cursor-pointer">
@@ -1639,8 +1872,8 @@ function TicketDraftTableView({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/60">
-            {visibleDrafts.map(({ draft: draftItem, index }) => {
+          <tbody className="">
+            {visibleDrafts.map(({ draft: draftItem, index }, rowIdx) => {
               const cardWarnings = (draftItem as any).warnings || (
                 warnings.filter((w) => {
                   const lower = w.toLowerCase();
@@ -1664,6 +1897,7 @@ function TicketDraftTableView({
                   warnings={cardWarnings}
                   createdTicketProp={createdTicketsMap[index]}
                   isSubmittingProp={isSubmittingAll}
+                  isLast={rowIdx === visibleDrafts.length - 1}
                   onCreated={(created) => {
                     setCreatedTicketsMap((prev) => ({ ...prev, [index]: created }));
                   }}
@@ -1703,6 +1937,7 @@ export function TicketDraftCard({
   });
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [isOptionSelected, setIsOptionSelected] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const [dismissedIndexSet, setDismissedIndexSet] = useState<Set<number>>(new Set());
   const isUpdateAction = payload.action === "UPDATE_TICKET";
   const [isSubmittingAll, setIsSubmittingAll] = useState(false);
@@ -1871,6 +2106,7 @@ export function TicketDraftCard({
   }, [effectiveSpaceId]);
 
   const handleSpaceSelect = (spaceId: number, spaceName: string) => {
+    setIsDismissed(true);
     setIsOptionSelected(true);
     setSelectedSpaceId(spaceId);
     if (onSelectOption) {
@@ -1879,8 +2115,11 @@ export function TicketDraftCard({
   };
 
   const handleDismissAll = () => {
+    setIsDismissed(true);
     setIsOptionSelected(true);
-    onCancel?.();
+    setTimeout(() => {
+      onCancel?.();
+    }, 0);
   };
 
   const handleDismissOne = (index: number) => {
@@ -1888,9 +2127,16 @@ export function TicketDraftCard({
     nextSet.add(index);
     setDismissedIndexSet(nextSet);
 
-    if (nextSet.size >= draftsList.length) {
+    const remainingUncreated = draftsList.filter(
+      (_, i) => !createdTicketsMap[i] && !nextSet.has(i)
+    ).length;
+
+    if (nextSet.size >= draftsList.length || remainingUncreated === 0) {
+      setIsDismissed(true);
       setIsOptionSelected(true);
-      onCancel?.();
+      setTimeout(() => {
+        onCancel?.();
+      }, 0);
     }
   };
 
@@ -2001,7 +2247,7 @@ export function TicketDraftCard({
     }
   };
 
-  if (isOptionSelected) {
+  if (isOptionSelected || isDismissed) {
     return null;
   }
 

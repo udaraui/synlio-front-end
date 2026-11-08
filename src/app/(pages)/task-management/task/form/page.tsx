@@ -30,6 +30,7 @@ import {
   NotebookPen,
   Ticket as TicketIcon,
   Unlink,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,6 +69,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -104,6 +106,7 @@ import {
 import { getHierarchyLevelIcon } from '@/enums/space-configure-icon.enum';
 import {
   createTask,
+  deleteTask,
   getNextTaskCode,
   peekNextTaskCode,
   getTaskById,
@@ -241,6 +244,10 @@ export default function TaskFormPage() {
   const { user } = useAuth();
   // Privilege guard: only users with 'access:guest-member' (id 122) can add/remove guest members
   const canManageGuestMembers = usePrivilegeGuard('111');
+  const canDelete = usePrivilegeGuard('57') as boolean;
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /** Full name used as updatedBy in all PATCH calls (firstName + lastName, falls back to empty) */
   const updatedBy = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || undefined;
@@ -1010,6 +1017,21 @@ export default function TaskFormPage() {
     router.push(base);
   };
 
+  const handleDeleteTask = async () => {
+    if (!taskId) return;
+    setIsDeleting(true);
+    try {
+      await deleteTask(Number(taskId));
+      toast.success("Task deleted");
+      setIsDeleteDialogOpen(false);
+      handleCancel();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to delete task");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Actual effort is derived server-side from the cumulative work-log effort.
   // Every log create/update/delete returns the recalculated value.
   const applyActualEffort = (actualEffort?: number | null) => {
@@ -1225,7 +1247,10 @@ export default function TaskFormPage() {
     return { total, fromChildren, fromOwnLogs, hasChildren: childTasks.length > 0 };
   }, [formData.actualEffort, childTasks]);
 
-  const dateDisabledTooltip = "Dates rolled up from children";
+  const hasChildTasks = childTasks.length > 0;
+  const dateDisabledTooltip = childrenHaveDates
+    ? "Dates rolled up from child tasks"
+    : "Dates roll up automatically when child tasks are scheduled";
 
   // The form now renders immediately, showing granular loaders in dropdowns instead.
 
@@ -2253,6 +2278,19 @@ export default function TaskFormPage() {
                   >
                     <Copy className="w-4 h-4" />
                   </button>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      className="hover:opacity-75 transition-opacity text-red-500 hover:text-red-600 cursor-pointer"
+                      title="Delete Task"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -2646,10 +2684,10 @@ export default function TaskFormPage() {
                       ) : (
                         <DatePickerItem className="w-[110px]"
                           date={formData.startDate}
-                          placeholder="Not set"
+                          placeholder="Set date"
                           isStatusComplete={formStatusComplete}
                           showOverdue={false}
-                          disabled={childrenHaveDates}
+                          disabled={hasChildTasks || childrenHaveDates}
                           disabledMessage={dateDisabledTooltip}
                           onSelect={(newDate) => {
                             const dateStr = newDate ? format(newDate, 'yyyy-MM-dd') : undefined;
@@ -2664,7 +2702,7 @@ export default function TaskFormPage() {
                                   };
                                   syncMeta(res);
                                   toast.success('Start date saved');
-                                })
+                                } )
                                 .catch(() => { endAutoSave(); toast.error('Failed to save start date'); });
                             }
                           }}
@@ -2676,9 +2714,9 @@ export default function TaskFormPage() {
                         <DatePickerItem
                           className="w-[110px]"
                           date={formData.actualStartDate}
-                          placeholder="Not set"
+                          placeholder="Set date"
                           showOverdue={false}
-                          disabled={childrenHaveDates}
+                          disabled={hasChildTasks || childrenHaveDates}
                           disabledMessage={dateDisabledTooltip}
                           maxDate={new Date(new Date().setHours(23, 59, 59, 999))}
                           onSelect={(newDate) => {
@@ -2709,10 +2747,10 @@ export default function TaskFormPage() {
                         <DatePickerItem
                           className="w-[110px]"
                           date={formData.dueDate}
-                          placeholder="Not set"
+                          placeholder="Set date"
                           isStatusComplete={formStatusComplete}
                           showOverdue={true}
-                          disabled={childrenHaveDates}
+                          disabled={hasChildTasks || childrenHaveDates}
                           disabledMessage={dateDisabledTooltip}
                           onSelect={(newDate) => {
                             const dateStr = newDate ? format(newDate, 'yyyy-MM-dd') : undefined;
@@ -2739,9 +2777,9 @@ export default function TaskFormPage() {
                         <DatePickerItem
                           className="w-[110px]"
                           date={formData.actualEndDate}
-                          placeholder="Not set"
+                          placeholder="Set date"
                           showOverdue={false}
-                          disabled={childrenHaveDates}
+                          disabled={hasChildTasks || childrenHaveDates}
                           disabledMessage={dateDisabledTooltip}
                           maxDate={new Date(new Date().setHours(23, 59, 59, 999))}
                           onSelect={(newDate) => {
@@ -3452,6 +3490,38 @@ export default function TaskFormPage() {
               </>
             );
           })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(o) => {
+          if (!isDeleting) setIsDeleteDialogOpen(o);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete task{" "}
+              <strong>{taskViewData?.code || formData.name || ""}</strong>? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteTask();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
+import { CopilotDrawer } from "@/components/common/CopilotDrawer";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -397,6 +398,7 @@ function Page() {
   const [taskSpaces, setTaskSpaces] = useState<any[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [selectedSpace, setSelectedSpace] = useState<any>(null);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [configData, setConfigData] = useState<TaskCardConfigData>({
     statuses: [],
     severities: [],
@@ -2138,6 +2140,19 @@ function Page() {
     fetchData();
   }, [fetchData]);
 
+  // Automatically refresh tasks when created or updated via Copilot
+  useEffect(() => {
+    const handleTaskChange = () => {
+      fetchData();
+    };
+    window.addEventListener("synlio:task-created", handleTaskChange);
+    window.addEventListener("synlio:task-updated", handleTaskChange);
+    return () => {
+      window.removeEventListener("synlio:task-created", handleTaskChange);
+      window.removeEventListener("synlio:task-updated", handleTaskChange);
+    };
+  }, [fetchData]);
+
   const handleUpdateTask = async (
     taskId: number,
     updates: any,
@@ -3825,7 +3840,7 @@ function Page() {
               />
             </div>
             <CopilotToolbarButton
-              onClick={() => toast.info("Project Analyst will be available soon!")}
+              onClick={() => setIsCopilotOpen(true)}
             />
           </div>
         </div>
@@ -4156,6 +4171,18 @@ function Page() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        agent="project_analytics"
+        context={{
+          taskSpaceId: selectedSpaceId || undefined,
+          taskSpaceName: taskSpaces.find((s) => s.id === selectedSpaceId)?.name,
+        }}
+        pageScopeKey="tasks"
+        pageTitle="Tasks"
+      />
     </div>
   );
 }

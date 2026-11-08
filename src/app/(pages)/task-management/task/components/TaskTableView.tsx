@@ -1202,6 +1202,10 @@ function TaskTableView({
       // ── Dates ─────────────────────────────────────────────────────
       const dateRange = dateRangeStates[task.id];
       const liveChildren: any[] = childTasksMap[task.id] ?? [];
+      const hasChildren =
+        (Array.isArray(task.childTasks) && task.childTasks.length > 0) ||
+        liveChildren.length > 0 ||
+        (task.childTaskCount != null && task.childTaskCount > 0);
       const childrenHaveDates: boolean =
         task.childrenHaveDates === true ||
         (Array.isArray(task.childTasks) && task.childTasks.some((c: any) => c.startDate || c.dueDate)) ||
@@ -1255,7 +1259,7 @@ function TaskTableView({
         <React.Fragment key={`${depth}-${task.id}`}>
           <tr
             className={cn(
-              'transition-colors group border-b border-gray-200 dark:border-gray-700',
+              'transition-colors group border-b border-gray-200 dark:border-gray-700 last:border-b-0',
               isExpandedBg && 'bg-gray-100 dark:bg-zinc-900 hover:bg-gray-200 dark:hover:bg-zinc-800',
               specialStates[task.id]
                 ? 'bg-primary/15 dark:bg-primary/25 border-primary/40'
@@ -1587,7 +1591,7 @@ function TaskTableView({
               {childrenHaveDates ? (
                 /* Locked (rolled-up from children) — always HoverCard on hover */
                 (() => {
-                  const lockedDateLabel = dateRange?.from ? format(dateRange.from, 'LLL dd') : <span className="text-gray-400">—</span>;
+                  const lockedDateLabel = dateRange?.from ? format(dateRange.from, 'LLL dd') : 'Unscheduled';
                   return (
                     <HoverCard openDelay={150}>
                       <HoverCardTrigger asChild>
@@ -1595,8 +1599,8 @@ function TaskTableView({
                           onClick={(e) => e.stopPropagation()}
                           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border cursor-default select-none whitespace-nowrap bg-white dark:bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300`}
                         >
-                          <Lock className="w-3 h-3 shrink-0" />
-                          {lockedDateLabel}
+                          <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+                          <span>{lockedDateLabel}</span>
                         </span>
                       </HoverCardTrigger>
                       <HoverCardContent className="w-72 p-3" side="right" align="start" onClick={(e) => e.stopPropagation()}>
@@ -1621,6 +1625,30 @@ function TaskTableView({
                     </HoverCard>
                   );
                 })()
+              ) : hasChildren ? (
+                /* Parent task whose children do not have dates yet */
+                <HoverCard openDelay={150}>
+                  <HoverCardTrigger asChild>
+                    <span
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border cursor-default select-none whitespace-nowrap bg-white dark:bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    >
+                      <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+                      <span>Unscheduled</span>
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-72 p-3" side="right" align="start" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-gray-400">
+                        <Lock className="w-3.5 h-3.5 text-white dark:text-gray-900" strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0 flex flex-col gap-1 w-full">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dates rolled up from children</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Dates roll up automatically when child tasks are scheduled.</p>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
               ) : configData && onUpdateTask ? (
                 /* Editable — click opens calendar */
                 <div onClick={(e) => e.stopPropagation()}>
@@ -1646,7 +1674,7 @@ function TaskTableView({
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border ${!dateRange?.from ? 'border-dashed' : ''} rounded-md text-xs font-medium whitespace-nowrap hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300`}
                       >
                         <CalendarDays className="w-3 h-3 shrink-0" />
-                        {dateRange?.from ? format(dateRange.from, 'LLL dd') : <span className="text-gray-400">Add date</span>}
+                        {dateRange?.from ? format(dateRange.from, 'LLL dd') : <span className="text-gray-400">Set date</span>}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800" align="start" onClick={(e) => e.stopPropagation()}
@@ -1705,7 +1733,7 @@ function TaskTableView({
               {childrenHaveDates ? (
                 /* Locked (rolled-up from children) — always HoverCard on hover */
                 (() => {
-                  const lockedDateLabel = dateRange?.to ? format(dateRange.to, 'LLL dd') : <span className="text-gray-400">—</span>;
+                  const lockedDateLabel = dateRange?.to ? format(dateRange.to, 'LLL dd') : 'Unscheduled';
                   return (
                     <HoverCard openDelay={150}>
                       <HoverCardTrigger asChild>
@@ -1714,7 +1742,7 @@ function TaskTableView({
                           className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border cursor-default select-none whitespace-nowrap bg-white dark:bg-transparent ${isOverdue ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} text-gray-700 dark:text-gray-300`}
                         >
                           {isOverdue ? <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" strokeWidth={2.5} /> : <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />}
-                          {lockedDateLabel}
+                          <span>{lockedDateLabel}</span>
                         </span>
                       </HoverCardTrigger>
                       <HoverCardContent className="w-72 p-3" side="right" align="start" onClick={(e) => e.stopPropagation()}>
@@ -1750,6 +1778,30 @@ function TaskTableView({
                     </HoverCard>
                   );
                 })()
+              ) : hasChildren ? (
+                /* Parent task whose children do not have dates yet */
+                <HoverCard openDelay={150}>
+                  <HoverCardTrigger asChild>
+                    <span
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border cursor-default select-none whitespace-nowrap bg-white dark:bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    >
+                      <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+                      <span>Unscheduled</span>
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-72 p-3" side="right" align="start" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-gray-400">
+                        <Lock className="w-3.5 h-3.5 text-white dark:text-gray-900" strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0 flex flex-col gap-1 w-full">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dates rolled up from children</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Dates roll up automatically when child tasks are scheduled.</p>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
               ) : configData && onUpdateTask ? (
                 /* Editable — click opens calendar */
                 <div onClick={(e) => e.stopPropagation()}>
@@ -1776,7 +1828,7 @@ function TaskTableView({
                           }`}
                       >
                         {isOverdue ? <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" /> : <CalendarDays className="w-3 h-3 shrink-0" />}
-                        {dateRange?.to ? format(dateRange.to, 'LLL dd') : <span className="text-gray-400">Add date</span>}
+                        {dateRange?.to ? format(dateRange.to, 'LLL dd') : <span className="text-gray-400">Set date</span>}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800" align="start" onClick={(e) => e.stopPropagation()}

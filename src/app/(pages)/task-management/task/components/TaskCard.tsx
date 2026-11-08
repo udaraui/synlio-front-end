@@ -569,6 +569,10 @@ export default function TaskCard({
           {/* Date range picker */}
           {(() => {
             // Detect rolled-up dates: from bulk-relations flag OR from loaded childTasks
+            const hasChildren: boolean = Boolean(
+              (Array.isArray(task.childTasks) && task.childTasks.length > 0) ||
+              (task.childTaskCount != null && task.childTaskCount > 0)
+            );
             const childrenHaveDates: boolean =
               task.childrenHaveDates === true ||
               (Array.isArray(task.childTasks) &&
@@ -581,14 +585,13 @@ export default function TaskCard({
 
             // ── Rolled-up / locked display ──────────────────────────────────
             if (childrenHaveDates) {
-              // childrenHaveDates guarantees rolled-up dates exist — no — fallback needed
               const dateLabel = dateRange?.from && dateRange?.to
                 ? <>{format(dateRange.from, 'LLL dd')} – {format(dateRange.to, 'LLL dd')}</>
                 : dateRange?.from
-                  ? <>{format(dateRange.from, 'LLL dd')} – ?</>
+                  ? <>Starts {format(dateRange.from, 'LLL dd')}</>
                   : dateRange?.to
-                    ? <>? – {format(dateRange.to, 'LLL dd')}</>
-                    : null;
+                    ? <>Due {format(dateRange.to, 'LLL dd')}</>
+                    : <span>Unscheduled</span>;
 
               const lockedContent = (
                 <div className="flex items-start gap-2.5">
@@ -640,6 +643,33 @@ export default function TaskCard({
               );
             }
 
+            // ── Parent task with no child dates yet ──────────────────────────
+            if (hasChildren) {
+              return (
+                <HoverCard openDelay={150}>
+                  <HoverCardTrigger asChild>
+                    <span
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border cursor-default select-none whitespace-nowrap bg-white dark:bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    >
+                      <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+                      <span>Unscheduled</span>
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-72 p-3" side="right" align="start" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-gray-400">
+                        <Lock className="w-3.5 h-3.5 text-white dark:text-gray-900" strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0 flex flex-col gap-1 w-full">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dates rolled up from children</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Dates roll up automatically when child tasks are scheduled.</p>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              );
+            }
 
             // ── Editable date picker ─────────────────────────────────────────
             if (configData && onUpdateTask) {
@@ -681,7 +711,13 @@ export default function TaskCard({
                             <button
                               onClick={(e) => e.stopPropagation()}
                               title={isOverdue ? 'Task is overdue - Click to change dates.' : 'Click to change dates'}
-                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-gray-900/50 border rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${isOverdue ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} text-gray-700 dark:text-gray-300`}
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-gray-900/50 border rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${
+                                isOverdue
+                                  ? 'border-red-500'
+                                  : !dateRange?.from && !dateRange?.to
+                                  ? 'border-dashed border-gray-300 dark:border-gray-700'
+                                  : 'border-gray-300 dark:border-gray-700'
+                              } text-gray-700 dark:text-gray-300`}
                             >
                               {isOverdue
                                 ? <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" />
@@ -690,11 +726,11 @@ export default function TaskCard({
                               {dateRange?.from && dateRange?.to ? (
                                 <>{format(dateRange.from, 'LLL dd')} – {format(dateRange.to, 'LLL dd')}</>
                               ) : dateRange?.from ? (
-                                <>{format(dateRange.from, 'LLL dd')} – ?</>
+                                <>Starts {format(dateRange.from, 'LLL dd')}</>
                               ) : dateRange?.to ? (
-                                <> ? – {format(dateRange.to, 'LLL dd')}</>
+                                <>Due {format(dateRange.to, 'LLL dd')}</>
                               ) : (
-                                <span className="text-gray-400">No date range</span>
+                                <span className="text-gray-400">Set date</span>
                               )}
                             </button>
                           </PopoverTrigger>

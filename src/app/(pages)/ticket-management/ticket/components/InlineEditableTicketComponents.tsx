@@ -37,7 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } fr
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Avatar Component for user profile pictures
-const UserAvatar = ({
+export const UserAvatar = ({
   firstName,
   lastName,
   profilePicture,

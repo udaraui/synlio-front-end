@@ -43,7 +43,7 @@ import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } fr
 
 // ─── User Avatar ─────────────────────────────────────────────────────────────
 
-const UserAvatar = ({
+export const UserAvatar = ({
   firstName,
   lastName,
   profilePic,
@@ -337,7 +337,7 @@ export function InlineEditableTaskStatus({
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer max-w-[140px] min-w-0"
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 w-fit shrink-0 self-start bg-white dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer max-w-[140px] min-w-0"
           onClick={(e) => e.stopPropagation()}
           disabled={showLoading || readonly}
           title="Click to change status"

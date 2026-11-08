@@ -175,7 +175,8 @@ export default function TicketTableView({
             </tr>
           </thead>
           <tbody className="">
-            {data.map((ticket: any) => {
+            {data.map((ticket: any, index: number) => {
+              const isLast = index === data.length - 1;
               const member = configData?.members?.find((m: any) => m.id === ticket.assigneeId);
               const validAssigneePic = ticket.assigneeProfilePicUrl && ticket.assigneeProfilePicUrl !== 'null' ? ticket.assigneeProfilePicUrl : null;
               const finalPic = validAssigneePic || member?.userProfilePicture || member?.profilePicture;
@@ -221,7 +222,7 @@ export default function TicketTableView({
               return (
                 <tr
                   key={ticket.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group border-b border-gray-200 dark:border-gray-700"
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group ${!isLast ? "border-b border-gray-200 dark:border-gray-700" : ""}`}
                 >
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1.5">

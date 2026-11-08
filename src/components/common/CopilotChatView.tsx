@@ -189,6 +189,7 @@ function ContinuousAnimatedAnalystIcon({
 }
 
 import { TicketDraftCard } from "@/components/copilot/TicketDraftCard";
+import { TaskDraftCard } from "@/components/copilot/TaskDraftCard";
 
 export interface Message {
   id: string;
@@ -1086,7 +1087,7 @@ interface ChatMessageItemProps {
   actionState?: 'dismissed' | 'full_list' | null;
   isLoading?: boolean;
   mode?: "full" | "panel";
-  onSelectOption?: (optionName: string, msgId?: string) => void;
+  onSelectOption?: (optionName: string, msgId?: string, optObj?: any, field?: string) => void;
   onCancelDraft?: (msgId: string) => void;
   onRetry?: (msgId: string) => void;
   isRetried?: boolean;
@@ -1135,6 +1136,35 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
     )
   );
 
+  const parentNotice = useMemo(() => {
+    if (!msg.draftPayload) return "";
+    const drafts = Array.isArray(msg.draftPayload.drafts)
+      ? msg.draftPayload.drafts
+      : msg.draftPayload.draft
+      ? [msg.draftPayload.draft]
+      : [];
+    for (const d of drafts) {
+      if (d.parentTaskCode || d.parentTaskName) {
+        const code = d.parentTaskCode || "";
+        const name = d.parentTaskName || "";
+        const label = code && name ? `${code}: ${name}` : code || name;
+        if (label) return ` Saving will update ${label}.`;
+      }
+    }
+    const existing = drafts.find((d: any) => d.isExistingParent);
+    if (existing) {
+      const code = existing.code || "";
+      const name = existing.name || "";
+      const label = code && name ? `${code}: ${name}` : code || name;
+      if (label) return ` Saving will update ${label}.`;
+    }
+    return "";
+  }, [msg.draftPayload]);
+
+  const rawContent = parentNotice && !msg.content.includes("Saving will update")
+    ? `${msg.content.trim()}${parentNotice}`
+    : msg.content;
+
   return (
     <div
       className={`flex w-full ${mode === "panel" ? "px-2" : "px-0 sm:px-4 md:px-8 lg:px-12 xl:px-16"} ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -1180,8 +1210,9 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                   remarkPlugins={[remarkGfm]}
                   components={markdownComponents as any}
                 >
-                  {msg.content
+                  {rawContent
                     .replace(/(I've prepared [^\n]+)\n+(Please review the details before proceeding\.)/gi, '$1 $2')
+                    .replace(/^(Please provide a title\.|Please provide titles for the items\.)/gim, "Here is your task draft ready for review. The parent project is displayed above for hierarchy context. You can name the task, adjust its schedule, status, priority, and assignee directly in the table below before saving.")
                     .replace(/<!--preview_count:\d+-->/g, '')
                     .replace(/(###\s*(?:Key Findings|Overview)[\s\S]*?)(?=\n###|$)/gi, (section) => {
                       return section
@@ -1195,15 +1226,29 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                 </ReactMarkdown>
 
                 {msg.draftPayload && mode === "panel" && (msg.draftPayload.status !== "NEEDS_INPUT" || isLatest) && (
-                  <TicketDraftCard
-                    payload={msg.draftPayload}
-                    onSelectOption={(_field, opt) => {
-                      onSelectOption?.(opt.name, msg.id);
-                    }}
-                    onCancel={() => {
-                      onCancelDraft?.(msg.id);
-                    }}
-                  />
+                  msg.draftPayload.action === "CREATE_TASK" ||
+                  msg.draftPayload.action === "UPDATE_TASK" ||
+                  msg.draftPayload.entityType === "task" ? (
+                    <TaskDraftCard
+                      payload={msg.draftPayload}
+                      onSelectOption={(field, opt: any) => {
+                        onSelectOption?.(opt?.label || opt?.name, msg.id, opt, field);
+                      }}
+                      onCancel={() => {
+                        onCancelDraft?.(msg.id);
+                      }}
+                    />
+                  ) : (
+                    <TicketDraftCard
+                      payload={msg.draftPayload}
+                      onSelectOption={(field, opt: any) => {
+                        onSelectOption?.(opt?.label || opt?.name, msg.id, opt, field);
+                      }}
+                      onCancel={() => {
+                        onCancelDraft?.(msg.id);
+                      }}
+                    />
+                  )
                 )}
 
                 {isError && !isRetried && (
@@ -1317,6 +1362,7 @@ export function CopilotChatView({
   const [actionStates, setActionStates] = useState<Record<string, 'dismissed' | 'full_list'>>({});
   const [pendingDraft, setPendingDraft] = useState<any>(null);
   const [retriedMessageIds, setRetriedMessageIds] = useState<Set<string>>(new Set());
+  const isDismissedRef = useRef(false);
 
   const [internalConvId, setInternalConvId] = useState<string>(() => {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -1792,25 +1838,24 @@ export function CopilotChatView({
     if (agent === "project_analytics" || (!agent && (space || parentTask))) {
       if (parentTask) {
         return [
-          { text: `Show subtasks and progress for "${parentTask}"`, domain: "Project", isClickable: false },
-          { text: `Which subtasks under "${parentTask}" are overdue?`, domain: "Project", isClickable: false },
-          { text: `Show tasks grouped by priority for "${parentTask}"`, domain: "Project", isClickable: false },
-          { text: `What are active tasks for "${parentTask}" this week?`, domain: "Project", isClickable: false },
+          { text: `Create a task inside "${parentTask}"`, domain: "Project", isClickable: true },
+          { text: `Move open tasks under "${parentTask}" to In Progress`, domain: "Project", isClickable: true },
+          { text: `Who is currently overloaded this week?`, domain: "Resource", isClickable: true },
         ];
       }
       if (space) {
         return [
-          { text: `Show task status distribution in ${space}`, domain: "Project", isClickable: false },
-          { text: `Which tasks are currently overdue in ${space}?`, domain: "Project", isClickable: false },
-          { text: `Show tasks grouped by priority in ${space}`, domain: "Project", isClickable: false },
-          { text: `What are active tasks in ${space} this week?`, domain: "Project", isClickable: false },
+          { text: `Create a task in ${space}`, domain: "Project", isClickable: true },
+          { text: `Create a new project in ${space}`, domain: "Project", isClickable: true },
+          { text: `Move open tasks in ${space} to In Progress`, domain: "Project", isClickable: true },
+          { text: `Who is currently overloaded this week?`, domain: "Resource", isClickable: true },
         ];
       }
       return [
-        { text: "Show task status distribution in a chart", domain: "Project", isClickable: false },
-        { text: "Which tasks are currently overdue?", domain: "Project", isClickable: false },
-        { text: "Show tasks grouped by priority", domain: "Project", isClickable: false },
-        { text: "What are our active tasks for this week?", domain: "Project", isClickable: false },
+        { text: "Create a task for website launch", domain: "Project", isClickable: true },
+        { text: "Create a new project", domain: "Project", isClickable: true },
+        { text: "Who is currently overloaded this week?", domain: "Resource", isClickable: true },
+        { text: "Show team workload distribution in a chart", domain: "Resource", isClickable: true },
       ];
     }
 
@@ -1847,7 +1892,7 @@ export function CopilotChatView({
       sendMessage(q.text);
     } else {
       toast.info(
-        `${q.domain === "Project" ? "Project Analasist" : "Ticket Analasist"} will be available soon!`
+        `${q.domain === "Project" ? "Project Analyst" : "Ticket Analyst"} will be available soon!`
       );
     }
   };
@@ -1895,7 +1940,25 @@ export function CopilotChatView({
     }
   }, [input]);
 
-  const sendMessage = async (text: string, attachedDocs?: CopilotAttachment[]) => {
+  const sendMessage = async (
+    text: string,
+    attachedDocsOrOverrideDraft?: CopilotAttachment[] | any,
+    overridePendingDraft?: any
+  ) => {
+    let attachedDocs: CopilotAttachment[] | undefined;
+    let explicitDraft: any = undefined;
+
+    if (
+      Array.isArray(attachedDocsOrOverrideDraft) &&
+      attachedDocsOrOverrideDraft.length > 0 &&
+      "base64" in attachedDocsOrOverrideDraft[0]
+    ) {
+      attachedDocs = attachedDocsOrOverrideDraft;
+      explicitDraft = overridePendingDraft;
+    } else if (attachedDocsOrOverrideDraft !== undefined) {
+      explicitDraft = attachedDocsOrOverrideDraft;
+    }
+
     const hasAttachments = attachedDocs && attachedDocs.length > 0;
     if (!text.trim() && !hasAttachments) return;
     if (isLoading) return;
@@ -1906,7 +1969,7 @@ export function CopilotChatView({
       id: Date.now().toString(),
       role: "user",
       content: displayContent,
-      attachments: hasAttachments ? attachedDocs.map((a) => ({ name: a.name, size: a.size, type: a.type, base64: a.base64, contentText: a.contentText })) : undefined,
+      attachments: hasAttachments ? attachedDocs!.map((a) => ({ name: a.name, size: a.size, type: a.type, base64: a.base64, contentText: a.contentText })) : undefined,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -1957,18 +2020,20 @@ export function CopilotChatView({
 
       const queryText = text.trim() || (hasAttachments ? "Please review the attached document and create ticket drafts for all identified tasks, issues, or action items." : "");
 
+      const effectiveDraft = explicitDraft !== undefined ? explicitDraft : pendingDraft;
       const response = await chatService.streamChat(
         queryText,
         conversationId,
         agent,
         normalizedContext,
         recentHistory,
-        pendingDraft,
+        effectiveDraft,
         mode,
         attachmentsPayload.length > 0 ? attachmentsPayload : undefined
       );
 
       aiMessageId = (Date.now() + 1).toString();
+      isDismissedRef.current = false;
       setMessages((prev) => [
         ...prev,
         { id: aiMessageId!, role: "ai", content: "", isThinking: true, isStreaming: true },
@@ -2049,7 +2114,7 @@ export function CopilotChatView({
             prev.map((msg) => {
               if (msg.id === aiMessageId) {
                 const nextMsg = { ...msg };
-                if (capturedPayload) {
+                if (capturedPayload && !isDismissedRef.current) {
                   nextMsg.draftPayload = capturedPayload;
                 }
 
@@ -2086,7 +2151,7 @@ export function CopilotChatView({
             return {
               ...msg,
               content: finalContent || (capturedPayload?.summary || ""),
-              draftPayload: capturedPayload || msg.draftPayload,
+              draftPayload: !isDismissedRef.current ? (capturedPayload || msg.draftPayload) : null,
               isThinking: false,
               isStreaming: false,
             };
@@ -2309,31 +2374,72 @@ export function CopilotChatView({
                 mode={mode}
                 onRetry={handleRetry}
                 isRetried={retriedMessageIds.has(msg.id)}
-                onSelectOption={(optionName, msgId) => {
-                  if (msgId) {
-                    setMessages((prev) =>
-                      prev.map((m) => (m.id === msgId ? { ...m, draftPayload: null } : m))
-                    );
+                onSelectOption={(optionName, _msgId, optObj, field) => {
+                  let nextDrafts: any = pendingDraft;
+                  if (!nextDrafts) {
+                    const lastWithPayload = [...messages].reverse().find((m) => m.draftPayload);
+                    if (lastWithPayload?.draftPayload) {
+                      const p = lastWithPayload.draftPayload;
+                      nextDrafts = p.drafts && p.drafts.length > 0 ? p.drafts : (p.draft ? [p.draft] : null);
+                    }
                   }
-                  sendMessage(optionName);
+
+                  let updatedDrafts: any = null;
+                  if (nextDrafts) {
+                    const list = Array.isArray(nextDrafts)
+                      ? nextDrafts.map((d: any) => ({ ...d }))
+                      : [{ ...nextDrafts }];
+
+                    if (list.length > 0) {
+                      if (optObj?.id === -1 || String(optionName).toLowerCase().includes("create as new")) {
+                        list[0].hierarchyLevelSequence = 1;
+                        list[0].parentTaskId = -1;
+                        list[0].parentTaskName = null;
+                        list[0].isCreateNewLevel1 = true;
+                      } else if (field === "parentTask" || optObj?.id) {
+                        list[0].parentTaskId = optObj.id;
+                        list[0].parentTaskName = optObj.name;
+                        list[0].parentTaskCode = optObj.code;
+                        list[0].hierarchyLevelSequence = 2;
+                      } else if (field === "taskSpace" || field === "ticketSpace") {
+                        list.forEach((item: any) => {
+                          if (field === "taskSpace") {
+                            item.taskSpaceId = optObj?.id;
+                            item.taskSpaceName = optObj?.name || optionName;
+                          } else {
+                            item.ticketSpaceId = optObj?.id;
+                            item.ticketSpaceName = optObj?.name || optionName;
+                          }
+                        });
+                      }
+                      updatedDrafts = list;
+                    }
+                  }
+
+                  if (updatedDrafts) {
+                    setPendingDraft(updatedDrafts);
+                  }
+                  setMessages((prev) =>
+                    prev.map((m) => ({ ...m, draftPayload: null }))
+                  );
+                  sendMessage(optionName, updatedDrafts);
                 }}
-                onCancelDraft={(msgId) => {
+                onCancelDraft={(_msgId) => {
+                  isDismissedRef.current = true;
                   setPendingDraft(null);
                   setIsLoading(false);
                   const userDismissId = Date.now().toString();
                   const aiResponseId = (Date.now() + 1).toString();
 
                   setMessages((prev) => {
+                    const cleaned = prev.map((m) => ({ ...m, draftPayload: null }));
                     if (
-                      prev.length > 0 &&
-                      prev[prev.length - 1]?.content === "Process has been dismissed. Let me know if you need help with anything else!"
+                      cleaned.length > 0 &&
+                      cleaned[cleaned.length - 1]?.content === "Process has been dismissed. Let me know if you need help with anything else!"
                     ) {
-                      return prev;
+                      return cleaned;
                     }
 
-                    const cleaned = prev.map((m) =>
-                      !msgId || m.id === msgId ? { ...m, draftPayload: null } : m
-                    );
                     return [
                       ...cleaned,
                       {
