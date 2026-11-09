@@ -190,6 +190,7 @@ function ContinuousAnimatedAnalystIcon({
 
 import { TicketDraftCard } from "@/components/copilot/TicketDraftCard";
 import { TaskDraftCard } from "@/components/copilot/TaskDraftCard";
+import { CopilotMentionDropdown, getCachedMentionItems, type MentionCandidate } from "@/components/copilot/CopilotMentionDropdown";
 
 export interface Message {
   id: string;
@@ -200,6 +201,70 @@ export interface Message {
   draftPayload?: any;
   attachments?: Array<{ name: string; size?: number; type?: string; base64?: string; contentText?: string }>;
 }
+
+// Measures horizontal and vertical pixel position of character in textarea
+const getCaretCoordinates = (element: HTMLTextAreaElement, position: number): { left: number; top: number } => {
+  if (typeof window === "undefined" || !element) return { left: 16, top: 0 };
+
+  const div = document.createElement("div");
+  const style = window.getComputedStyle(element);
+
+  const properties = [
+    "direction",
+    "boxSizing",
+    "width",
+    "overflowX",
+    "overflowY",
+    "borderTopWidth",
+    "borderRightWidth",
+    "borderBottomWidth",
+    "borderLeftWidth",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "fontStyle",
+    "fontVariant",
+    "fontWeight",
+    "fontStretch",
+    "fontSize",
+    "lineHeight",
+    "fontFamily",
+    "textAlign",
+    "textTransform",
+    "letterSpacing",
+    "wordSpacing",
+    "whiteSpace",
+    "wordWrap",
+  ];
+
+  div.style.position = "absolute";
+  div.style.visibility = "hidden";
+  div.style.top = "-9999px";
+  div.style.left = "-9999px";
+  div.style.whiteSpace = "pre-wrap";
+  div.style.wordWrap = "break-word";
+
+  properties.forEach((prop) => {
+    (div.style as any)[prop] = (style as any)[prop];
+  });
+
+  const textBefore = element.value.substring(0, position);
+  div.textContent = textBefore;
+
+  const span = document.createElement("span");
+  span.textContent = element.value.charAt(position) || "@";
+  div.appendChild(span);
+
+  document.body.appendChild(div);
+
+  const left = span.offsetLeft;
+  const top = span.offsetTop;
+
+  document.body.removeChild(div);
+
+  return { left, top };
+};
 
 // Helper to extract primary RGB values from CSS variable --primary
 const getPrimaryRgb = (): [number, number, number] => {
@@ -1252,14 +1317,14 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                 )}
 
                 {isError && !isRetried && (
-                  <div className="mt-2.5 flex items-center">
+                  <div className="flex items-center">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       disabled={isLoading}
                       onClick={() => onRetry?.(msg.id)}
-                      className="h-8 gap-1.5 text-xs font-semibold cursor-pointer border border-border bg-background hover:bg-muted text-foreground transition-all duration-150 rounded-lg shadow-2xs hover:border-foreground/30 select-none"
+                      className="h-8 gap-1.5 text-xs font-semibold cursor-pointer border border-border bg-background hover:bg-muted text-foreground transition-all duration-150 rounded-lg shadow-xs hover:border-foreground/30 select-none"
                     >
                       <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>Try Again</span>
@@ -1429,6 +1494,265 @@ export function CopilotChatView({
   const [isReadingFile, setIsReadingFile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
+
+  // --- In-Memory Mention (@) Autocomplete State & Computation ---
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState<number>(0);
+  const [mentionPositionLeft, setMentionPositionLeft] = useState<number>(16);
+
+  const availableMentionItems = useMemo<MentionCandidate[]>(() => {
+    const seenCodes = new Set<string>();
+    const candidates: MentionCandidate[] = [];
+
+    const isTicketDomain =
+      agent === "ticket_analytics" ||
+      Boolean(pathname?.includes("/ticket")) ||
+      Boolean(activeContext?.ticketSpaceId && !activeContext?.taskSpaceId);
+
+    const isTaskDomain =
+      agent === "project_analytics" ||
+      Boolean(pathname?.includes("/task")) ||
+      Boolean(activeContext?.taskSpaceId && !activeContext?.ticketSpaceId);
+
+    const addItem = (
+      id: any,
+      code: any,
+      title: any,
+      type: "task" | "ticket" | "project",
+      hierarchyIcon?: string,
+      hierarchyColor?: string
+    ) => {
+      if (!code || typeof code !== "string") return;
+      const cleanCode = code.trim().toUpperCase();
+      const cleanTitle = (title && typeof title === "string") ? title.trim() : "";
+      if (!cleanCode || seenCodes.has(cleanCode)) return;
+
+      // Strict Domain Isolation:
+      // When in Ticket Analyst / ticket pages, only suggest tickets.
+      if (isTicketDomain && type !== "ticket") return;
+      // When in Project Analyst / task pages, only suggest tasks & projects.
+      if (isTaskDomain && type === "ticket") return;
+
+      seenCodes.add(cleanCode);
+      candidates.push({
+        id: id || cleanCode,
+        code: cleanCode,
+        title: cleanTitle,
+        type,
+        hierarchyIcon,
+        hierarchyColor,
+      });
+    };
+
+    const processItem = (t: any, defaultType: "task" | "ticket" | "project" = "task") => {
+      if (!t) return;
+      const code = t.code;
+      if (code && typeof code === "string") {
+        const isProject =
+          defaultType === "project" ||
+          t.type === "project" ||
+          t.isProject ||
+          Boolean(t.hierarchyLevel?.name?.toLowerCase() === "project") ||
+          Boolean(t.hierarchyLevelName?.toLowerCase() === "project") ||
+          /-P\d+$/.test(code);
+        const itemType = isProject ? "project" : (defaultType || "task");
+        const hlIcon = t.hierarchyLevelIcon || t.hierarchyLevelConfig?.icon || t.icon;
+        const hlColor = t.hierarchyLevelColor || t.hierarchyLevelConfig?.color || t.color;
+        addItem(t.id, code, t.name || t.title, itemType, hlIcon, hlColor);
+      }
+      if (t.parentTaskCode) {
+        addItem(t.parentTaskId, t.parentTaskCode, t.parentTaskName, "project");
+      }
+      if (Array.isArray(t.childTasks)) t.childTasks.forEach((c: any) => processItem(c, "task"));
+      if (Array.isArray(t.subtasks)) t.subtasks.forEach((c: any) => processItem(c, "task"));
+      if (Array.isArray(t.children)) t.children.forEach((c: any) => processItem(c, "task"));
+    };
+
+    // 1. Current page context dataset FIRST (prioritize active table items)
+    if (isTicketDomain) {
+      const rawTickets = context?.tickets || activeContext?.tickets || context?.ticketList || activeContext?.ticketList || (context?.pageScopeKey === "tickets" ? context?.data : []) || [];
+      if (Array.isArray(rawTickets)) {
+        rawTickets.forEach((t: any) => {
+          if (t?.code) addItem(t.id, t.code, t.name || t.title, "ticket", t.typeIcon || t.icon, t.typeColor || t.color);
+        });
+      }
+    } else if (isTaskDomain) {
+      const rawTasks = context?.tasks || activeContext?.tasks || context?.taskList || activeContext?.taskList || (context?.pageScopeKey === "tasks" ? context?.data : []) || [];
+      if (Array.isArray(rawTasks)) {
+        rawTasks.forEach((t: any) => processItem(t, "task"));
+      }
+    } else {
+      const rawTasks = context?.tasks || activeContext?.tasks || context?.taskList || activeContext?.taskList || (context?.pageScopeKey === "tasks" ? context?.data : []) || [];
+      if (Array.isArray(rawTasks)) {
+        rawTasks.forEach((t: any) => processItem(t, "task"));
+      }
+      const rawTickets = context?.tickets || activeContext?.tickets || context?.ticketList || activeContext?.ticketList || (context?.pageScopeKey === "tickets" ? context?.data : []) || [];
+      if (Array.isArray(rawTickets)) {
+        rawTickets.forEach((t: any) => {
+          if (t?.code) addItem(t.id, t.code, t.name || t.title, "ticket", t.typeIcon || t.icon, t.typeColor || t.color);
+        });
+      }
+    }
+
+    // 2. Single item in active context
+    if (context?.ticketCode) addItem(context.ticketId, context.ticketCode, context.ticketName, "ticket");
+    if (activeContext?.ticketCode) addItem(activeContext.ticketId, activeContext.ticketCode, activeContext.ticketName, "ticket");
+    if (context?.taskCode) addItem(context.taskId, context.taskCode, context.taskName, "task");
+    if (activeContext?.taskCode) addItem(activeContext.taskId, activeContext.taskCode, activeContext.taskName, "task");
+
+    // 3. Cached items from frontend session matching active domain
+    const cached = getCachedMentionItems();
+    cached.forEach((c) => addItem(c.id, c.code, c.title, c.type, c.hierarchyIcon, c.hierarchyColor));
+
+    // 3. Conversation history items (from drafts, candidate options, recent tasks/tickets)
+    messages.forEach((msg) => {
+      const payload = msg.draftPayload;
+      if (payload) {
+        const list = payload.drafts || (payload.draft ? [payload.draft] : []) || payload.tickets || [];
+        if (Array.isArray(list)) {
+          list.forEach((item: any) => {
+            if (item?.code) {
+              const hlIcon = item.hierarchyLevelIcon || item.hierarchyLevelConfig?.icon || item.icon;
+              const hlColor = item.hierarchyLevelColor || item.hierarchyLevelConfig?.color || item.color;
+              addItem(
+                item.id,
+                item.code,
+                item.name || item.title,
+                payload.action?.includes("TASK") || payload.entityType === "task" ? "task" : "ticket",
+                hlIcon,
+                hlColor
+              );
+            }
+            if (item?.parentTaskCode) {
+              addItem(item.parentTaskId, item.parentTaskCode, item.parentTaskName, "project");
+            }
+          });
+        }
+
+        const cTasks = payload.candidateTasks || [];
+        if (Array.isArray(cTasks)) {
+          cTasks.forEach((t: any) => {
+            if (t?.code) addItem(t.id, t.code, t.name, "task", t.hierarchyLevelIcon, t.hierarchyLevelColor);
+          });
+        }
+
+        const cTickets = payload.candidateTickets || [];
+        if (Array.isArray(cTickets)) {
+          cTickets.forEach((t: any) => {
+            if (t?.code) addItem(t.id, t.code, t.name, "ticket");
+          });
+        }
+
+        const options = payload.options || [];
+        if (Array.isArray(options)) {
+          options.forEach((opt: any) => {
+            if (opt?.code && opt.code !== "ALL") {
+              addItem(opt.id, opt.code, opt.name || opt.label, "task");
+            }
+          });
+        }
+      }
+
+      // Also parse task/ticket codes mentioned in message text (e.g., PTS-P8, PTS-23, PTS-P6)
+      if (msg.content) {
+        const codeRegex = /\b([A-Z]{2,6}-(?:P\d+|\d+)(?:-\d+)?)(?::\s*([^\n\r,.<>]+))?/gi;
+        let match;
+        while ((match = codeRegex.exec(msg.content)) !== null) {
+          const foundCode = match[1];
+          const foundTitle = match[2]?.trim() || "";
+          const isTask = /-P\d+/.test(foundCode);
+          addItem(foundCode, foundCode, foundTitle, isTask ? "task" : "ticket");
+        }
+      }
+    });
+
+    // 4. Pending draft
+    if (pendingDraft) {
+      const pList = Array.isArray(pendingDraft) ? pendingDraft : [pendingDraft];
+      pList.forEach((d: any) => {
+        if (d?.code) {
+          const hlIcon = d.hierarchyLevelIcon || d.hierarchyLevelConfig?.icon || d.icon;
+          const hlColor = d.hierarchyLevelColor || d.hierarchyLevelConfig?.color || d.color;
+          addItem(d.id, d.code, d.name, d.entityType === "task" ? "task" : "ticket", hlIcon, hlColor);
+        }
+        if (d?.parentTaskCode) addItem(d.parentTaskId, d.parentTaskCode, d.parentTaskName, "project");
+      });
+    }
+
+    return candidates;
+  }, [context, activeContext, messages, pendingDraft]);
+
+  const filteredMentionItems = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase().trim();
+    if (!q) return availableMentionItems.slice(0, 10);
+    return availableMentionItems
+      .filter((item) => {
+        return (
+          item.code.toLowerCase().includes(q) ||
+          item.title.toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 10);
+  }, [mentionQuery, availableMentionItems]);
+
+  const handleSelectMention = (item: MentionCandidate) => {
+    if (mentionStartIndex < 0) return;
+    const cursorPos = textareaRef.current?.selectionStart ?? input.length;
+    const before = input.slice(0, mentionStartIndex);
+    const after = input.slice(cursorPos);
+    // Option A Format: PTS-P6: Synaltics Implementation
+    const insertion = item.title ? `${item.code}: ${item.title}` : item.code;
+    const nextInput = `${before}${insertion} ${after}`;
+    setInput(nextInput);
+    setMentionQuery(null);
+    setMentionStartIndex(-1);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const nextPos = before.length + insertion.length + 1;
+        textareaRef.current.setSelectionRange(nextPos, nextPos);
+      }
+    }, 0);
+  };
+
+  const updateMentionPosition = (atIndex: number) => {
+    if (!textareaRef.current) return;
+    const coords = getCaretCoordinates(textareaRef.current, atIndex);
+    const container = textareaRef.current.closest(".relative") || textareaRef.current.parentElement || textareaRef.current;
+    const containerWidth = container.clientWidth || 400;
+    const popoverWidth = 380;
+    // Align with typing cursor, clamp within bounds
+    const maxLeft = Math.max(12, containerWidth - popoverWidth - 12);
+    const left = Math.min(Math.max(12, coords.left), maxLeft);
+    setMentionPositionLeft(left);
+  };
+
+  const checkMentionTrigger = (val: string, cursorPos: number) => {
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/(?:^|\s)@([^\s@]*)$/);
+
+    if (match) {
+      const query = match[1];
+      const atIndex = textBeforeCursor.lastIndexOf("@");
+      setMentionQuery(query);
+      setMentionStartIndex(atIndex);
+      setMentionSelectedIndex(0);
+      updateMentionPosition(atIndex);
+    } else {
+      setMentionQuery(null);
+      setMentionStartIndex(-1);
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    const cursorPos = e.target.selectionStart ?? val.length;
+    checkMentionTrigger(val, cursorPos);
+  };
 
   const processFiles = async (files: File[]) => {
     setIsReadingFile(true);
@@ -2478,26 +2802,36 @@ export function CopilotChatView({
 
       {/* Input Area */}
       <div className="p-3 bg-background">
-        <form
-          onSubmit={handleSubmit}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setIsDragging(false);
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-              processFiles(Array.from(e.dataTransfer.files));
-            }
-          }}
-          className={cn(
-            mode === "panel" ? "w-full max-w-none" : "max-w-4xl mx-auto",
-            "relative flex flex-col overflow-hidden rounded-3xl border bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none",
-            isDragging ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-input"
+        <div className={cn(mode === "panel" ? "w-full max-w-none" : "max-w-4xl mx-auto", "relative")}>
+          {mentionQuery !== null && (
+            <CopilotMentionDropdown
+              items={filteredMentionItems}
+              selectedIndex={mentionSelectedIndex}
+              onSelect={handleSelectMention}
+              onClose={() => setMentionQuery(null)}
+              style={{ left: `${mentionPositionLeft}px` }}
+            />
           )}
-        >
+
+          <form
+            onSubmit={handleSubmit}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                processFiles(Array.from(e.dataTransfer.files));
+              }
+            }}
+            className={cn(
+              "relative flex flex-col rounded-3xl border bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none",
+              isDragging ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-input"
+            )}
+          >
           {/* Selected Parameters Badges & Attached Documents (in the same row) */}
           {((mode === "panel" && contextBadges.length > 0) || attachments.length > 0) && (
             <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3 pb-0.5">
@@ -2630,8 +2964,38 @@ export function CopilotChatView({
             <textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleTextareaChange}
+              onClick={(e) => checkMentionTrigger(input, e.currentTarget.selectionStart ?? input.length)}
+              onKeyUp={(e) => {
+                if (!["ArrowUp", "ArrowDown", "Enter", "Tab", "Escape"].includes(e.key)) {
+                  checkMentionTrigger(input, e.currentTarget.selectionStart ?? input.length);
+                }
+              }}
               onKeyDown={(e) => {
+                if (mentionQuery !== null && filteredMentionItems.length > 0) {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setMentionSelectedIndex((prev) => (prev + 1) % filteredMentionItems.length);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setMentionSelectedIndex((prev) => (prev - 1 + filteredMentionItems.length) % filteredMentionItems.length);
+                    return;
+                  }
+                  if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    handleSelectMention(filteredMentionItems[mentionSelectedIndex] || filteredMentionItems[0]);
+                    return;
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setMentionQuery(null);
+                    setMentionStartIndex(-1);
+                    return;
+                  }
+                }
+
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSubmit(e as any);
@@ -2663,6 +3027,7 @@ export function CopilotChatView({
             </div>
           </div>
         </form>
+        </div>
         <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-2">
           <span>Co-Pilot is AI and can make mistakes.</span>
           {mode === "full" && (

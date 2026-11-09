@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import { CopilotDrawer } from "@/components/common/CopilotDrawer";
+import { cacheMentionItems } from "@/components/copilot/CopilotMentionDropdown";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -1683,6 +1684,7 @@ function Page() {
             });
             const tasks: any[] = taskRes.data || [];
             setData(tasks);
+      cacheMentionItems(tasks);
             setTotalRecords(taskRes.total || 0);
             setHasDataFetched(true);
             setIsLoading(false); // Hide skeleton immediately after task data is ready
@@ -2065,6 +2067,7 @@ function Page() {
       //   code, name, hierarchy icon/color, status, severity, assignee,
       //   coAssignees, dates
       setData(tasks);
+      cacheMentionItems(tasks);
 
       // ── Phase 2 ─────────────────────────────────────────────────────────
       // Silently enrich each row with computed bulk-relation data:
@@ -4179,6 +4182,7 @@ function Page() {
         context={{
           taskSpaceId: selectedSpaceId || undefined,
           taskSpaceName: taskSpaces.find((s) => s.id === selectedSpaceId)?.name,
+          tasks: data,
         }}
         pageScopeKey="tasks"
         pageTitle="Tasks"

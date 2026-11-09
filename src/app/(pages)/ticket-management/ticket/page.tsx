@@ -38,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CopilotToolbarButton } from "@/components/common/CopilotToolbarButton";
 import { CopilotDrawer } from "@/components/common/CopilotDrawer";
+import { cacheMentionItems } from "@/components/copilot/CopilotMentionDropdown";
 import {
   Select,
   SelectContent,
@@ -1213,6 +1214,7 @@ function TicketPage() {
       // ── Phase 1 ─────────────────────────────────────────────────────────
       // Render cards/rows immediately.
       setData(enrichTickets(tickets, configRef.current));
+      cacheMentionItems(tickets);
       setTotalRecords(result.total || 0);
 
       if (tickets.length > 0) {
@@ -3900,6 +3902,7 @@ function TicketPage() {
         context={{
           ticketSpaceId: selectedTicketSpaceFilter || ticketSpaceId || undefined,
           ticketSpaceName: ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId))?.name,
+          tickets: data,
         }}
         pageScopeKey="tickets"
         pageTitle="Tickets"
