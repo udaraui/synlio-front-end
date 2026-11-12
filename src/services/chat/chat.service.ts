@@ -14,7 +14,8 @@ export const chatService = {
     history?: Array<{ role: string; content: string }>,
     pendingDraft?: any,
     chatMode?: string,
-    attachments?: Array<{ filename: string; mimeType: string; content?: string; contentText?: string }>
+    attachments?: Array<{ filename: string; mimeType: string; content?: string; contentText?: string }>,
+    signal?: AbortSignal
   ): Promise<ReadableStream> => {
     // We use adapter: 'fetch' because standard XHR does not support 
     // raw ReadableStreams in the browser for chunk-by-chunk decoding.
@@ -22,6 +23,7 @@ export const chatService = {
       API_ENDPOINTS.CHAT,
       { message, conversationId, agent, context, history, pendingDraft, chatMode, attachments },
       {
+        signal,
         responseType: 'stream',
         adapter: 'fetch',
         timeout: 0 // Disable timeout for long-running stream connections
@@ -29,5 +31,17 @@ export const chatService = {
     );
 
     return response.data;
+  },
+
+  /**
+   * Notifies the backend to abort any active AI execution and LLM streaming for a conversation.
+   */
+  stopChat: async (conversationId?: string): Promise<void> => {
+    if (!conversationId) return;
+    try {
+      await axiosInstance.post(`${API_ENDPOINTS.CHAT}/stop`, { conversationId });
+    } catch (err) {
+      console.warn("stopChat notification failed:", err);
+    }
   }
 };

@@ -1430,9 +1430,9 @@ function SingleTicketDraftTableRow({
   }, [warnings, draft.assigneeId, currentAssignee]);
 
   return (
-    <tr className={`hover:bg-muted/30 transition-colors group ${!isLast ? "border-b border-border/70" : ""}`}>
+    <tr className={`hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors group ${!isLast ? "border-b border-border/70" : ""}`}>
       {/* 1. Merged Code & Title (Pinned to Left End) */}
-      <td className="py-2.5 px-3.5 align-middle min-w-[220px] max-w-[320px] sticky left-0 z-10 bg-card group-hover:bg-muted/40 transition-colors shadow-[1px_0_0_0_hsl(var(--border))]">
+      <td className="py-2.5 px-3.5 align-middle min-w-[220px] max-w-[320px] sticky left-0 z-10 bg-card group-hover:bg-gray-50 dark:group-hover:bg-zinc-900 transition-colors shadow-[1px_0_0_0_hsl(var(--border))]">
         <div className="flex items-center gap-2 min-w-0">
           <span
             className="text-xs font-semibold tracking-wide text-primary select-none whitespace-nowrap shrink-0"
@@ -1762,7 +1762,7 @@ function SingleTicketDraftTableRow({
       </td>
 
       {/* 7. Row Actions (Pinned to Right End) */}
-      <td className="py-2.5 px-3 align-middle whitespace-nowrap text-right sticky right-0 z-10 bg-card group-hover:bg-muted/40 transition-colors shadow-[-1px_0_0_0_hsl(var(--border))]">
+      <td className="py-2.5 px-3 align-middle whitespace-nowrap text-right min-w-[80px] w-[80px] sticky right-0 z-10 bg-card group-hover:bg-gray-50 dark:group-hover:bg-zinc-900 transition-colors shadow-[-1px_0_0_0_hsl(var(--border))]">
         <div className="flex items-center justify-end gap-1 flex-shrink-0">
           {createdTicket ? (
             <button

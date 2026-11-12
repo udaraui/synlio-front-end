@@ -11,12 +11,19 @@ export interface MentionCandidate {
   type: "task" | "ticket" | "project";
   hierarchyIcon?: string;
   hierarchyColor?: string;
+  spaceId?: number | string;
+  spacePrefix?: string;
 }
 
 // In-memory cache of tasks/tickets seen across the frontend session
 const sessionMentionCache = new Map<string, MentionCandidate>();
 
-export const cacheMentionItems = (items: any[], defaultType?: "task" | "ticket" | "project") => {
+export const cacheMentionItems = (
+  items: any[],
+  defaultType?: "task" | "ticket" | "project",
+  spaceId?: number | string,
+  spacePrefix?: string
+) => {
   if (!Array.isArray(items)) return;
   items.forEach((item) => {
     if (!item?.code) return;
@@ -33,6 +40,8 @@ export const cacheMentionItems = (items: any[], defaultType?: "task" | "ticket" 
     const type = defaultType || (isProject ? "project" : item.type || (/-P\d+/.test(code) ? "task" : "ticket"));
     const hierarchyIcon = item.hierarchyLevelIcon || item.hierarchyLevelConfig?.icon || item.icon;
     const hierarchyColor = item.hierarchyLevelColor || item.hierarchyLevelConfig?.color || item.color;
+    const itemSpaceId = item.taskSpaceId || item.ticketSpaceId || item.projectGroupId || item.projectGroup?.id || item.spaceId || spaceId;
+    const itemPrefix = code.includes("-") ? code.split("-")[0].toUpperCase() : (item.projectGroup?.prefix || spacePrefix);
 
     sessionMentionCache.set(code, {
       id: item.id || code,
@@ -41,16 +50,30 @@ export const cacheMentionItems = (items: any[], defaultType?: "task" | "ticket" 
       type,
       hierarchyIcon,
       hierarchyColor,
+      spaceId: itemSpaceId,
+      spacePrefix: itemPrefix,
     });
 
-    if (Array.isArray(item.childTasks)) cacheMentionItems(item.childTasks, "task");
-    if (Array.isArray(item.subtasks)) cacheMentionItems(item.subtasks, "task");
-    if (Array.isArray(item.children)) cacheMentionItems(item.children, "task");
+    if (Array.isArray(item.childTasks)) cacheMentionItems(item.childTasks, "task", itemSpaceId, itemPrefix);
+    if (Array.isArray(item.subtasks)) cacheMentionItems(item.subtasks, "task", itemSpaceId, itemPrefix);
+    if (Array.isArray(item.children)) cacheMentionItems(item.children, "task", itemSpaceId, itemPrefix);
   });
 };
 
-export const getCachedMentionItems = (): MentionCandidate[] => {
-  return Array.from(sessionMentionCache.values());
+export const getCachedMentionItems = (spaceId?: number | string, spacePrefix?: string): MentionCandidate[] => {
+  const all = Array.from(sessionMentionCache.values());
+  if (!spaceId && !spacePrefix) return all;
+  return all.filter((c) => {
+    if (spacePrefix) {
+      const codePrefix = c.code ? c.code.split("-")[0].toUpperCase() : "";
+      if (codePrefix && codePrefix !== String(spacePrefix).toUpperCase()) return false;
+      if (c.spacePrefix && c.spacePrefix.toUpperCase() !== String(spacePrefix).toUpperCase()) return false;
+    }
+    if (spaceId && c.spaceId && String(c.spaceId) !== String(spaceId)) {
+      return false;
+    }
+    return true;
+  });
 };
 
 interface CopilotMentionDropdownProps {
@@ -85,8 +108,7 @@ export function CopilotMentionDropdown({
   // Auto-scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return;
-    // index 0 is header, items start at child index 1
-    const activeEl = listRef.current.children[selectedIndex + 1] as HTMLElement | undefined;
+    const activeEl = (listRef.current.children[selectedIndex] || listRef.current.children[selectedIndex + 1]) as HTMLElement | undefined;
     if (activeEl) {
       activeEl.scrollIntoView({ block: "nearest" });
     }

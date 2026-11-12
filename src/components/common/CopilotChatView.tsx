@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Folder, CheckSquare, ChevronDown, Paperclip } from "lucide-react";
+import { ArrowRight, CalendarDays, AlertTriangle, X, Check, RotateCcw, Plus, Users, LayoutDashboard, Ticket, Folder, CheckSquare, ChevronDown, Paperclip, FileText, Square } from "lucide-react";
 import { toast } from "sonner";
 import { chatService } from "@/services/chat/chat.service";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/command";
 import { searchTaskSpaces } from "@/services/task-management/task-space.service";
 import { searchTicketSpaces } from "@/services/ticket-management/ticket-space.service";
+import { searchTasks } from "@/services/task-management/task.service";
+import { searchTickets } from "@/services/ticket-management/ticket.service";
 import { loadResourcePools } from "@/services/resource-management/resource-pool-service";
 import { cn } from "@/lib/utils";
 import { useBreadcrumb } from "@/contexts/breadcrumb.context";
@@ -198,6 +200,7 @@ export interface Message {
   content: string;
   isThinking?: boolean;
   isStreaming?: boolean;
+  isStopped?: boolean;
   draftPayload?: any;
   attachments?: Array<{ name: string; size?: number; type?: string; base64?: string; contentText?: string }>;
 }
@@ -733,7 +736,7 @@ const markdownComponents = {
         .replace(/^(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/i, '');
       return <h3 className="text-lg font-medium mt-5 mb-2 text-foreground" {...props}>{cleanText}</h3>;
     }
-    return <div className="mb-4 last:mb-0 whitespace-pre-wrap" {...props}>{renderCleanProseText(children)}</div>;
+    return <div className="mb-2 last:mb-0 text-sm leading-relaxed whitespace-pre-wrap" {...props}>{renderCleanProseText(children)}</div>;
   },
   strong: ({ node, children, ...props }: any) => <strong className="font-semibold text-foreground" {...props}>{renderCleanProseText(children)}</strong>,
   h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-foreground" {...props} />,
@@ -1255,11 +1258,11 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
               ))}
             </div>
           )}
-          {msg.content && (
+          {msg.content ? (
             <div className="rounded-2xl px-4 py-2 border bg-primary text-primary-foreground rounded-tr-xs shadow-xs">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             </div>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className={`flex items-start gap-3 w-full text-foreground py-1 ${mode === "panel" ? "max-w-none" : "max-w-4xl"}`}>
@@ -1268,6 +1271,10 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
               <div className="flex items-center gap-2 pt-1 pb-1">
                 <Eclipse size={18} className="text-primary shrink-0" />
                 <span className="text-sm text-muted-foreground">{msg.content}</span>
+              </div>
+            ) : msg.isStopped && (!msg.content || msg.content === "Process stopped.") ? (
+              <div className="flex items-center gap-2 pt-1 pb-1">
+                <span className="text-sm">Process has been dismissed.</span>
               </div>
             ) : (
               <div className="text-sm leading-relaxed max-w-none">
@@ -1289,6 +1296,12 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                     .replace(/###\s*(Pie Chart|Bar Chart|Line Chart|Table)?:\s*/gi, '### ')
                     .replace(/###\s*\d+\.\s*/g, '### ')}
                 </ReactMarkdown>
+
+                {msg.isStopped && (
+                  <div className="flex items-center gap-2 pt-1 pb-1">
+                    <span className="text-sm">Process has been dismissed.</span>
+                  </div>
+                )}
 
                 {msg.draftPayload && mode === "panel" && (msg.draftPayload.status !== "NEEDS_INPUT" || isLatest) && (
                   msg.draftPayload.action === "CREATE_TASK" ||
@@ -1429,6 +1442,71 @@ export function CopilotChatView({
   const [retriedMessageIds, setRetriedMessageIds] = useState<Set<string>>(new Set());
   const isDismissedRef = useRef(false);
 
+  const isGenerating = isLoading || messages.some((m) => m.isStreaming);
+
+  const handleStopStreaming = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setMessages((prev) => {
+      const hasStreaming = prev.some((m) => m.isStreaming);
+      if (!hasStreaming) {
+        return [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: "ai",
+            content: "Process stopped.",
+            isThinking: false,
+            isStreaming: false,
+            isStopped: true,
+            draftPayload: null,
+          },
+        ];
+      }
+      return prev.map((m) => {
+        if (!m.isStreaming) return m;
+
+        const wasThinking =
+          m.isThinking ||
+          !m.content ||
+          [
+            "preparing your draft...",
+            "analyzing workspace data...",
+            "checking what you need...",
+            "analyzing attached document...",
+            "gathering details...",
+          ].some((phrase) => m.content.toLowerCase().trim().includes(phrase));
+
+        let finalContent = "";
+        if (wasThinking) {
+          finalContent = "Process stopped.";
+        } else {
+          finalContent = m.content.trim();
+        }
+
+        return {
+          ...m,
+          content: finalContent,
+          isThinking: false,
+          isStreaming: false,
+          isStopped: true,
+          draftPayload: null,
+        };
+      });
+    });
+
+    if (conversationId) {
+      try {
+        await chatService.stopChat(conversationId);
+      } catch (err) {
+        console.warn("Failed to notify backend of stop:", err);
+      }
+    }
+  };
+
   const [internalConvId, setInternalConvId] = useState<string>(() => {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -1453,7 +1531,16 @@ export function CopilotChatView({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { setBreadcrumbs } = useBreadcrumb();
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (mode === "full") {
@@ -1478,8 +1565,150 @@ export function CopilotChatView({
   // Dynamic context state: allows switching spaces or unchecking them
   const [activeContext, setActiveContext] = useState<Record<string, any>>(() => context || {});
   const [openPopoverBadgeId, setOpenPopoverBadgeId] = useState<string | null>(null);
-  const [availableSpaces, setAvailableSpaces] = useState<Record<string, { id: string | number; name: string }[]>>({});
+  const [availableSpaces, setAvailableSpaces] = useState<Record<string, { id: string | number; name: string; prefix?: string }[]>>({});
   const [loadingSpaces, setLoadingSpaces] = useState<Record<string, boolean>>({});
+
+  // Sync activeContext whenever parent passes updated context
+  useEffect(() => {
+    if (context) {
+      setActiveContext((prev) => {
+        const next = {
+          ...prev,
+          ...context,
+        };
+        // If taskSpaceId changed to a different space, wipe stale tasks
+        if (context.taskSpaceId !== undefined && prev.taskSpaceId && String(prev.taskSpaceId) !== String(context.taskSpaceId)) {
+          next.tasks = context.tasks || [];
+          next.taskList = context.taskList || [];
+        }
+        // If ticketSpaceId changed to a different space, wipe stale tickets
+        if (context.ticketSpaceId !== undefined && prev.ticketSpaceId && String(prev.ticketSpaceId) !== String(context.ticketSpaceId)) {
+          next.tickets = context.tickets || [];
+          next.ticketList = context.ticketList || [];
+        }
+        return next;
+      });
+    }
+  }, [context]);
+
+  // Dynamically fetched tasks/tickets when active space is selected or changes
+  const [spaceFetchedItems, setSpaceFetchedItems] = useState<any[]>([]);
+
+  const activeTaskSpaceId = useMemo(() => {
+    if (activeContext._unselected_task_space) return null;
+    return activeContext.taskSpaceId || activeContext.spaceId || null;
+  }, [activeContext]);
+
+  const activeTicketSpaceId = useMemo(() => {
+    if (activeContext._unselected_ticket_space) return null;
+    return activeContext.ticketSpaceId || null;
+  }, [activeContext]);
+
+  useEffect(() => {
+    setSpaceFetchedItems([]);
+    if (!activeTaskSpaceId) return;
+    let isMounted = true;
+    Promise.all([
+      // 1. Root Level Projects in this space
+      searchTasks({
+        first: 0,
+        rows: 50,
+        filters: [
+          {
+            field: "taskSpaceId",
+            value: Number(activeTaskSpaceId),
+            matchMode: "equals",
+          },
+          { field: "parentTaskId", matchMode: "is-null", value: "" },
+        ],
+        multiSorts: [{ field: "createdAt", order: "-1" }],
+      }),
+      // 2. Recent Tasks and Subtasks in this space
+      searchTasks({
+        first: 0,
+        rows: 100,
+        filters: [
+          {
+            field: "taskSpaceId",
+            value: Number(activeTaskSpaceId),
+            matchMode: "equals",
+          },
+        ],
+        multiSorts: [{ field: "createdAt", order: "-1" }],
+      }),
+    ])
+      .then(([rootRes, allRes]: any[]) => {
+        if (!isMounted) return;
+        const rootItems = rootRes?.data || rootRes?.tasks || (Array.isArray(rootRes) ? rootRes : []);
+        const allItems = allRes?.data || allRes?.tasks || (Array.isArray(allRes) ? allRes : []);
+        const combined = [...rootItems, ...allItems];
+        const uniqueItems = Array.from(new Map(combined.map((item: any) => [String(item.code || item.id).toUpperCase(), item])).values());
+        setSpaceFetchedItems(uniqueItems);
+      })
+      .catch((err: any) => {
+        console.warn("Could not fetch tasks for active space:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTaskSpaceId]);
+
+  useEffect(() => {
+    setSpaceFetchedItems([]);
+    if (!activeTicketSpaceId) return;
+    let isMounted = true;
+    searchTickets({
+      first: 0,
+      rows: 100,
+      filters: [
+        {
+          field: "ticketSpaceId",
+          value: activeTicketSpaceId,
+          matchMode: "equals",
+        },
+      ],
+      multiSorts: [{ field: "createdAt", order: "-1" }],
+    })
+      .then((res: any) => {
+        if (!isMounted) return;
+        const items = res?.data || res?.tickets || (Array.isArray(res) ? res : []);
+        setSpaceFetchedItems(items);
+      })
+      .catch((err: any) => {
+        console.warn("Could not fetch tickets for active space:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTicketSpaceId]);
+
+  const activeSpacePrefix = useMemo(() => {
+    if (activeContext.taskSpacePrefix || activeContext.spacePrefix || activeContext.prefix) {
+      return String(activeContext.taskSpacePrefix || activeContext.spacePrefix || activeContext.prefix).toUpperCase();
+    }
+    if (activeContext.ticketSpacePrefix) {
+      return String(activeContext.ticketSpacePrefix).toUpperCase();
+    }
+    const currentSpaceId = activeTaskSpaceId || activeTicketSpaceId;
+    if (currentSpaceId) {
+      const allSpaces = [
+        ...(availableSpaces.task_space || []),
+        ...(availableSpaces.ticket_space || []),
+      ];
+      const match = allSpaces.find((s) => String(s.id) === String(currentSpaceId));
+      if (match?.prefix) return String(match.prefix).toUpperCase();
+    }
+    // Inspect tasks from context or spaceFetchedItems
+    const rawItems = context?.tasks || activeContext?.tasks || spaceFetchedItems || context?.tickets || activeContext?.tickets || [];
+    const sampleItem = rawItems.find((t: any) => t?.code);
+    if (sampleItem?.code && typeof sampleItem.code === "string") {
+      const match = sampleItem.code.match(/^([A-Za-z0-9]+)-/);
+      if (match) return match[1].toUpperCase();
+    }
+    return null;
+  }, [activeContext, activeTaskSpaceId, activeTicketSpaceId, availableSpaces, spaceFetchedItems, context?.tasks, context?.tickets]);
 
   // Document attachment state for Co-Pilot
   interface CopilotAttachment {
@@ -1500,6 +1729,7 @@ export function CopilotChatView({
   const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState<number>(0);
   const [mentionPositionLeft, setMentionPositionLeft] = useState<number>(16);
+  const selectedMentionsRef = useRef<Map<string, MentionCandidate>>(new Map());
 
   const availableMentionItems = useMemo<MentionCandidate[]>(() => {
     const seenCodes = new Set<string>();
@@ -1507,13 +1737,11 @@ export function CopilotChatView({
 
     const isTicketDomain =
       agent === "ticket_analytics" ||
-      Boolean(pathname?.includes("/ticket")) ||
-      Boolean(activeContext?.ticketSpaceId && !activeContext?.taskSpaceId);
+      (!agent && (Boolean(pathname?.includes("/ticket")) || Boolean(activeContext?.ticketSpaceId && !activeContext?.taskSpaceId)));
 
     const isTaskDomain =
       agent === "project_analytics" ||
-      Boolean(pathname?.includes("/task")) ||
-      Boolean(activeContext?.taskSpaceId && !activeContext?.ticketSpaceId);
+      (!agent && (Boolean(pathname?.includes("/task")) || Boolean(activeContext?.taskSpaceId && !activeContext?.ticketSpaceId)));
 
     const addItem = (
       id: any,
@@ -1521,7 +1749,8 @@ export function CopilotChatView({
       title: any,
       type: "task" | "ticket" | "project",
       hierarchyIcon?: string,
-      hierarchyColor?: string
+      hierarchyColor?: string,
+      itemSpaceId?: any
     ) => {
       if (!code || typeof code !== "string") return;
       const cleanCode = code.trim().toUpperCase();
@@ -1533,6 +1762,28 @@ export function CopilotChatView({
       if (isTicketDomain && type !== "ticket") return;
       // When in Project Analyst / task pages, only suggest tasks & projects.
       if (isTaskDomain && type === "ticket") return;
+
+      // Strict Space Isolation:
+      // Filter out any items that belong to a different space or have a mismatched prefix
+      const itemPrefix = cleanCode.includes("-") ? cleanCode.split("-")[0].toUpperCase() : null;
+
+      if (activeTaskSpaceId && isTaskDomain) {
+        if (itemSpaceId && String(itemSpaceId) !== String(activeTaskSpaceId)) {
+          return;
+        }
+        if (activeSpacePrefix && itemPrefix && itemPrefix !== activeSpacePrefix) {
+          return;
+        }
+      }
+
+      if (activeTicketSpaceId && isTicketDomain) {
+        if (itemSpaceId && String(itemSpaceId) !== String(activeTicketSpaceId)) {
+          return;
+        }
+        if (activeSpacePrefix && itemPrefix && itemPrefix !== activeSpacePrefix) {
+          return;
+        }
+      }
 
       seenCodes.add(cleanCode);
       candidates.push({
@@ -1548,6 +1799,7 @@ export function CopilotChatView({
     const processItem = (t: any, defaultType: "task" | "ticket" | "project" = "task") => {
       if (!t) return;
       const code = t.code;
+      const itemSpaceId = t.taskSpaceId || t.task_space_id || t.projectGroupId || t.projectGroup?.id || t.ticketSpaceId || t.spaceId;
       if (code && typeof code === "string") {
         const isProject =
           defaultType === "project" ||
@@ -1559,22 +1811,22 @@ export function CopilotChatView({
         const itemType = isProject ? "project" : (defaultType || "task");
         const hlIcon = t.hierarchyLevelIcon || t.hierarchyLevelConfig?.icon || t.icon;
         const hlColor = t.hierarchyLevelColor || t.hierarchyLevelConfig?.color || t.color;
-        addItem(t.id, code, t.name || t.title, itemType, hlIcon, hlColor);
+        addItem(t.id, code, t.name || t.title, itemType, hlIcon, hlColor, itemSpaceId);
       }
       if (t.parentTaskCode) {
-        addItem(t.parentTaskId, t.parentTaskCode, t.parentTaskName, "project");
+        addItem(t.parentTaskId, t.parentTaskCode, t.parentTaskName, "project", undefined, undefined, itemSpaceId);
       }
       if (Array.isArray(t.childTasks)) t.childTasks.forEach((c: any) => processItem(c, "task"));
       if (Array.isArray(t.subtasks)) t.subtasks.forEach((c: any) => processItem(c, "task"));
       if (Array.isArray(t.children)) t.children.forEach((c: any) => processItem(c, "task"));
     };
 
-    // 1. Current page context dataset FIRST (prioritize active table items)
+    // 1. Current page view dataset (EXACT rows loaded on screen in the active table/page)
     if (isTicketDomain) {
       const rawTickets = context?.tickets || activeContext?.tickets || context?.ticketList || activeContext?.ticketList || (context?.pageScopeKey === "tickets" ? context?.data : []) || [];
       if (Array.isArray(rawTickets)) {
         rawTickets.forEach((t: any) => {
-          if (t?.code) addItem(t.id, t.code, t.name || t.title, "ticket", t.typeIcon || t.icon, t.typeColor || t.color);
+          if (t?.code) addItem(t.id, t.code, t.name || t.title, "ticket", t.typeIcon || t.icon, t.typeColor || t.color, t.ticketSpaceId || t.spaceId);
         });
       }
     } else if (isTaskDomain) {
@@ -1590,28 +1842,45 @@ export function CopilotChatView({
       const rawTickets = context?.tickets || activeContext?.tickets || context?.ticketList || activeContext?.ticketList || (context?.pageScopeKey === "tickets" ? context?.data : []) || [];
       if (Array.isArray(rawTickets)) {
         rawTickets.forEach((t: any) => {
-          if (t?.code) addItem(t.id, t.code, t.name || t.title, "ticket", t.typeIcon || t.icon, t.typeColor || t.color);
+          if (t?.code) addItem(t.id, t.code, t.name || t.title, "ticket", t.typeIcon || t.icon, t.typeColor || t.color, t.ticketSpaceId || t.spaceId);
         });
       }
     }
 
-    // 2. Single item in active context
-    if (context?.ticketCode) addItem(context.ticketId, context.ticketCode, context.ticketName, "ticket");
-    if (activeContext?.ticketCode) addItem(activeContext.ticketId, activeContext.ticketCode, activeContext.ticketName, "ticket");
-    if (context?.taskCode) addItem(context.taskId, context.taskCode, context.taskName, "task");
-    if (activeContext?.taskCode) addItem(activeContext.taskId, activeContext.taskCode, activeContext.taskName, "task");
+    // 2. Single item in active context (e.g. detail page)
+    if (context?.ticketCode) addItem(context.ticketId, context.ticketCode, context.ticketName, "ticket", undefined, undefined, context.ticketSpaceId);
+    if (activeContext?.ticketCode) addItem(activeContext.ticketId, activeContext.ticketCode, activeContext.ticketName, "ticket", undefined, undefined, activeContext.ticketSpaceId);
+    if (context?.taskCode) addItem(context.taskId, context.taskCode, context.taskName, "task", undefined, undefined, context.taskSpaceId);
+    if (activeContext?.taskCode) addItem(activeContext.taskId, activeContext.taskCode, activeContext.taskName, "task", undefined, undefined, activeContext.taskSpaceId);
 
-    // 3. Cached items from frontend session matching active domain
-    const cached = getCachedMentionItems();
-    cached.forEach((c) => addItem(c.id, c.code, c.title, c.type, c.hierarchyIcon, c.hierarchyColor));
+    // 3. Current space fetched items (from backend for items not currently visible on page 1 of table, sorted hierarchy-first)
+    if (Array.isArray(spaceFetchedItems) && spaceFetchedItems.length > 0) {
+      const sortedSpaceItems = [...spaceFetchedItems].sort((a: any, b: any) => {
+        const codeA = String(a?.code || "");
+        const codeB = String(b?.code || "");
+        const rankA = /-P\d+$/.test(codeA) ? 0 : codeA.split("-").length;
+        const rankB = /-P\d+$/.test(codeB) ? 0 : codeB.split("-").length;
+        if (rankA !== rankB) return rankA - rankB;
+        return codeA.localeCompare(codeB, undefined, { numeric: true });
+      });
+      sortedSpaceItems.forEach((t: any) => processItem(t, isTicketDomain ? "ticket" : "task"));
+    }
 
-    // 3. Conversation history items (from drafts, candidate options, recent tasks/tickets)
+    // 4. Cached items from frontend session matching active domain and active space
+    const cached = getCachedMentionItems(
+      isTaskDomain ? (activeTaskSpaceId || undefined) : isTicketDomain ? (activeTicketSpaceId || undefined) : undefined,
+      activeSpacePrefix || undefined
+    );
+    cached.forEach((c: any) => addItem(c.id, c.code, c.title, c.type, c.hierarchyIcon, c.hierarchyColor, c.spaceId));
+
+    // 5. Conversation history items
     messages.forEach((msg) => {
       const payload = msg.draftPayload;
       if (payload) {
         const list = payload.drafts || (payload.draft ? [payload.draft] : []) || payload.tickets || [];
         if (Array.isArray(list)) {
           list.forEach((item: any) => {
+            const itemSpace = item.taskSpaceId || item.ticketSpaceId || payload.taskSpaceId || payload.ticketSpaceId;
             if (item?.code) {
               const hlIcon = item.hierarchyLevelIcon || item.hierarchyLevelConfig?.icon || item.icon;
               const hlColor = item.hierarchyLevelColor || item.hierarchyLevelConfig?.color || item.color;
@@ -1621,11 +1890,12 @@ export function CopilotChatView({
                 item.name || item.title,
                 payload.action?.includes("TASK") || payload.entityType === "task" ? "task" : "ticket",
                 hlIcon,
-                hlColor
+                hlColor,
+                itemSpace
               );
             }
             if (item?.parentTaskCode) {
-              addItem(item.parentTaskId, item.parentTaskCode, item.parentTaskName, "project");
+              addItem(item.parentTaskId, item.parentTaskCode, item.parentTaskName, "project", undefined, undefined, itemSpace);
             }
           });
         }
@@ -1633,14 +1903,14 @@ export function CopilotChatView({
         const cTasks = payload.candidateTasks || [];
         if (Array.isArray(cTasks)) {
           cTasks.forEach((t: any) => {
-            if (t?.code) addItem(t.id, t.code, t.name, "task", t.hierarchyLevelIcon, t.hierarchyLevelColor);
+            if (t?.code) addItem(t.id, t.code, t.name, "task", t.hierarchyLevelIcon, t.hierarchyLevelColor, t.taskSpaceId);
           });
         }
 
         const cTickets = payload.candidateTickets || [];
         if (Array.isArray(cTickets)) {
           cTickets.forEach((t: any) => {
-            if (t?.code) addItem(t.id, t.code, t.name, "ticket");
+            if (t?.code) addItem(t.id, t.code, t.name, "ticket", undefined, undefined, t.ticketSpaceId);
           });
         }
 
@@ -1648,13 +1918,13 @@ export function CopilotChatView({
         if (Array.isArray(options)) {
           options.forEach((opt: any) => {
             if (opt?.code && opt.code !== "ALL") {
-              addItem(opt.id, opt.code, opt.name || opt.label, "task");
+              addItem(opt.id, opt.code, opt.name || opt.label, "task", undefined, undefined, opt.taskSpaceId);
             }
           });
         }
       }
 
-      // Also parse task/ticket codes mentioned in message text (e.g., PTS-P8, PTS-23, PTS-P6)
+      // Also parse task/ticket codes mentioned in message text
       if (msg.content) {
         const codeRegex = /\b([A-Z]{2,6}-(?:P\d+|\d+)(?:-\d+)?)(?::\s*([^\n\r,.<>]+))?/gi;
         let match;
@@ -1667,38 +1937,45 @@ export function CopilotChatView({
       }
     });
 
-    // 4. Pending draft
+    // 6. Pending draft
     if (pendingDraft) {
       const pList = Array.isArray(pendingDraft) ? pendingDraft : [pendingDraft];
       pList.forEach((d: any) => {
+        const itemSpace = d.taskSpaceId || d.ticketSpaceId;
         if (d?.code) {
           const hlIcon = d.hierarchyLevelIcon || d.hierarchyLevelConfig?.icon || d.icon;
           const hlColor = d.hierarchyLevelColor || d.hierarchyLevelConfig?.color || d.color;
-          addItem(d.id, d.code, d.name, d.entityType === "task" ? "task" : "ticket", hlIcon, hlColor);
+          addItem(d.id, d.code, d.name, d.entityType === "task" ? "task" : "ticket", hlIcon, hlColor, itemSpace);
         }
-        if (d?.parentTaskCode) addItem(d.parentTaskId, d.parentTaskCode, d.parentTaskName, "project");
+        if (d?.parentTaskCode) addItem(d.parentTaskId, d.parentTaskCode, d.parentTaskName, "project", undefined, undefined, itemSpace);
       });
     }
 
     return candidates;
-  }, [context, activeContext, messages, pendingDraft]);
+  }, [context, activeContext, messages, pendingDraft, spaceFetchedItems, activeTaskSpaceId, activeTicketSpaceId, activeSpacePrefix]);
 
   const filteredMentionItems = useMemo(() => {
     if (mentionQuery === null) return [];
     const q = mentionQuery.toLowerCase().trim();
-    if (!q) return availableMentionItems.slice(0, 10);
-    return availableMentionItems
-      .filter((item) => {
-        return (
-          item.code.toLowerCase().includes(q) ||
-          item.title.toLowerCase().includes(q)
-        );
-      })
-      .slice(0, 10);
+    if (!q) return availableMentionItems;
+    return availableMentionItems.filter((item) => {
+      return (
+        item.code.toLowerCase().includes(q) ||
+        item.title.toLowerCase().includes(q)
+      );
+    });
   }, [mentionQuery, availableMentionItems]);
+
+  // Keep mentionSelectedIndex within range if list shrinks during typing
+  useEffect(() => {
+    if (filteredMentionItems.length > 0 && mentionSelectedIndex >= filteredMentionItems.length) {
+      setMentionSelectedIndex(0);
+    }
+  }, [filteredMentionItems.length, mentionSelectedIndex]);
 
   const handleSelectMention = (item: MentionCandidate) => {
     if (mentionStartIndex < 0) return;
+    selectedMentionsRef.current.set(item.code.toUpperCase(), item);
     const cursorPos = textareaRef.current?.selectionStart ?? input.length;
     const before = input.slice(0, mentionStartIndex);
     const after = input.slice(cursorPos);
@@ -1732,14 +2009,13 @@ export function CopilotChatView({
 
   const checkMentionTrigger = (val: string, cursorPos: number) => {
     const textBeforeCursor = val.slice(0, cursorPos);
-    const match = textBeforeCursor.match(/(?:^|\s)@([^\s@]*)$/);
+    const match = textBeforeCursor.match(/(?:^|\s)@([A-Za-z0-9_#/-]+(?:\s+[A-Za-z0-9_#/-]+)*)?$/);
 
     if (match) {
-      const query = match[1];
+      const query = match[1] || "";
       const atIndex = textBeforeCursor.lastIndexOf("@");
       setMentionQuery(query);
       setMentionStartIndex(atIndex);
-      setMentionSelectedIndex(0);
       updateMentionPosition(atIndex);
     } else {
       setMentionQuery(null);
@@ -1899,6 +2175,7 @@ export function CopilotChatView({
         const items = (res?.data || []).map((s: any) => ({
           id: s.task_space_id ?? s.taskSpaceId ?? s.id,
           name: s.task_space_name ?? s.taskSpaceName ?? s.space_name ?? s.name,
+          prefix: s.prefix || s.task_space_prefix || s.taskSpacePrefix,
         })).filter((x: any) => Boolean(x.name));
         setAvailableSpaces((prev) => ({ ...prev, [type]: items }));
       } else if (type === "ticket_space") {
@@ -1906,6 +2183,7 @@ export function CopilotChatView({
         const items = (res?.data || []).map((s: any) => ({
           id: s.ticket_space_id ?? s.ticketSpaceId ?? s.id,
           name: s.ticket_space_name ?? s.ticketSpaceName ?? s.name,
+          prefix: s.prefix || s.ticket_space_prefix || s.ticketSpacePrefix,
         })).filter((x: any) => Boolean(x.name));
         setAvailableSpaces((prev) => ({ ...prev, [type]: items }));
       }
@@ -1916,7 +2194,7 @@ export function CopilotChatView({
     }
   };
 
-  const handleSelectSpace = (badgeType: string, space: { id: string | number; name: string }, currentId?: string | number) => {
+  const handleSelectSpace = (badgeType: string, space: { id: string | number; name: string; prefix?: string }, currentId?: string | number) => {
     const isAlreadySelected = currentId !== undefined && String(currentId) === String(space.id);
     setActiveContext((prev) => {
       const next = { ...prev };
@@ -1933,12 +2211,15 @@ export function CopilotChatView({
         } else if (badgeType === "task_space") {
           delete next.taskSpaceId;
           delete next.taskSpaceName;
+          delete next.taskSpacePrefix;
           delete next.spaceId;
           delete next.spaceName;
+          delete next.spacePrefix;
           next._unselected_task_space = true;
         } else if (badgeType === "ticket_space") {
           delete next.ticketSpaceId;
           delete next.ticketSpaceName;
+          delete next.ticketSpacePrefix;
           next._unselected_ticket_space = true;
         }
       } else {
@@ -1955,12 +2236,21 @@ export function CopilotChatView({
           delete next._unselected_task_space;
           next.taskSpaceId = space.id;
           next.taskSpaceName = space.name;
+          next.taskSpacePrefix = space.prefix;
           next.spaceId = space.id;
           next.spaceName = space.name;
+          next.spacePrefix = space.prefix;
+          delete next.tasks;
+          delete next.taskList;
+          delete next.data;
         } else if (badgeType === "ticket_space") {
           delete next._unselected_ticket_space;
           next.ticketSpaceId = space.id;
           next.ticketSpaceName = space.name;
+          next.ticketSpacePrefix = space.prefix;
+          delete next.tickets;
+          delete next.ticketList;
+          delete next.data;
         }
       }
       return next;
@@ -2275,7 +2565,15 @@ export function CopilotChatView({
     if (
       Array.isArray(attachedDocsOrOverrideDraft) &&
       attachedDocsOrOverrideDraft.length > 0 &&
-      "base64" in attachedDocsOrOverrideDraft[0]
+      attachedDocsOrOverrideDraft[0] &&
+      typeof attachedDocsOrOverrideDraft[0] === "object" &&
+      !("entityType" in attachedDocsOrOverrideDraft[0]) &&
+      !("taskSpaceId" in attachedDocsOrOverrideDraft[0]) &&
+      !("ticketSpaceId" in attachedDocsOrOverrideDraft[0]) &&
+      !("hierarchyLevelSequence" in attachedDocsOrOverrideDraft[0]) &&
+      ("base64" in attachedDocsOrOverrideDraft[0] ||
+       "contentText" in attachedDocsOrOverrideDraft[0] ||
+       ("size" in attachedDocsOrOverrideDraft[0] && "type" in attachedDocsOrOverrideDraft[0]))
     ) {
       attachedDocs = attachedDocsOrOverrideDraft;
       explicitDraft = overridePendingDraft;
@@ -2321,7 +2619,7 @@ export function CopilotChatView({
       });
 
       const hasAnyContext = Object.keys(effectiveContext).length > 0;
-      const normalizedContext = hasAnyContext ? {
+      const normalizedContext: Record<string, any> = hasAnyContext ? {
         ...effectiveContext,
         chatMode: mode,
         mode: mode,
@@ -2335,6 +2633,52 @@ export function CopilotChatView({
         ticket_space_name: effectiveContext.ticket_space_name || effectiveContext.ticketSpaceName,
       } : { chatMode: mode, mode: mode };
 
+      // Extract any mentioned work item codes from user query text and attach rich entity context
+      const mentionedCodes = new Set<string>();
+      const mentionRegex = /\b([A-Za-z0-9_-]+-(?:P\d+|\d+(?:-\w+)*))\b/gi;
+      let mMatch;
+      while ((mMatch = mentionRegex.exec(displayContent)) !== null) {
+        mentionedCodes.add(mMatch[1].toUpperCase());
+      }
+
+      const mentionedItemsList: any[] = [];
+      mentionedCodes.forEach((code) => {
+        let candidate = selectedMentionsRef.current.get(code);
+        if (!candidate) {
+          candidate = availableMentionItems.find((i) => i.code.toUpperCase() === code);
+        }
+        if (!candidate) {
+          candidate = getCachedMentionItems().find((i) => i.code.toUpperCase() === code);
+        }
+        if (candidate) {
+          mentionedItemsList.push({
+            id: candidate.id,
+            code: candidate.code,
+            title: candidate.title,
+            type: candidate.type,
+            spaceId: candidate.spaceId || activeContext.taskSpaceId || activeContext.ticketSpaceId,
+            spacePrefix: candidate.spacePrefix || activeSpacePrefix,
+            isProject: candidate.type === "project" || /-P\d+$/.test(candidate.code),
+          });
+        } else {
+          mentionedItemsList.push({
+            code,
+            isProject: /-P\d+$/.test(code),
+            spaceId: activeContext.taskSpaceId || activeContext.ticketSpaceId,
+            spacePrefix: activeSpacePrefix,
+          });
+        }
+      });
+
+      if (mentionedItemsList.length > 0) {
+        normalizedContext.mentionedItems = mentionedItemsList;
+        normalizedContext.mentionedCode = mentionedItemsList[0].code;
+        normalizedContext.mentionedTitle = mentionedItemsList[0].title;
+        normalizedContext.mentionedType = mentionedItemsList[0].type;
+        normalizedContext.mentionedId = mentionedItemsList[0].id;
+        normalizedContext.isProject = mentionedItemsList[0].isProject;
+      }
+
       const attachmentsPayload = (attachedDocs || []).map((a) => ({
         filename: a.name,
         mimeType: a.type,
@@ -2342,9 +2686,30 @@ export function CopilotChatView({
         contentText: a.contentText,
       }));
 
-      const queryText = text.trim() || (hasAttachments ? "Please review the attached document and create ticket drafts for all identified tasks, issues, or action items." : "");
+      const isTaskMode =
+        agent === "project_analytics" ||
+        (!agent && (Boolean(pathname?.includes("/task")) || Boolean(activeContext?.taskSpaceId && !activeContext?.ticketSpaceId)));
 
-      const effectiveDraft = explicitDraft !== undefined ? explicitDraft : pendingDraft;
+      const queryText =
+        text.trim() ||
+        (hasAttachments
+          ? isTaskMode
+            ? "Please review the attached document and create task drafts for all identified tasks, deliverables, or action items."
+            : "Please review the attached document and create ticket drafts for all identified tasks, issues, or action items."
+          : "");
+
+      // Prevent stale uncommitted drafts from bleeding into independent new creation requests
+      const isContinuation = /\b(also|and another|another one|with that|additional|plus|along with|too)\b/i.test(queryText);
+      const isExplicitNewCreation = /^\s*(create|draft|add|make|file|new)\b/i.test(queryText);
+      const effectiveDraft = explicitDraft !== undefined 
+        ? explicitDraft 
+        : (isExplicitNewCreation && !isContinuation ? null : pendingDraft);
+      if (isExplicitNewCreation && !isContinuation) {
+        setPendingDraft(null);
+      }
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       const response = await chatService.streamChat(
         queryText,
         conversationId,
@@ -2353,7 +2718,8 @@ export function CopilotChatView({
         recentHistory,
         effectiveDraft,
         mode,
-        attachmentsPayload.length > 0 ? attachmentsPayload : undefined
+        attachmentsPayload.length > 0 ? attachmentsPayload : undefined,
+        abortController.signal
       );
 
       aiMessageId = (Date.now() + 1).toString();
@@ -2427,7 +2793,13 @@ export function CopilotChatView({
                 setPendingDraft(draftsToSave);
               } else {
                 setPendingDraft(null);
-                capturedPayload = null;
+                const hasInteractiveContent =
+                  (capturedPayload?.needs && capturedPayload.needs.length > 0) ||
+                  (capturedPayload?.options && capturedPayload.options.length > 0) ||
+                  capturedPayload?.status === "NEEDS_INPUT";
+                if (!hasInteractiveContent) {
+                  capturedPayload = null;
+                }
               }
             } catch {
               // Wait for full JSON chunk
@@ -2472,9 +2844,24 @@ export function CopilotChatView({
               .split("__DRAFT_PAYLOAD__")[0]
               .split("__MUTATION_PAYLOAD__")[0]
               .split("__MUTATION_RESULT__")[0];
+            const wasThinkingPhrase = [
+              "preparing your draft...",
+              "analyzing workspace data...",
+              "checking what you need...",
+              "analyzing attached document...",
+              "gathering details...",
+            ].some((phrase) => finalContent.toLowerCase().trim().includes(phrase));
+
+            let displayContent = finalContent;
+            if (!capturedPayload && wasThinkingPhrase) {
+              displayContent = "I couldn't finish preparing that draft. Please try again or rephrase your request.";
+            } else if (!finalContent) {
+              displayContent = capturedPayload?.summary || "";
+            }
+
             return {
               ...msg,
-              content: finalContent || (capturedPayload?.summary || ""),
+              content: displayContent,
               draftPayload: !isDismissedRef.current ? (capturedPayload || msg.draftPayload) : null,
               isThinking: false,
               isStreaming: false,
@@ -2483,7 +2870,56 @@ export function CopilotChatView({
           return msg;
         })
       );
-    } catch (error) {
+    } catch (error: any) {
+      if (
+        error?.name === "AbortError" ||
+        error?.name === "CanceledError" ||
+        error?.code === "ERR_CANCELED" ||
+        error?.message?.includes("aborted") ||
+        error?.message?.includes("canceled")
+      ) {
+        console.log("Chat streaming aborted by user.");
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        setMessages((prev) => {
+          if (aiMessageId && prev.some((m) => m.id === aiMessageId)) {
+            return prev.map((m) => {
+              if (m.id !== aiMessageId) return m;
+              const wasThinking =
+                m.isThinking ||
+                !m.content ||
+                [
+                  "preparing your draft...",
+                  "analyzing workspace data...",
+                  "checking what you need...",
+                  "analyzing attached document...",
+                  "gathering details...",
+                ].some((phrase) => m.content.toLowerCase().trim().includes(phrase));
+              return {
+                ...m,
+                content: wasThinking ? "Process stopped." : m.content.trim(),
+                isThinking: false,
+                isStreaming: false,
+                isStopped: true,
+                draftPayload: null,
+              };
+            });
+          }
+          return [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: "ai",
+              content: "Process stopped.",
+              isThinking: false,
+              isStreaming: false,
+              isStopped: true,
+              draftPayload: null,
+            },
+          ];
+        });
+        return;
+      }
       console.error("Error communicating with backend:", error);
       const errorText = "Oops! Something went wrong communicating with the backend. Please ensure the server is running.";
       setMessages((prev) => {
@@ -2511,6 +2947,8 @@ export function CopilotChatView({
         ];
       });
       setIsLoading(false);
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -2550,6 +2988,7 @@ export function CopilotChatView({
   return (
     <div
       onDragEnter={(e) => {
+        if (mode !== "panel") return;
         e.preventDefault();
         e.stopPropagation();
         dragCounterRef.current += 1;
@@ -2558,11 +2997,13 @@ export function CopilotChatView({
         }
       }}
       onDragOver={(e) => {
+        if (mode !== "panel") return;
         e.preventDefault();
         e.stopPropagation();
         if (!isDragging) setIsDragging(true);
       }}
       onDragLeave={(e) => {
+        if (mode !== "panel") return;
         e.preventDefault();
         e.stopPropagation();
         dragCounterRef.current -= 1;
@@ -2572,6 +3013,7 @@ export function CopilotChatView({
         }
       }}
       onDrop={(e) => {
+        if (mode !== "panel") return;
         e.preventDefault();
         e.stopPropagation();
         dragCounterRef.current = 0;
@@ -2583,7 +3025,7 @@ export function CopilotChatView({
       className="flex flex-col h-full w-full bg-background relative overflow-hidden"
     >
       {/* Full-panel Drag & Drop Overlay */}
-      {isDragging && (
+      {isDragging && mode === "panel" && (
         <div className="absolute inset-0 z-50 bg-background/85 backdrop-blur-xs flex flex-col items-center justify-center border-2 border-dashed border-primary m-3 rounded-2xl pointer-events-none animate-in fade-in-50 duration-150 select-none">
           <Paperclip className="w-7 h-7 mb-2" />
           <p className="text-sm font-semibold text-foreground">Drop document anywhere to attach</p>
@@ -2700,8 +3142,8 @@ export function CopilotChatView({
                 isRetried={retriedMessageIds.has(msg.id)}
                 onSelectOption={(optionName, _msgId, optObj, field) => {
                   let nextDrafts: any = pendingDraft;
+                  const lastWithPayload = [...messages].reverse().find((m) => m.draftPayload);
                   if (!nextDrafts) {
-                    const lastWithPayload = [...messages].reverse().find((m) => m.draftPayload);
                     if (lastWithPayload?.draftPayload) {
                       const p = lastWithPayload.draftPayload;
                       nextDrafts = p.drafts && p.drafts.length > 0 ? p.drafts : (p.draft ? [p.draft] : null);
@@ -2715,16 +3157,67 @@ export function CopilotChatView({
                       : [{ ...nextDrafts }];
 
                     if (list.length > 0) {
-                      if (optObj?.id === -1 || String(optionName).toLowerCase().includes("create as new")) {
-                        list[0].hierarchyLevelSequence = 1;
-                        list[0].parentTaskId = -1;
-                        list[0].parentTaskName = null;
-                        list[0].isCreateNewLevel1 = true;
-                      } else if (field === "parentTask" || optObj?.id) {
-                        list[0].parentTaskId = optObj.id;
-                        list[0].parentTaskName = optObj.name;
-                        list[0].parentTaskCode = optObj.code;
-                        list[0].hierarchyLevelSequence = 2;
+                      const isCreateNew = optObj?.id === -1 || String(optionName).toLowerCase().includes("create as new");
+                      if (isCreateNew) {
+                        // User selected "Create as new Project"
+                        // Check if any draft already referenced a parent name (e.g. from document: "Website Redesign 2026")
+                        const referencedParent = list.find((d: any) => d.parentTaskName)?.parentTaskName;
+                        if (referencedParent && !list.some((d: any) => d.name?.trim().toLowerCase() === referencedParent.trim().toLowerCase())) {
+                          // Insert the referenced new project as root Level 1
+                          list.unshift({
+                            name: referencedParent,
+                            hierarchyLevelSequence: 0,
+                            isCreateNewLevel1: true,
+                            entityType: "task",
+                            taskSpaceId: list[0]?.taskSpaceId,
+                            taskSpaceName: list[0]?.taskSpaceName,
+                          });
+                        } else if (!referencedParent && list.length > 1 && !list.some((d: any) => d.isCreateNewLevel1)) {
+                          list.unshift({
+                            name: "New Project",
+                            hierarchyLevelSequence: 0,
+                            isCreateNewLevel1: true,
+                            entityType: "task",
+                            taskSpaceId: list[0]?.taskSpaceId,
+                            taskSpaceName: list[0]?.taskSpaceName,
+                          });
+                        } else {
+                          list[0].hierarchyLevelSequence = 0;
+                          list[0].parentTaskId = -1;
+                          list[0].parentTaskName = null;
+                          list[0].isCreateNewLevel1 = true;
+                        }
+
+                        // Link all child tasks to the new root project
+                        const rootProjectName = list[0].name;
+                        for (let i = 1; i < list.length; i++) {
+                          if (!list[i].parentTaskId || list[i].parentTaskId <= 0) {
+                            list[i].parentTaskName = rootProjectName;
+                            list[i].hierarchyLevelSequence = 1;
+                          }
+                        }
+                      } else if (field === "parentTask") {
+                        // User selected an existing parent task (e.g. PTS-P8)
+                        // Update ALL tasks in the list that don't already have an assigned parent!
+                        list.forEach((item: any) => {
+                          if (!item.parentTaskId || item.parentTaskId <= 0) {
+                            item.parentTaskId = optObj.id;
+                            item.parentTaskName = optObj.name;
+                            item.parentTaskCode = optObj.code;
+                            item.hierarchyLevelSequence = 2;
+                          }
+                        });
+                      } else if (field === "targetTicket" || field === "targetTask") {
+                        // User selected a target ticket/task from disambiguation options
+                        const lastP = lastWithPayload?.draftPayload;
+                        const targetCode = optObj?.code || optObj?.name || optionName;
+                        if (lastP?.changes?.assigneeName) {
+                          optionName = `Assign ${targetCode} to ${lastP.changes.assigneeName}`;
+                        } else if (lastP?.changes?.statusName) {
+                          optionName = `Move ${targetCode} to ${lastP.changes.statusName}`;
+                        } else {
+                          optionName = `Update ${targetCode}`;
+                        }
                       } else if (field === "taskSpace" || field === "ticketSpace") {
                         list.forEach((item: any) => {
                           if (field === "taskSpace") {
@@ -2816,11 +3309,16 @@ export function CopilotChatView({
           <form
             onSubmit={handleSubmit}
             onDragOver={(e) => {
+              if (mode !== "panel") return;
               e.preventDefault();
               setIsDragging(true);
             }}
-            onDragLeave={() => setIsDragging(false)}
+            onDragLeave={() => {
+              if (mode !== "panel") return;
+              setIsDragging(false);
+            }}
             onDrop={(e) => {
+              if (mode !== "panel") return;
               e.preventDefault();
               setIsDragging(false);
               if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -2828,139 +3326,22 @@ export function CopilotChatView({
               }
             }}
             className={cn(
-              "relative flex flex-col rounded-3xl border bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none",
-              isDragging ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-input"
+              "relative flex flex-col rounded-2xl border bg-card focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-none overflow-hidden",
+              isDragging && mode === "panel" ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-input"
             )}
           >
-          {/* Selected Parameters Badges & Attached Documents (in the same row) */}
-          {((mode === "panel" && contextBadges.length > 0) || attachments.length > 0) && (
-            <div className="flex flex-wrap items-center gap-1.5 px-3 pt-3 pb-0.5">
-              {mode === "panel" && contextBadges.length > 0 && (
-                <>
-                  <span className="text-xs text-muted-foreground font-medium select-none">
-                    Context:
-                  </span>
-                  {contextBadges.map((badge) => {
-                    const isSpaceType = badge.type === "resource_group" || badge.type === "task_space" || badge.type === "ticket_space";
-                    const spacesList = availableSpaces[badge.type] || [];
-                    const isLoadingSpaces = Boolean(loadingSpaces[badge.type]);
+            {mode === "panel" && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.docx,.doc,.txt,.csv,.md,.json"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            )}
 
-                    return (
-                      <Popover
-                        key={badge.id}
-                        open={openPopoverBadgeId === badge.id}
-                        onOpenChange={(open) => {
-                          setOpenPopoverBadgeId(open ? badge.id : null);
-                          if (open && isSpaceType) {
-                            fetchSpacesForType(badge.type as any);
-                          }
-                        }}
-                      >
-                        <PopoverTrigger asChild>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "py-0.5 px-2 text-xs gap-1.5 select-none shadow-none cursor-pointer transition-all",
-                              badge.isUnselected
-                                ? "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                                : "hover:bg-muted/70 hover:border-foreground/30"
-                            )}
-                            title={
-                              badge.isUnselected
-                                ? `${badge.label}: ${badge.value}. Click to select a specific space.`
-                                : `${badge.label}: ${badge.value}. Click to switch or uncheck.`
-                            }
-                          >
-                            {!badge.isUnselected && (
-                              <span className="text-muted-foreground font-normal">{badge.label}:</span>
-                            )}
-                            <span className="font-semibold text-foreground truncate max-w-[200px]">
-                              {badge.value}
-                            </span>
-                            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0 ml-0.5" />
-                          </Badge>
-                        </PopoverTrigger>
-
-                        <PopoverContent className="w-64 p-0 shadow-lg" align="start" side="bottom" sideOffset={6}>
-                          <Command>
-                            <CommandInput
-                              placeholder={`Search ${badge.label.toLowerCase()}s...`}
-                              className="h-8 text-xs"
-                            />
-                            <CommandList className="max-h-[220px]">
-                              <CommandEmpty className="py-2.5 text-center text-xs text-muted-foreground">
-                                {isLoadingSpaces ? "Loading spaces..." : "No items found."}
-                              </CommandEmpty>
-
-                              {/* List of accessible spaces */}
-                              {isSpaceType && (
-                                <CommandGroup>
-                                  {spacesList.map((space) => {
-                                    const isCurrent = !badge.isUnselected && String(space.id) === String(badge.currentId);
-                                    return (
-                                      <CommandItem
-                                        key={space.id}
-                                        value={space.name}
-                                        onSelect={() => {
-                                          handleSelectSpace(badge.type, space, badge.currentId);
-                                          setOpenPopoverBadgeId(null);
-                                        }}
-                                        className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer"
-                                      >
-                                        {/* {badge.icon && badge.icon} */}
-                                        <span className="truncate flex-1">{space.name}</span>
-                                        {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                      </CommandItem>
-                                    );
-                                  })}
-                                </CommandGroup>
-                              )}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* Document Attachment Badges (same row & same size as space badge) */}
-              {attachments.map((att, idx) => (
-                <Badge
-                  key={idx}
-                  variant="outline"
-                  className="py-0.5 pl-2 pr-1 text-xs gap-1.5 select-none shadow-none bg-muted/30 hover:bg-muted/50 transition-all font-normal text-foreground border-border cursor-default"
-                >
-                  <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
-                  <span className="font-semibold text-foreground truncate max-w-[170px]">{att.name}</span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    ({Math.round(att.size / 1024) || 1} KB)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setAttachments((prev) => prev.filter((_, i) => i !== idx));
-                    }}
-                    className="text-muted-foreground hover:text-destructive p-0.5 rounded hover:bg-muted cursor-pointer transition-colors ml-0.5 flex items-center justify-center"
-                    title="Remove attachment"
-                  >
-                    <X className="w-2.5 h-2.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="relative flex items-end w-full shadow-none">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".pdf,.docx,.doc,.txt,.csv,.md,.json"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+            {/* 1. Textarea (at top) */}
             <textarea
               ref={textareaRef}
               value={input}
@@ -3002,31 +3383,166 @@ export function CopilotChatView({
                 }
               }}
               placeholder={isReadingFile ? "Reading document..." : (attachments.length > 0 ? "Add instructions or press Enter to analyze document..." : inputPlaceholder)}
-              className="w-full min-h-[56px] max-h-[200px] py-[18px] bg-transparent pl-4 pr-24 text-sm focus:outline-none resize-none overflow-y-auto shadow-none"
+              className="w-full min-h-[48px] max-h-[180px] pt-3 pb-1.5 px-3.5 bg-transparent text-sm focus:outline-none resize-none overflow-y-auto shadow-none placeholder:text-muted-foreground/70"
               rows={1}
             />
-            <div className="absolute right-2 bottom-2 flex items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading || isReadingFile}
-                className="h-10 w-10 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-full cursor-pointer"
-                title="Attach document (PDF, DOCX, TXT, CSV, MD, JSON)"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              <Button
-                type="submit"
-                disabled={(!input.trim() && attachments.length === 0) || isLoading || isReadingFile}
-                className="h-10 w-10 p-0 rounded-full shadow-none cursor-pointer"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+
+            {/* 2. Bottom Context & Actions Toolbar */}
+            <div className="flex items-center justify-between gap-2 pl-3 pr-2 pb-2 pt-0.5">
+              {/* Left: Context Badges & Attached Documents */}
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
+                {mode === "panel" && contextBadges.length > 0 && (
+                  <>
+                    <span className="text-xs text-muted-foreground font-medium select-none">
+                      Context:
+                    </span>
+                    {contextBadges.map((badge) => {
+                      const isSpaceType = badge.type === "resource_group" || badge.type === "task_space" || badge.type === "ticket_space";
+                      const spacesList = availableSpaces[badge.type] || [];
+                      const isLoadingSpaces = Boolean(loadingSpaces[badge.type]);
+
+                      return (
+                        <Popover
+                          key={badge.id}
+                          open={openPopoverBadgeId === badge.id}
+                          onOpenChange={(open) => {
+                            setOpenPopoverBadgeId(open ? badge.id : null);
+                            if (open && isSpaceType) {
+                              fetchSpacesForType(badge.type as any);
+                            }
+                          }}
+                        >
+                          <PopoverTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "py-0.5 px-2 text-xs gap-1.5 select-none shadow-none cursor-pointer transition-all",
+                                badge.isUnselected
+                                  ? "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                                  : "hover:bg-muted/70 hover:border-foreground/30"
+                              )}
+                              title={
+                                badge.isUnselected
+                                  ? `${badge.label}: ${badge.value}. Click to select a specific space.`
+                                  : `${badge.label}: ${badge.value}. Click to switch or uncheck.`
+                              }
+                            >
+                              {!badge.isUnselected && (
+                                <span className="text-muted-foreground font-normal">{badge.label}:</span>
+                              )}
+                              <span className="font-semibold text-foreground truncate max-w-[200px]">
+                                {badge.value}
+                              </span>
+                              <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0 ml-0.5" />
+                            </Badge>
+                          </PopoverTrigger>
+
+                          <PopoverContent className="w-64 p-0 shadow-lg" align="start" side="top" sideOffset={6}>
+                            <Command>
+                              <CommandInput
+                                placeholder={`Search ${badge.label.toLowerCase()}s...`}
+                                className="h-8 text-xs"
+                              />
+                              <CommandList className="max-h-[220px]">
+                                <CommandEmpty className="py-2.5 text-center text-xs text-muted-foreground">
+                                  {isLoadingSpaces ? "Loading spaces..." : "No items found."}
+                                </CommandEmpty>
+
+                                {isSpaceType && (
+                                  <CommandGroup>
+                                    {spacesList.map((space) => {
+                                      const isCurrent = !badge.isUnselected && String(space.id) === String(badge.currentId);
+                                      return (
+                                        <CommandItem
+                                          key={space.id}
+                                          value={space.name}
+                                          onSelect={() => {
+                                            handleSelectSpace(badge.type, space, badge.currentId);
+                                            setOpenPopoverBadgeId(null);
+                                          }}
+                                          className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer"
+                                        >
+                                          <span className="truncate flex-1">{space.name}</span>
+                                          {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                )}
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Document Attachment Badges */}
+                {attachments.map((att, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="outline"
+                    className="py-0.5 pl-2 pr-1 text-xs gap-1.5 select-none shadow-none bg-muted/30 hover:bg-muted/50 transition-all font-normal text-foreground border-border cursor-default"
+                  >
+                    <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <span className="font-semibold text-foreground truncate max-w-[170px]">{att.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      ({Math.round(att.size / 1024) || 1} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAttachments((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      className="text-muted-foreground hover:text-destructive p-0.5 rounded hover:bg-muted cursor-pointer transition-colors ml-0.5 flex items-center justify-center"
+                      title="Remove attachment"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Right: Paperclip & Submit / Stop Button */}
+              <div className="flex items-center gap-1 shrink-0">
+                {mode === "panel" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isGenerating || isReadingFile}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-full cursor-pointer"
+                    title="Attach document (PDF, DOCX, TXT, CSV, MD, JSON)"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
+                )}
+
+                {isGenerating ? (
+                  <Button
+                    type="button"
+                    onClick={handleStopStreaming}
+                    className="h-8 w-8 p-0 rounded-full shadow-none cursor-pointer flex items-center justify-center"
+                    title="Stop generation"
+                  >
+                    <Square className="w-3 h-3 fill-current" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={(!input.trim() && attachments.length === 0) || isReadingFile}
+                    className="h-8 w-8 p-0 rounded-full shadow-none cursor-pointer flex items-center justify-center"
+                    title="Send message"
+                  >
+                    <ArrowRight className="w-4 h-4" strokeWidth={3}/>
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
         </div>
         <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-2">
           <span>Co-Pilot is AI and can make mistakes.</span>

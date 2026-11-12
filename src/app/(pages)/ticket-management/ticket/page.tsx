@@ -1214,7 +1214,8 @@ function TicketPage() {
       // ── Phase 1 ─────────────────────────────────────────────────────────
       // Render cards/rows immediately.
       setData(enrichTickets(tickets, configRef.current));
-      cacheMentionItems(tickets);
+      const activeTicketSpaceObj = ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId));
+      cacheMentionItems(tickets, "ticket", selectedTicketSpaceFilter || ticketSpaceId || undefined, activeTicketSpaceObj?.prefix);
       setTotalRecords(result.total || 0);
 
       if (tickets.length > 0) {
@@ -3902,6 +3903,9 @@ function TicketPage() {
         context={{
           ticketSpaceId: selectedTicketSpaceFilter || ticketSpaceId || undefined,
           ticketSpaceName: ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId))?.name,
+          ticketSpacePrefix: ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId))?.prefix,
+          spacePrefix: ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId))?.prefix,
+          prefix: ticketSpaces.find((s) => s.id?.toString() === (selectedTicketSpaceFilter || ticketSpaceId))?.prefix,
           tickets: data,
         }}
         pageScopeKey="tickets"

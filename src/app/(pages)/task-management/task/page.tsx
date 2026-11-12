@@ -1684,7 +1684,8 @@ function Page() {
             });
             const tasks: any[] = taskRes.data || [];
             setData(tasks);
-      cacheMentionItems(tasks);
+            const activeSpaceObj = taskSpaces.find((s) => s.id === selectedSpaceId);
+            cacheMentionItems(tasks, "task", selectedSpaceId || undefined, activeSpaceObj?.prefix);
             setTotalRecords(taskRes.total || 0);
             setHasDataFetched(true);
             setIsLoading(false); // Hide skeleton immediately after task data is ready
@@ -1703,12 +1704,12 @@ function Page() {
                     {},
                     ...results,
                   );
-                  setData(
-                    tasks.map((t: any) => {
-                      const rel = relations[t.id];
-                      return rel ? { ...t, ...rel } : t;
-                    }),
-                  );
+                  const enrichedTasks = tasks.map((t: any) => {
+                    const rel = relations[t.id];
+                    return rel ? { ...t, ...rel } : t;
+                  });
+                  setData(enrichedTasks);
+                  cacheMentionItems(enrichedTasks, "task", selectedSpaceId || undefined, activeSpaceObj?.prefix);
                 })
                 .catch(() => {
                   /* keep Phase-1 data */
@@ -2067,7 +2068,8 @@ function Page() {
       //   code, name, hierarchy icon/color, status, severity, assignee,
       //   coAssignees, dates
       setData(tasks);
-      cacheMentionItems(tasks);
+      const activeSpaceObj = taskSpaces.find((s) => s.id === selectedSpaceId);
+      cacheMentionItems(tasks, "task", selectedSpaceId || undefined, activeSpaceObj?.prefix);
 
       // ── Phase 2 ─────────────────────────────────────────────────────────
       // Silently enrich each row with computed bulk-relation data:
@@ -2088,12 +2090,12 @@ function Page() {
               {},
               ...results,
             );
-            setData(
-              tasks.map((t: any) => {
-                const rel = relations[t.id];
-                return rel ? { ...t, ...rel } : t;
-              }),
-            );
+            const enrichedTasks = tasks.map((t: any) => {
+              const rel = relations[t.id];
+              return rel ? { ...t, ...rel } : t;
+            });
+            setData(enrichedTasks);
+            cacheMentionItems(enrichedTasks, "task", selectedSpaceId || undefined, activeSpaceObj?.prefix);
           })
           .catch(() => {
             // keep Phase-1 data — relation enrichment is non-critical
@@ -4182,6 +4184,9 @@ function Page() {
         context={{
           taskSpaceId: selectedSpaceId || undefined,
           taskSpaceName: taskSpaces.find((s) => s.id === selectedSpaceId)?.name,
+          taskSpacePrefix: taskSpaces.find((s) => s.id === selectedSpaceId)?.prefix,
+          spacePrefix: taskSpaces.find((s) => s.id === selectedSpaceId)?.prefix,
+          prefix: taskSpaces.find((s) => s.id === selectedSpaceId)?.prefix,
           tasks: data,
         }}
         pageScopeKey="tasks"

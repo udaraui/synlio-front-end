@@ -1333,7 +1333,7 @@ export function TaskDraftCard({
                   } ${
                     node.isExistingParent
                       ? "bg-muted/30 opacity-75 cursor-not-allowed select-none"
-                      : "hover:bg-gray-50 dark:hover:bg-zinc-900/60"
+                      : "hover:bg-gray-50 dark:hover:bg-zinc-900"
                   }`}
                 >
                   {/* 1. TITLE Column (with expand/collapse and hierarchy indentation) */}
@@ -1734,7 +1734,7 @@ export function TaskDraftCard({
                   </td>
 
                   {/* 8. ACTIONS Column (Icon-only Save Button & Dismiss) */}
-                  <td className={`px-3 py-2 align-middle text-right sticky right-0 z-10 ${stickyBg} transition-colors shadow-[-1px_0_0_0_hsl(var(--border))]`}>
+                  <td className={`px-3 py-2 align-middle text-right min-w-[80px] w-[80px] sticky right-0 z-10 ${stickyBg} transition-colors shadow-[-1px_0_0_0_hsl(var(--border))]`}>
                     <div className="flex items-center justify-end gap-1 h-7">
                       {node.isExistingParent ? (
                         <span className="text-xs text-muted-foreground/60 italic pr-2 select-none">—</span>
