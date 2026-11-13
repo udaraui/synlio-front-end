@@ -1301,7 +1301,33 @@ function TicketPage() {
   useEffect(() => {
     const handleTicketCreated = (e: Event) => {
       const customEvent = e as CustomEvent;
-      const createdSpaceId = customEvent.detail?.ticket?.ticketSpaceId;
+      const createdSpaceId = customEvent.detail?.ticket?.ticketSpaceId || customEvent.detail?.tickets?.[0]?.ticketSpaceId;
+      const updated = customEvent.detail?.ticket;
+      const updatedList: any[] = customEvent.detail?.tickets || (updated ? [updated] : []);
+
+      // Optimistic in-place cache update for immediate zero-lag background table reflection
+      if (updatedList.length > 0) {
+        setData((prev) => {
+          const updateMap = new Map(updatedList.map((t) => [t.id || t.ticketId, t]));
+          return prev.map((item) => {
+            if (updateMap.has(item.id)) {
+              const u = updateMap.get(item.id);
+              return {
+                ...item,
+                ...u,
+                assigneeName: u.assigneeName || item.assigneeName,
+                statusName: u.statusName || item.statusName,
+                statusColor: u.statusColor || item.statusColor,
+                severityName: u.severityName || item.severityName,
+                severityColor: u.severityColor || item.severityColor,
+                queueName: u.queueName || item.queueName,
+              };
+            }
+            return item;
+          });
+        });
+      }
+
       lastKeyRef.current = "";
       isFetchingRef.current = false;
       if (createdSpaceId && String(createdSpaceId) !== selectedTicketSpaceFilter) {

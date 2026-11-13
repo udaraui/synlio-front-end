@@ -2147,7 +2147,31 @@ function Page() {
 
   // Automatically refresh tasks when created or updated via Copilot
   useEffect(() => {
-    const handleTaskChange = () => {
+    const handleTaskChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const updated = customEvent.detail?.task;
+      const updatedList: any[] = customEvent.detail?.tasks || (updated ? [updated] : []);
+      if (updatedList.length > 0) {
+        setData((prev) => {
+          const map = new Map(updatedList.map((t) => [t.id, t]));
+          return prev.map((item) => {
+            if (map.has(item.id)) {
+              const u = map.get(item.id);
+              return {
+                ...item,
+                ...u,
+                assigneeName: u.assigneeName || item.assigneeName,
+                statusName: u.statusName || item.statusName,
+                statusColor: u.statusColor || item.statusColor,
+                statusBase: u.statusBase || item.statusBase,
+                severityName: u.severityName || item.severityName,
+                severityColor: u.severityColor || item.severityColor,
+              };
+            }
+            return item;
+          });
+        });
+      }
       fetchData();
     };
     window.addEventListener("synlio:task-created", handleTaskChange);

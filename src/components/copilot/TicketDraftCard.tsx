@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth.context";
 import { useViewPreference } from "@/hooks/use-view-preference";
 import { Button } from "@/components/ui/button";
-import { createTicket, mutateTickets } from "@/services/ticket-management/ticket.service";
+import { createTicket, mutateTickets, patchTicket, searchTickets } from "@/services/ticket-management/ticket.service";
 import {
   searchTicketSpaces,
   getTicketSpaceById,
@@ -81,6 +81,7 @@ export interface TicketDraftData {
   plannedEffort?: number;
   requestedAssigneeName?: string;
   assigneeWarning?: string;
+  warnings?: string[];
 }
 
 export interface TicketDraftCardProps {
@@ -107,7 +108,7 @@ export interface TicketDraftCardProps {
 
 // Icon mapping helper for ticket types
 const getIconComponent = (iconName: string | undefined): LucideIcon | null => {
-  if (!iconName) return Zap;
+  if (!iconName) return null;
 
   const iconMap: Record<string, LucideIcon> = {
     bug: Bug,
@@ -134,7 +135,7 @@ const getIconComponent = (iconName: string | undefined): LucideIcon | null => {
   };
 
   const normalizedIcon = iconName.toLowerCase().replace(/[^a-z]/g, "");
-  return iconMap[normalizedIcon] || iconMap[iconName.toLowerCase()] || Zap;
+  return iconMap[normalizedIcon] || iconMap[iconName.toLowerCase()] || Circle;
 };
 
 interface SpaceConfigs {
@@ -168,6 +169,13 @@ function resolveTicketDraftEntities(
             (next.ticketTypeName && next.ticketTypeName.toLowerCase().includes(t.name?.toLowerCase()))
         )
       : null;
+
+    if (next.ticketTypeName && !matchedType) {
+      if (!next.warnings) next.warnings = [];
+      const avail = types.map((t) => t.name).join(", ");
+      next.warnings.push(`Ticket type "${next.ticketTypeName}" is not recognized in space "${spaceData?.name || 'this space'}". Available types: ${avail}`);
+    }
+
     const defaultType =
       matchedType ||
       (spaceData?.defaultTicketTypeId
@@ -182,13 +190,25 @@ function resolveTicketDraftEntities(
 
   // 2. Severity
   if (!next.severityId && severities.length > 0) {
-    const matchedSev = next.severityName
+    let matchedSev = next.severityName
       ? severities.find(
           (s) =>
             s.name?.toLowerCase().includes(next.severityName?.toLowerCase() || "") ||
             (next.severityName && next.severityName.toLowerCase().includes(s.name?.toLowerCase()))
         )
       : null;
+
+    if (!matchedSev && next.severityName) {
+      const req = next.severityName.trim().toLowerCase();
+      if (["critical", "blocker", "urgent", "p1", "highest", "sev1", "sev 1"].some((syn) => req.includes(syn))) {
+        matchedSev = severities.find((s) => ["blocker", "critical", "urgent", "high"].some((t) => s.name?.toLowerCase().includes(t)));
+      } else if (["high", "major", "p2", "sev2", "sev 2"].some((syn) => req.includes(syn))) {
+        matchedSev = severities.find((s) => ["high", "major", "medium"].some((t) => s.name?.toLowerCase().includes(t)));
+      } else if (["low", "minor", "trivial", "p4", "lowest", "sev4"].some((syn) => req.includes(syn))) {
+        matchedSev = severities.find((s) => ["low", "minor", "trivial"].some((t) => s.name?.toLowerCase().includes(t)));
+      }
+    }
+
     const defaultSev =
       matchedSev ||
       (spaceData?.defaultSeverityId
@@ -423,122 +443,66 @@ function SingleTicketDraftItem({
       }
 
       if (isUpdateAction) {
-        const updatePayload: any = {
-          action: "UPDATE_TICKET",
-          targets: [draft.code || String(draft.id)],
-          changes: {
-            name: draft.name.trim(),
-            description: draft.description || "",
-            ticketTypeId: draft.ticketTypeId,
-            severityId: draft.severityId,
-            statusId: draft.statusId,
-            queueId: draft.queueId,
-            ticketSlaId: draft.ticketSlaId,
-            assigneeId: finalAssigneeId,
-            completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
-            plannedEffort: draft.plannedEffort,
-          },
-          tickets: [{ ...draft, assigneeId: finalAssigneeId }],
+        let ticketId = draft.id;
+        if (!ticketId && draft.code) {
+          try {
+            const searchRes = await searchTickets({
+              filters: [{ field: "code", matchMode: "equals", value: draft.code }],
+              pageSize: 1,
+              pageNumber: 1,
+            });
+            const found = searchRes?.tickets?.[0] || searchRes?.data?.[0];
+            if (found?.id) ticketId = found.id;
+          } catch (e) {
+            console.error("Could not find ticket by code:", e);
+          }
+        }
+
+        if (!ticketId) {
+          toast.error(`Ticket ID not found for ${draft.code || "ticket"}`);
+          return;
+        }
+
+        const updateDto: any = {
+          name: draft.name.trim(),
+          description: draft.description || "",
+          ticketSpaceId: draft.ticketSpaceId,
+          ticketTypeId: draft.ticketTypeId,
+          severityId: draft.severityId,
+          statusId: draft.statusId,
+          queueId: draft.queueId,
+          ticketSlaId: draft.ticketSlaId,
+          assigneeId: finalAssigneeId,
+          completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
+          plannedEffort: draft.plannedEffort,
         };
 
-        const result = await mutateTickets(updatePayload);
-        const updated = result?.tickets?.[0] || draft;
+        const result = await patchTicket(ticketId, updateDto);
+        const updated = result || draft;
         const updatedObj = {
-          id: updated.id || draft.id,
+          id: updated.id || ticketId,
           code: updated.code || draft.code,
           name: updated.name || draft.name,
           ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
-        };
-
-        setInternalCreatedTicket(updatedObj);
-        onCreated?.(updatedObj);
-
-        window.dispatchEvent(
-          new CustomEvent("synlio:ticket-updated", {
-            detail: { ticket: updated },
-          })
-        );
-        toast.success(`Ticket ${draft.code || ""} updated successfully`);
-        return;
-      }
-
-      if (isUpdateAction) {
-        const updatePayload: any = {
-          action: "UPDATE_TICKET",
-          targets: [draft.code || String(draft.id)],
-          changes: {
-            name: draft.name.trim(),
-            description: draft.description || "",
-            ticketTypeId: draft.ticketTypeId,
-            severityId: draft.severityId,
-            statusId: draft.statusId,
-            queueId: draft.queueId,
-            ticketSlaId: draft.ticketSlaId,
-            assigneeId: finalAssigneeId,
-            completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
-            plannedEffort: draft.plannedEffort,
-          },
-          tickets: [{ ...draft, assigneeId: finalAssigneeId }],
-        };
-
-        const result = await mutateTickets(updatePayload);
-        const updated = result?.tickets?.[0] || draft;
-        const updatedObj = {
-          id: updated.id || draft.id,
-          code: updated.code || draft.code,
-          name: updated.name || draft.name,
-          ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
-        };
-
-        setInternalCreatedTicket(updatedObj);
-        onCreated?.(updatedObj);
-
-        window.dispatchEvent(
-          new CustomEvent("synlio:ticket-updated", {
-            detail: { ticket: updated },
-          })
-        );
-        toast.success(`Ticket ${draft.code || ""} updated successfully`);
-        return;
-      }
-
-      if (isUpdateAction) {
-        const updatePayload: any = {
-          action: "UPDATE_TICKET",
-          targets: [draft.code || String(draft.id)],
-          changes: {
-            name: draft.name.trim(),
-            description: draft.description || "",
-            ticketTypeId: draft.ticketTypeId,
-            severityId: draft.severityId,
-            statusId: draft.statusId,
-            queueId: draft.queueId,
-            ticketSlaId: draft.ticketSlaId,
-            assigneeId: finalAssigneeId,
-            completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
-            plannedEffort: draft.plannedEffort,
-          },
-          tickets: [{ ...draft, assigneeId: finalAssigneeId }],
-        };
-
-        const result = await mutateTickets(updatePayload);
-        const updated = result?.tickets?.[0] || draft;
-        const updatedObj = {
-          id: updated.id || draft.id,
-          code: updated.code || draft.code,
-          name: updated.name || draft.name,
-          ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
+          severityName: updated.severity?.name || updated.severityName || draft.severityName,
+          severityColor: updated.severity?.color || updated.severityColor || draft.severityColor,
+          statusName: updated.status?.name || updated.statusName || draft.statusName,
+          statusColor: updated.status?.color || updated.statusColor || draft.statusColor,
+          queueName: updated.queue?.name || updated.queueName || draft.queueName,
+          assigneeName: updated.assigneeName || draft.assigneeName,
         };
 
         setInternalCreatedTicket(updatedObj);
         onCreated?.(updatedObj);
 
         if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("synlio:ticket-updated", {
-              detail: { ticket: updated },
-            })
-          );
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("synlio:ticket-updated", {
+                detail: { ticket: updatedObj, tickets: [updatedObj], ticketSpaceId: draft.ticketSpaceId },
+              })
+            );
+          }, 0);
         }
         toast.success(`Ticket ${draft.code || ""} updated successfully`);
         return;
@@ -605,7 +569,7 @@ function SingleTicketDraftItem({
       ? {
           id: draft.ticketTypeId,
           name: draft.ticketTypeName || "Type",
-          icon: "zap",
+          icon: undefined,
           color: "#3b82f6",
         }
       : spaceConfigs.types[0] || null;
@@ -1115,7 +1079,7 @@ function SingleTicketDraftItem({
                 className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 onClick={handleConfirmCreate}
                 disabled={isSubmitting || !draft.name || !draft.ticketSpaceId}
-                title="Save ticket"
+                title={isUpdateAction ? "Update ticket" : "Save ticket"}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
@@ -1220,6 +1184,74 @@ function SingleTicketDraftTableRow({
         }
       }
 
+
+
+      if (isUpdateAction) {
+        let ticketId = draft.id;
+        if (!ticketId && draft.code) {
+          try {
+            const searchRes = await searchTickets({
+              filters: [{ field: "code", matchMode: "equals", value: draft.code }],
+              pageSize: 1,
+              pageNumber: 1,
+            });
+            const found = searchRes?.tickets?.[0] || searchRes?.data?.[0];
+            if (found?.id) ticketId = found.id;
+          } catch (e) {
+            console.error("Could not find ticket by code:", e);
+          }
+        }
+
+        if (!ticketId) {
+          toast.error(`Ticket ID not found for ${draft.code || "ticket"}`);
+          return;
+        }
+
+        const updateDto: any = {
+          name: draft.name.trim(),
+          description: draft.description || "",
+          ticketSpaceId: draft.ticketSpaceId,
+          ticketTypeId: draft.ticketTypeId,
+          severityId: draft.severityId,
+          statusId: draft.statusId,
+          queueId: draft.queueId,
+          ticketSlaId: draft.ticketSlaId,
+          assigneeId: finalAssigneeId,
+          completionDate: draft.completionDate ? new Date(draft.completionDate).toISOString() : undefined,
+          plannedEffort: draft.plannedEffort,
+        };
+
+        const result = await patchTicket(ticketId, updateDto);
+        const updated = result || draft;
+        const updatedObj = {
+          id: updated.id || ticketId,
+          code: updated.code || draft.code,
+          name: updated.name || draft.name,
+          ticketSpaceId: updated.ticketSpaceId || draft.ticketSpaceId,
+          severityName: updated.severity?.name || updated.severityName || draft.severityName,
+          severityColor: updated.severity?.color || updated.severityColor || draft.severityColor,
+          statusName: updated.status?.name || updated.statusName || draft.statusName,
+          statusColor: updated.status?.color || updated.statusColor || draft.statusColor,
+          queueName: updated.queue?.name || updated.queueName || draft.queueName,
+          assigneeName: updated.assigneeName || draft.assigneeName,
+        };
+
+        setInternalCreatedTicket(updatedObj);
+        onCreated?.(updatedObj);
+
+        if (typeof window !== "undefined") {
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("synlio:ticket-updated", {
+                detail: { ticket: updatedObj, tickets: [updatedObj], ticketSpaceId: draft.ticketSpaceId },
+              })
+            );
+          }, 0);
+        }
+        toast.success(`Ticket ${draft.code || ""} updated successfully`);
+        return;
+      }
+
       const createPayload: any = {
         name: draft.name.trim(),
         description: draft.description || "",
@@ -1280,7 +1312,7 @@ function SingleTicketDraftTableRow({
       ? {
           id: draft.ticketTypeId,
           name: draft.ticketTypeName || "Type",
-          icon: "zap",
+          icon: undefined,
           color: "#3b82f6",
         }
       : spaceConfigs.types[0] || null;
@@ -1430,10 +1462,10 @@ function SingleTicketDraftTableRow({
   }, [warnings, draft.assigneeId, currentAssignee]);
 
   return (
-    <tr className={`hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors group ${!isLast ? "border-b border-border/70" : ""}`}>
+    <tr className={`h-[48px] hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors group ${!isLast ? "border-b border-border/70" : ""}`}>
       {/* 1. Merged Code & Title (Pinned to Left End) */}
       <td className="py-2.5 px-3.5 align-middle min-w-[220px] max-w-[320px] sticky left-0 z-10 bg-card group-hover:bg-gray-50 dark:group-hover:bg-zinc-900 transition-colors shadow-[1px_0_0_0_hsl(var(--border))]">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 h-7">
           <span
             className="text-xs font-semibold tracking-wide text-primary select-none whitespace-nowrap shrink-0"
             title={createdTicket?.code ? `Ticket ${createdTicket.code}` : "Ticket draft code"}
@@ -1624,7 +1656,7 @@ function SingleTicketDraftTableRow({
       </td>
 
       {/* 5. Queue */}
-      <td className="py-2.5 px-3 align-middle whitespace-nowrap">
+      <td className="py-2.5 px-3 align-middle whitespace-nowrap max-w-[140px] overflow-hidden">
         {createdTicket ? (
           <div
             className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/40 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 cursor-default select-none opacity-85"
@@ -1655,7 +1687,7 @@ function SingleTicketDraftTableRow({
       </td>
 
       {/* 7. Assignee */}
-      <td className="py-2.5 px-3.5 align-middle whitespace-nowrap">
+      <td className="py-2.5 px-3.5 align-middle whitespace-nowrap max-w-[120px] overflow-hidden">
         <div className="flex items-center gap-1.5">
           {createdTicket ? (
             currentAssignee ? (
@@ -1762,8 +1794,8 @@ function SingleTicketDraftTableRow({
       </td>
 
       {/* 7. Row Actions (Pinned to Right End) */}
-      <td className="py-2.5 px-3 align-middle whitespace-nowrap text-right min-w-[80px] w-[80px] sticky right-0 z-10 bg-card group-hover:bg-gray-50 dark:group-hover:bg-zinc-900 transition-colors shadow-[-1px_0_0_0_hsl(var(--border))]">
-        <div className="flex items-center justify-end gap-1 flex-shrink-0">
+      <td className="py-2.5 px-3 align-middle whitespace-nowrap text-right min-w-[80px] w-[80px] sticky right-0 z-10 bg-card dark:bg-zinc-950 group-hover:bg-gray-50 dark:group-hover:bg-zinc-900 transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)] overflow-hidden">
+        <div className="flex items-center justify-end gap-1 flex-shrink-0 h-7">
           {createdTicket ? (
             <button
               type="button"
@@ -1772,7 +1804,7 @@ function SingleTicketDraftTableRow({
                 const url = `/ticket-management/ticket/form?ticketSpaceId=${spaceId}&edit=true&ticketId=${createdTicket.id}`;
                 window.open(url, "_blank");
               }}
-              className="inline-flex items-center gap-1 px-1 py-1 rounded text-xs font-semibold text-primary hover:underline transition-colors cursor-pointer select-none"
+              className="inline-flex items-center gap-1 px-2 h-7 rounded text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer select-none"
               title="Open in new window"
             >
               Open
@@ -1799,7 +1831,7 @@ function SingleTicketDraftTableRow({
                 className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 onClick={handleConfirmCreate}
                 disabled={isSubmitting || !draft.name || !draft.ticketSpaceId}
-                title="Save ticket"
+                title={isUpdateAction ? "Update ticket" : "Save ticket"}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
@@ -1825,6 +1857,7 @@ function TicketDraftTableView({
   warnings,
   createdTicketsMap,
   isSubmittingAll,
+  isUpdateAction = false,
   setCreatedTicketsMap,
   setEditedDraftsMap,
   onUpdateDraft,
@@ -1838,6 +1871,7 @@ function TicketDraftTableView({
   warnings: string[];
   createdTicketsMap: Record<number, any>;
   isSubmittingAll: boolean;
+  isUpdateAction?: boolean;
   setCreatedTicketsMap: React.Dispatch<React.SetStateAction<Record<number, any>>>;
   setEditedDraftsMap: React.Dispatch<React.SetStateAction<Record<number, TicketDraftData>>>;
   onUpdateDraft?: (updated: TicketDraftData) => void;
@@ -1867,7 +1901,7 @@ function TicketDraftTableView({
               <th className="h-10 px-3.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap w-[90px]">
                 Assignee
               </th>
-              <th className="h-10 px-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap w-[80px] sticky right-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[-1px_0_0_0_hsl(var(--border))]">
+              <th className="h-10 px-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap w-[80px] sticky right-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)]">
                 Actions
               </th>
             </tr>
@@ -1897,6 +1931,7 @@ function TicketDraftTableView({
                   warnings={cardWarnings}
                   createdTicketProp={createdTicketsMap[index]}
                   isSubmittingProp={isSubmittingAll}
+                  isUpdateAction={isUpdateAction}
                   isLast={rowIdx === visibleDrafts.length - 1}
                   onCreated={(created) => {
                     setCreatedTicketsMap((prev) => ({ ...prev, [index]: created }));
@@ -2069,7 +2104,7 @@ export function TicketDraftCard({
         const types = rawTypes.map((t: any) => ({
           id: Number(t.id),
           name: t.name,
-          icon: t.icon || "zap",
+          icon: t.icon,
           color: t.color || "#3b82f6",
         }));
         const severities = rawSeverities.map((s: any) => ({
@@ -2172,6 +2207,112 @@ export function TicketDraftCard({
     try {
       const uncreated = visibleDrafts.filter(({ index }) => !createdTicketsMap[index]);
       if (uncreated.length === 0) return;
+
+      if (isUpdateAction) {
+        // Bulk mutation of existing tickets via direct patchTicket
+        const updatedList: any[] = [];
+        const updatedMap: Record<number, any> = {};
+
+        for (const { draft: rawItem, index } of uncreated) {
+          const item = resolveTicketDraftEntities(
+            rawItem,
+            spaceConfigs,
+            spaceData,
+            spaceMembers,
+            user,
+            effectiveSpaceId
+          );
+
+          let ticketId = item.id;
+          if (!ticketId && item.code) {
+            try {
+              const searchRes = await searchTickets({
+                filters: [{ field: "code", matchMode: "equals", value: item.code }],
+                pageSize: 1,
+                pageNumber: 1,
+              });
+              const found = searchRes?.tickets?.[0] || searchRes?.data?.[0];
+              if (found?.id) ticketId = found.id;
+            } catch (e) {
+              console.error("Could not find ticket by code:", e);
+            }
+          }
+
+          if (!ticketId) continue;
+
+          let itemAssigneeId = item.assigneeId;
+          const isMe =
+            item.assigneeName?.toLowerCase() === "me" ||
+            item.assigneeName?.toLowerCase() === "myself";
+          if ((!itemAssigneeId || isMe) && user?.email && spaceMembers.length > 0) {
+            const myMember = spaceMembers.find(
+              (m) =>
+                m.userEmail?.toLowerCase() === user.email?.toLowerCase() ||
+                Number(m.userId) === Number(user.id)
+            );
+            if (myMember) itemAssigneeId = Number(myMember.id);
+          } else if (itemAssigneeId && spaceMembers.length > 0) {
+            const matched = spaceMembers.find(
+              (m) => Number(m.userId) === Number(itemAssigneeId) || Number(m.id) === Number(itemAssigneeId)
+            );
+            if (matched) itemAssigneeId = Number(matched.id);
+          }
+
+          const updateDto: any = {
+            name: (item.name || "").trim(),
+            description: item.description || "",
+            ticketSpaceId: item.ticketSpaceId || effectiveSpaceId,
+            ticketTypeId: item.ticketTypeId,
+            severityId: item.severityId,
+            statusId: item.statusId,
+            queueId: item.queueId,
+            ticketSlaId: item.ticketSlaId,
+            assigneeId: itemAssigneeId,
+            completionDate: item.completionDate ? new Date(item.completionDate).toISOString() : undefined,
+            plannedEffort: item.plannedEffort,
+          };
+
+          try {
+            const res = await patchTicket(ticketId, updateDto);
+            const updated = res || item;
+            const updatedObj = {
+              id: updated.id || ticketId,
+              code: updated.code || item.code,
+              name: updated.name || item.name,
+              ticketSpaceId: updated.ticketSpaceId || item.ticketSpaceId,
+              severityName: updated.severity?.name || updated.severityName || item.severityName,
+              severityColor: updated.severity?.color || updated.severityColor || item.severityColor,
+              statusName: updated.status?.name || updated.statusName || item.statusName,
+              statusColor: updated.status?.color || updated.statusColor || item.statusColor,
+              queueName: updated.queue?.name || updated.queueName || item.queueName,
+              assigneeName: updated.assigneeName || item.assigneeName,
+            };
+
+            updatedMap[index] = updatedObj;
+            updatedList.push(updatedObj);
+          } catch (patchErr) {
+            console.error(`Failed to patch ticket ${item.code}:`, patchErr);
+          }
+        }
+
+        setCreatedTicketsMap((prev) => ({ ...prev, ...updatedMap }));
+
+        if (typeof window !== "undefined") {
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("synlio:ticket-updated", {
+                detail: {
+                  tickets: updatedList,
+                  ticketSpaceId: effectiveSpaceId,
+                },
+              })
+            );
+          }, 50);
+        }
+
+        toast.success(`Successfully updated ${updatedList.length} ticket${updatedList.length > 1 ? "s" : ""}`);
+        return;
+      }
 
       // Build payload array for single atomic bulk transaction with fully resolved entities
       const payloads = uncreated.map(({ draft: rawItem }) => {
@@ -2481,6 +2622,7 @@ export function TicketDraftCard({
           warnings={warnings}
           createdTicketsMap={createdTicketsMap}
           isSubmittingAll={isSubmittingAll}
+          isUpdateAction={isUpdateAction}
           setCreatedTicketsMap={setCreatedTicketsMap}
           setEditedDraftsMap={setEditedDraftsMap}
           onUpdateDraft={onUpdateDraft}

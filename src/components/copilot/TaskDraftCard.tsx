@@ -1242,7 +1242,7 @@ export function TaskDraftCard({
               <th className="py-2.5 px-3 min-w-[90px]">CO-ASSIGNEES</th>
               <th className="py-2.5 px-3 min-w-[110px]">START DATE</th>
               <th className="py-2.5 px-3 min-w-[110px]">END DATE</th>
-              <th className="py-2.5 px-3 text-right min-w-[80px] sticky right-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[-1px_0_0_0_hsl(var(--border))]">ACTIONS</th>
+              <th className="py-2.5 px-3 text-right min-w-[80px] sticky right-0 z-20 bg-gray-50 dark:bg-gray-900 border-b border-border shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)]">ACTIONS</th>
             </tr>
           </thead>
           <tbody className="">
@@ -1311,8 +1311,25 @@ export function TaskDraftCard({
                 (node.draft.statusName ? { id: node.draft.statusId, name: node.draft.statusName, color: node.draft.statusColor } : null);
 
               // Severity resolution
+              const targetSevName = isUpdateMode ? changes.severityName ?? node.draft.severityName : node.draft.severityName;
+              const targetSevId = isUpdateMode ? changes.severityId ?? node.draft.severityId : node.draft.severityId;
+              let matchedSev = targetSevId ? severities.find((s) => s.id === targetSevId) : null;
+              if (!matchedSev && targetSevName) {
+                const req = String(targetSevName).trim().toLowerCase();
+                matchedSev = severities.find((s) => s.name.toLowerCase() === req || s.name.toLowerCase().includes(req) || req.includes(s.name.toLowerCase()));
+                if (!matchedSev) {
+                  if (["critical", "blocker", "urgent", "p1", "highest"].some((syn) => req.includes(syn))) {
+                    matchedSev = severities.find((s) => ["blocker", "critical", "urgent", "high"].some((t) => s.name?.toLowerCase().includes(t)));
+                  } else if (["high", "major", "p2"].some((syn) => req.includes(syn))) {
+                    matchedSev = severities.find((s) => ["high", "major", "medium"].some((t) => s.name?.toLowerCase().includes(t)));
+                  } else if (["low", "minor", "trivial", "p4"].some((syn) => req.includes(syn))) {
+                    matchedSev = severities.find((s) => ["low", "minor", "trivial"].some((t) => s.name?.toLowerCase().includes(t)));
+                  }
+                }
+              }
               const resolvedSeverity =
-                severities.find((s) => s.id === (isUpdateMode ? changes.severityId ?? node.draft.severityId : node.draft.severityId)) ||
+                matchedSev ||
+                severities.find((s) => s.id === targetSevId) ||
                 (node.draft.severityName ? { id: node.draft.severityId, name: node.draft.severityName, color: node.draft.severityColor } : null);
 
               // Assignee resolution
@@ -1734,7 +1751,7 @@ export function TaskDraftCard({
                   </td>
 
                   {/* 8. ACTIONS Column (Icon-only Save Button & Dismiss) */}
-                  <td className={`px-3 py-2 align-middle text-right min-w-[80px] w-[80px] sticky right-0 z-10 ${stickyBg} transition-colors shadow-[-1px_0_0_0_hsl(var(--border))]`}>
+                  <td className={`px-3 py-2 align-middle text-right min-w-[80px] w-[80px] sticky right-0 z-10 ${stickyBg} transition-colors shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)] overflow-hidden`}>
                     <div className="flex items-center justify-end gap-1 h-7">
                       {node.isExistingParent ? (
                         <span className="text-xs text-muted-foreground/60 italic pr-2 select-none">—</span>
