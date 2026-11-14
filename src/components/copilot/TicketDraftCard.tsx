@@ -70,8 +70,10 @@ export interface TicketDraftData {
   ticketTypeName?: string;
   severityId?: number;
   severityName?: string;
+  severityColor?: string;
   statusId?: number;
   statusName?: string;
+  statusColor?: string;
   assigneeId?: number;
   assigneeName?: string;
   queueId?: number | null;
