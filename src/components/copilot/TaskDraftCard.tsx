@@ -113,6 +113,7 @@ export interface TaskDraftCardProps {
       options: Array<{ id: number; name: string; label?: string; code?: string; isCreateNew?: boolean }>;
     }>;
   };
+  spaceId?: number;
   onUpdateDraft?: (updated: TaskDraftData) => void;
   onSelectOption?: (field: string, option: { id: number; name: string }) => void;
   onCancel?: () => void;
@@ -304,7 +305,8 @@ export function getEffectiveNodeCode(
 function buildDraftTree(
   visibleDrafts: Array<{ draft: TaskDraftData; index: number }>,
   parentTaskDetailsMap: Record<number, any>,
-  statuses: any[] = []
+  statuses: any[] = [],
+  isUpdateMode: boolean = false
 ): TaskDraftTreeNode[] {
   const draftIds = new Set<number>();
   const draftNames = new Set<string>();
@@ -371,7 +373,8 @@ function buildDraftTree(
     }
 
     // 3. Parent is an existing parent from the space (not in current draft batch)
-    if (draft.parentTaskId || draft.parentTaskName) {
+    // Only wrap under existing parents in CREATE_TASK mode; in UPDATE_TASK mode, display target tasks directly
+    if (!isUpdateMode && (draft.parentTaskId || draft.parentTaskName)) {
       const parentKey = String(draft.parentTaskId || draft.parentTaskName);
       if (!existingParentMap.has(parentKey)) {
         const pDetails = draft.parentTaskId ? parentTaskDetailsMap[draft.parentTaskId] : null;
@@ -487,6 +490,7 @@ function getAllNodesInTreeOrder(roots: TaskDraftTreeNode[]): TaskDraftTreeNode[]
 
 export function TaskDraftCard({
   payload,
+  spaceId,
   onUpdateDraft,
   onSelectOption,
   onCancel,
@@ -522,14 +526,23 @@ export function TaskDraftCard({
 
   // Load configs for active task space
   const activeSpaceId = useMemo(() => {
-    return (
+    if (spaceId) return spaceId;
+    const fromDraft =
       drafts.find((d) => d.taskSpaceId)?.taskSpaceId ||
       (!Array.isArray(payload.draft) ? payload.draft?.taskSpaceId : payload.draft?.[0]?.taskSpaceId) ||
       (payload.drafts && payload.drafts[0]?.taskSpaceId) ||
       (payload.tasks && payload.tasks[0]?.taskSpaceId) ||
-      null
-    );
-  }, [drafts, payload]);
+      (payload as any)?.taskSpaceId;
+    if (fromDraft) return fromDraft;
+
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("selectedSpaceId");
+      if (stored && !isNaN(Number(stored)) && Number(stored) > 0) {
+        return Number(stored);
+      }
+    }
+    return null;
+  }, [spaceId, drafts, payload]);
 
   const [statuses, setStatuses] = useState<any[]>([]);
   const [severities, setSeverities] = useState<any[]>([]);
@@ -652,8 +665,8 @@ export function TaskDraftCard({
 
   // Build tree for hierarchical expand/collapse and rollup calculations
   const treeRoots = useMemo(() => {
-    return buildDraftTree(visibleDrafts, parentTaskDetailsMap, statuses);
-  }, [visibleDrafts, parentTaskDetailsMap, statuses]);
+    return buildDraftTree(visibleDrafts, parentTaskDetailsMap, statuses, isUpdateMode);
+  }, [visibleDrafts, parentTaskDetailsMap, statuses, isUpdateMode]);
 
   // Flatten all nodes in tree order (parents before children, pre-order)
   const allTreeNodes = useMemo(() => {
@@ -994,9 +1007,15 @@ export function TaskDraftCard({
         const res = await updateTask(taskId, updateDto);
         setCreatedTasksMap((prev) => ({ ...prev, [index]: res }));
         toast.success(`Task ${d.code || ""} updated successfully!`);
+        const updatedTaskObj = (res as any)?.data || res;
         window.dispatchEvent(
           new CustomEvent("synlio:task-updated", {
-            detail: { taskId, updatedFields: updateDto },
+            detail: {
+              taskId,
+              task: updatedTaskObj,
+              updatedFields: updateDto,
+              updates: updateDto,
+            },
           })
         );
       } else {
@@ -1151,7 +1170,16 @@ export function TaskDraftCard({
       const actionLabel = isUpdateMode ? "updated" : "created";
       toast.success(`Successfully ${actionLabel} ${successCount} task(s)!`);
       const eventName = isUpdateMode ? "synlio:task-updated" : "synlio:task-created";
-      window.dispatchEvent(new CustomEvent(eventName, { detail: { count: successCount } }));
+      const updatedTaskList = Object.values(localCreatedMap).map((t: any) => t?.data || t);
+      window.dispatchEvent(
+        new CustomEvent(eventName, {
+          detail: {
+            count: successCount,
+            tasks: updatedTaskList,
+            task: updatedTaskList[0],
+          },
+        })
+      );
     }
   };
 
@@ -1161,7 +1189,7 @@ export function TaskDraftCard({
 
   // Render Disambiguation Options (e.g. Needs Space or Parent Project)
   // Exactly matching Ticket Panel space selection and project selection
-  if (payload.status === "NEEDS_INPUT" && payload.needs && payload.needs.length > 0) {
+  if (payload.status === "NEEDS_INPUT" && payload.needs && payload.needs.length > 0 && payload.needs[0]?.options?.length > 0) {
     const need = payload.needs[0];
     return (
       <div className="my-2.5 flex flex-wrap items-center gap-1.5 animate-in fade-in-50">
@@ -1269,19 +1297,59 @@ export function TaskDraftCard({
                   ? drafts[node.parentDraftIndex]?.name || "parent"
                   : "parent";
 
-              // Hierarchy Level formatting: visual tree depth determines hierarchy level
-              const matchingHl =
-                (sortedHierarchyConfigs.length > node.depth ? sortedHierarchyConfigs[node.depth] : null) ||
-                hierarchyConfigs.find((h) => h.id === node.draft.hierarchyLevelConfigId) ||
-                hierarchyConfigs.find((h) => h.sequence === node.draft.hierarchyLevelSequence);
+              // Hierarchy Level formatting:
+              // 1. Direct denormalized fields on draft (always preserved and accurate)
+              // 2. Matching config by hierarchyLevelConfigId
+              // 3. Matching config by hierarchyLevelSequence (checking both 0-based and 1-based)
+              // 4. Inferred from task code depth (e.g. PTS-P7 is Level 1, PTS-P7-T3 is Level 2, PTS-P7-T3-S1 is Level 3)
+              // 5. Matching config by name
+              // 6. Visual tree depth fallback (ONLY in CREATE_TASK mode)
+              const codeLevelParts = node.draft.code ? node.draft.code.split("-").slice(1) : [];
+              const inferredDepthIndex = codeLevelParts.length > 0 ? codeLevelParts.length - 1 : null;
+              const inferredConfig =
+                inferredDepthIndex !== null && sortedHierarchyConfigs.length > 0
+                  ? sortedHierarchyConfigs[Math.min(Math.max(0, inferredDepthIndex), sortedHierarchyConfigs.length - 1)]
+                  : null;
 
-              const effectiveHlIcon = matchingHl?.icon || node.draft.hierarchyLevelIcon || "Folder";
-              const effectiveHlColor = matchingHl?.color || node.draft.hierarchyLevelColor || "#3B82F6";
-              const effectiveHlName = matchingHl?.name || node.draft.hierarchyLevelName || "Task";
+              const matchingHl =
+                hierarchyConfigs.find((h) => h.id === node.draft.hierarchyLevelConfigId) ||
+                (node.draft.hierarchyLevelSequence !== undefined && node.draft.hierarchyLevelSequence !== null
+                  ? hierarchyConfigs.find((h) => h.sequence === node.draft.hierarchyLevelSequence || h.sequence === (node.draft.hierarchyLevelSequence! - 1))
+                  : null) ||
+                inferredConfig ||
+                hierarchyConfigs.find((h) => h.name?.toLowerCase() === node.draft.hierarchyLevelName?.toLowerCase()) ||
+                (!isUpdateMode && sortedHierarchyConfigs.length > node.depth ? sortedHierarchyConfigs[node.depth] : null);
+
+              const effectiveHlIcon =
+                node.draft.hierarchyLevelIcon ||
+                matchingHl?.icon ||
+                inferredConfig?.icon ||
+                "Folder";
+
+              const effectiveHlColor =
+                node.draft.hierarchyLevelColor ||
+                matchingHl?.color ||
+                inferredConfig?.color ||
+                "#3B82F6";
+
+              const effectiveHlName =
+                node.draft.hierarchyLevelName ||
+                matchingHl?.name ||
+                inferredConfig?.name ||
+                "Task";
+
               const HierarchyIcon = getHierarchyLevelIcon(effectiveHlIcon);
               const hlColor = effectiveHlColor;
 
               const hasChildren = node.children.length > 0;
+              const hasChildrenWithDates = node.children.some(
+                (c) =>
+                  (c.draft.startDate && !isNaN(new Date(c.draft.startDate).getTime())) ||
+                  (c.draft.dueDate && !isNaN(new Date(c.draft.dueDate).getTime())) ||
+                  (c.draft.changes?.startDate && !isNaN(new Date(c.draft.changes.startDate).getTime())) ||
+                  (c.draft.changes?.dueDate && !isNaN(new Date(c.draft.changes.dueDate).getTime()))
+              );
+              const isDateLockedByChildren = node.isExistingParent || hasChildrenWithDates;
               const isExpanded = expandedIds.has(node.id);
 
               // Check if saving child tasks impacts this node
@@ -1341,6 +1409,9 @@ export function TaskDraftCard({
                   last_name: node.draft.assigneeName?.split(" ").slice(1).join(" ") || "",
                   profile_pic: node.draft.assigneeProfilePicUrl,
                 } : null);
+
+              const effectiveStartDate = isUpdateMode ? changes.startDate ?? node.draft.startDate : node.draft.startDate;
+              const effectiveDueDate = isUpdateMode ? changes.dueDate ?? node.draft.dueDate : node.draft.dueDate;
 
               return (
                 <tr
@@ -1598,15 +1669,15 @@ export function TaskDraftCard({
 
                   {/* 6. START DATE Column */}
                   <td className="px-4 py-2 align-middle">
-                    {node.isExistingParent || hasChildren ? (
+                    {isDateLockedByChildren ? (
                       <div className="flex flex-col gap-0.5 items-start w-fit">
-                        {node.draft.startDate && !isNaN(new Date(node.draft.startDate).getTime()) ? (
+                        {effectiveStartDate && !isNaN(new Date(effectiveStartDate).getTime()) ? (
                           <span
                             className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border border-gray-300 dark:border-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap cursor-default select-none"
-                            title={hasChildren ? "Rolled up from child tasks" : "Project schedule"}
+                            title={hasChildrenWithDates ? "Rolled up from child tasks" : "Project schedule"}
                           >
                             <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
-                            <span>{format(new Date(node.draft.startDate), "LLL dd")}</span>
+                            <span>{format(new Date(effectiveStartDate), "LLL dd")}</span>
                           </span>
                         ) : (
                           <span
@@ -1619,10 +1690,10 @@ export function TaskDraftCard({
                         )}
                       </div>
                     ) : isSaved ? (
-                      node.draft.startDate && !isNaN(new Date(node.draft.startDate).getTime()) ? (
+                      effectiveStartDate && !isNaN(new Date(effectiveStartDate).getTime()) ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border border-gray-300 dark:border-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap cursor-default select-none">
                           <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span>{format(new Date(node.draft.startDate), "LLL dd")}</span>
+                          <span>{format(new Date(effectiveStartDate), "LLL dd")}</span>
                         </span>
                       ) : (
                         <span className="text-muted-foreground/60 italic text-xs select-none cursor-default">—</span>
@@ -1633,12 +1704,12 @@ export function TaskDraftCard({
                           <button
                             type="button"
                             className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border ${
-                              !node.draft.startDate ? "border-dashed" : ""
+                              !effectiveStartDate ? "border-dashed" : ""
                             } rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-300 whitespace-nowrap border-gray-300 dark:border-gray-700`}
                           >
                             <CalendarDays className="w-3 h-3 shrink-0 text-muted-foreground" />
-                            {node.draft.startDate && !isNaN(new Date(node.draft.startDate).getTime()) ? (
-                              format(new Date(node.draft.startDate), "LLL dd")
+                            {effectiveStartDate && !isNaN(new Date(effectiveStartDate).getTime()) ? (
+                              format(new Date(effectiveStartDate), "LLL dd")
                             ) : (
                               <span className="text-gray-400">Set date</span>
                             )}
@@ -1647,13 +1718,13 @@ export function TaskDraftCard({
                         <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800" align="start">
                           <Calendar
                             mode="single"
-                            selected={node.draft.startDate ? new Date(node.draft.startDate) : undefined}
+                            selected={effectiveStartDate ? new Date(effectiveStartDate) : undefined}
                             onSelect={(d) => {
                               handleFieldChange(node.originalIndex, "startDate", d ? format(d, "yyyy-MM-dd") : null);
                             }}
                             initialFocus
                           />
-                          {node.draft.startDate && (
+                          {effectiveStartDate && (
                             <div className="border-t border-border px-3 py-1.5">
                               <button
                                 type="button"
@@ -1671,15 +1742,15 @@ export function TaskDraftCard({
 
                   {/* 7. END DATE Column */}
                   <td className="px-4 py-2 align-middle">
-                    {node.isExistingParent || hasChildren ? (
+                    {isDateLockedByChildren ? (
                       <div className="flex flex-col gap-0.5 items-start w-fit">
-                        {node.draft.dueDate && !isNaN(new Date(node.draft.dueDate).getTime()) ? (
+                        {effectiveDueDate && !isNaN(new Date(effectiveDueDate).getTime()) ? (
                           <span
                             className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border border-gray-300 dark:border-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap cursor-default select-none"
-                            title={hasChildren ? "Rolled up from child tasks" : "Project schedule"}
+                            title={hasChildrenWithDates ? "Rolled up from child tasks" : "Project schedule"}
                           >
                             <Lock className="w-3 h-3 shrink-0" strokeWidth={2.5} />
-                            <span>{format(new Date(node.draft.dueDate), "LLL dd")}</span>
+                            <span>{format(new Date(effectiveDueDate), "LLL dd")}</span>
                           </span>
                         ) : (
                           <span
@@ -1692,10 +1763,10 @@ export function TaskDraftCard({
                         )}
                       </div>
                     ) : isSaved ? (
-                      node.draft.dueDate && !isNaN(new Date(node.draft.dueDate).getTime()) ? (
+                      effectiveDueDate && !isNaN(new Date(effectiveDueDate).getTime()) ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border border-gray-300 dark:border-gray-700 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap cursor-default select-none">
                           <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
-                          <span>{format(new Date(node.draft.dueDate), "LLL dd")}</span>
+                          <span>{format(new Date(effectiveDueDate), "LLL dd")}</span>
                         </span>
                       ) : (
                         <span className="text-muted-foreground/60 italic text-xs select-none cursor-default">—</span>
@@ -1706,20 +1777,20 @@ export function TaskDraftCard({
                           <button
                             type="button"
                             className={`inline-flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-transparent border rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer whitespace-nowrap ${
-                              node.draft.dueDate && new Date(node.draft.dueDate) < new Date()
+                              effectiveDueDate && new Date(effectiveDueDate) < new Date()
                                 ? "border-red-500 text-red-600 dark:text-red-400"
-                                : !node.draft.dueDate
+                                : !effectiveDueDate
                                 ? "border-dashed border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
                                 : "border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
                             }`}
                           >
-                            {node.draft.dueDate && new Date(node.draft.dueDate) < new Date() ? (
+                            {effectiveDueDate && new Date(effectiveDueDate) < new Date() ? (
                               <AlertTriangle className="w-3 h-3 shrink-0 text-red-500" />
                             ) : (
                               <CalendarDays className="w-3 h-3 shrink-0 text-muted-foreground" />
                             )}
-                            {node.draft.dueDate && !isNaN(new Date(node.draft.dueDate).getTime()) ? (
-                              format(new Date(node.draft.dueDate), "LLL dd")
+                            {effectiveDueDate && !isNaN(new Date(effectiveDueDate).getTime()) ? (
+                              format(new Date(effectiveDueDate), "LLL dd")
                             ) : (
                               <span className="text-gray-400">Set date</span>
                             )}
@@ -1728,13 +1799,13 @@ export function TaskDraftCard({
                         <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800" align="start">
                           <Calendar
                             mode="single"
-                            selected={node.draft.dueDate ? new Date(node.draft.dueDate) : undefined}
+                            selected={effectiveDueDate ? new Date(effectiveDueDate) : undefined}
                             onSelect={(d) => {
                               handleFieldChange(node.originalIndex, "dueDate", d ? format(d, "yyyy-MM-dd") : null);
                             }}
                             initialFocus
                           />
-                          {node.draft.dueDate && (
+                          {effectiveDueDate && (
                             <div className="border-t border-border px-3 py-1.5">
                               <button
                                 type="button"

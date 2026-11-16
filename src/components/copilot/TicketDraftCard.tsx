@@ -21,6 +21,8 @@ import {
   TableProperties,
   FolderClosed,
   Flag,
+  AlertCircle,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,6 +49,7 @@ import {
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
@@ -368,6 +371,9 @@ function SingleTicketDraftItem({
   warnings = [],
   createdTicketProp,
   isSubmittingProp,
+  failedError,
+  onClearError,
+  onError,
   onCreated,
   onUpdateDraft,
   onDismiss,
@@ -382,6 +388,9 @@ function SingleTicketDraftItem({
   warnings?: string[];
   createdTicketProp?: { id: number; code?: string; name: string; ticketSpaceId?: number } | null;
   isSubmittingProp?: boolean;
+  failedError?: string | null;
+  onClearError?: () => void;
+  onError?: (errMsg: string) => void;
   onCreated?: (created: { id: number; code?: string; name: string; ticketSpaceId?: number }) => void;
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
@@ -391,6 +400,7 @@ function SingleTicketDraftItem({
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
   const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
+  const [internalError, setInternalError] = useState<string | null>(null);
   const [internalCreatedTicket, setInternalCreatedTicket] = useState<{
     id: number;
     code?: string;
@@ -400,6 +410,14 @@ function SingleTicketDraftItem({
 
   const createdTicket = createdTicketProp || internalCreatedTicket;
   const isSubmitting = isSubmittingProp || internalIsSubmitting;
+  const effectiveError = failedError || internalError;
+
+  const handleFieldEdit = (updated: TicketDraftData) => {
+    setDraft(updated);
+    setInternalError(null);
+    onClearError?.();
+    onUpdateDraft?.(updated);
+  };
 
   // Sync when initialDraft or spaceConfigs update
   useEffect(() => {
@@ -420,6 +438,8 @@ function SingleTicketDraftItem({
     }
 
     setInternalIsSubmitting(true);
+    setInternalError(null);
+    onClearError?.();
     try {
       let finalAssigneeId = draft.assigneeId;
       const isMe =
@@ -496,6 +516,8 @@ function SingleTicketDraftItem({
 
         setInternalCreatedTicket(updatedObj);
         onCreated?.(updatedObj);
+        setInternalError(null);
+        onClearError?.();
 
         if (typeof window !== "undefined") {
           setTimeout(() => {
@@ -537,6 +559,8 @@ function SingleTicketDraftItem({
 
       setInternalCreatedTicket(createdObj);
       onCreated?.(createdObj);
+      setInternalError(null);
+      onClearError?.();
 
       if (typeof window !== "undefined") {
         setTimeout(() => {
@@ -548,8 +572,14 @@ function SingleTicketDraftItem({
 
       toast.success("Ticket created successfully!");
     } catch (err: any) {
-      console.error("Failed to create ticket:", err);
-      toast.error(err?.response?.data?.message || "Failed to create ticket");
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        (isUpdateAction ? "Failed to update ticket" : "Failed to create ticket");
+      console.error("Failed to save ticket:", err);
+      setInternalError(errorMsg);
+      onError?.(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setInternalIsSubmitting(false);
     }
@@ -722,7 +752,9 @@ function SingleTicketDraftItem({
   }, [warnings, draft.assigneeId, currentAssignee]);
 
   return (
-    <div className="w-full group bg-card rounded-xl border border-border shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between">
+    <div className={`w-full group bg-card rounded-xl border shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between ${
+      effectiveError ? "border-red-400 dark:border-red-800 ring-1 ring-red-400/40" : "border-border"
+    }`}>
       <div>
         {/* Section 1: Type Icon, Code/Draft Badge, and Status Tag */}
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/40 border-b border-dashed border-border">
@@ -1162,6 +1194,8 @@ function SingleTicketDraftTableRow({
     }
 
     setInternalIsSubmitting(true);
+    setInternalError(null);
+    onClearError?.();
     try {
       let finalAssigneeId = draft.assigneeId;
       const isMe =
@@ -1240,6 +1274,8 @@ function SingleTicketDraftTableRow({
 
         setInternalCreatedTicket(updatedObj);
         onCreated?.(updatedObj);
+        setInternalError(null);
+        onClearError?.();
 
         if (typeof window !== "undefined") {
           setTimeout(() => {
@@ -1281,6 +1317,8 @@ function SingleTicketDraftTableRow({
 
       setInternalCreatedTicket(createdObj);
       onCreated?.(createdObj);
+      setInternalError(null);
+      onClearError?.();
 
       if (typeof window !== "undefined") {
         setTimeout(() => {
@@ -1292,8 +1330,14 @@ function SingleTicketDraftTableRow({
 
       toast.success("Ticket created successfully!");
     } catch (err: any) {
-      console.error("Failed to create ticket:", err);
-      toast.error(err?.response?.data?.message || "Failed to create ticket");
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        (isUpdateAction ? "Failed to update ticket" : "Failed to create ticket");
+      console.error("Failed to save ticket:", err);
+      setInternalError(errorMsg);
+      onError?.(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setInternalIsSubmitting(false);
     }
@@ -2408,6 +2452,10 @@ export function TicketDraftCard({
       payload.needs?.find((n) => n.field === "targetTicket")?.options ||
       payload.options ||
       [];
+
+    if (rawOptions.length === 0) {
+      return null;
+    }
 
     return (
       <div className="my-2.5 flex flex-wrap items-center gap-1.5 animate-in fade-in-50">

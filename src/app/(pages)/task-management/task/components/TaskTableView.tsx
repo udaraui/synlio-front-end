@@ -522,20 +522,50 @@ function TaskTableView({
       stateUpdate.statusName = stateUpdate.status?.name || null;
       stateUpdate.statusColor = stateUpdate.status?.color || null;
       stateUpdate.statusBase = stateUpdate.status?.base || null;
+    } else if (stateUpdate.statusId !== undefined && !stateUpdate.statusName) {
+      const sObj = configDataRef.current?.statuses?.find((s: any) => s.id === stateUpdate.statusId);
+      if (sObj) {
+        stateUpdate.statusName = sObj.name;
+        stateUpdate.statusColor = sObj.color;
+        stateUpdate.statusBase = sObj.base;
+      }
     }
     if (stateUpdate.severity !== undefined) {
       stateUpdate.severityName = stateUpdate.severity?.name || null;
       stateUpdate.severityColor = stateUpdate.severity?.color || null;
+    } else if (stateUpdate.severityId !== undefined && !stateUpdate.severityName) {
+      const sevObj = configDataRef.current?.severities?.find((s: any) => s.id === stateUpdate.severityId);
+      if (sevObj) {
+        stateUpdate.severityName = sevObj.name;
+        stateUpdate.severityColor = sevObj.color;
+      }
     }
     if (stateUpdate.assignee !== undefined) {
       stateUpdate.assigneeName = stateUpdate.assignee ? `${stateUpdate.assignee.first_name || ''} ${stateUpdate.assignee.last_name || ''}`.trim() : null;
       stateUpdate.assigneeProfilePicUrl = stateUpdate.assignee?.profile_picture || stateUpdate.assignee?.profile_pic || null;
       stateUpdate.assigneeEmail = stateUpdate.assignee?.email || null;
+    } else if (stateUpdate.assigneeId !== undefined && !stateUpdate.assigneeName) {
+      const resObj = (configDataRef.current?.resources ?? []).find((r: any) => r.id === stateUpdate.assigneeId);
+      if (resObj) {
+        stateUpdate.assigneeName = `${resObj.first_name || ''} ${resObj.last_name || ''}`.trim();
+        stateUpdate.assigneeProfilePicUrl = resObj.profile_picture || resObj.profile_pic || null;
+        stateUpdate.assigneeEmail = resObj.email || null;
+      }
     }
     if (stateUpdate.hierarchyLevelConfig !== undefined) {
       stateUpdate.hierarchyLevelName = stateUpdate.hierarchyLevelConfig?.name || null;
       stateUpdate.hierarchyLevelIcon = stateUpdate.hierarchyLevelConfig?.icon || null;
       stateUpdate.hierarchyLevelColor = stateUpdate.hierarchyLevelConfig?.color || null;
+    }
+
+    // Always update dateRangeStates for the edited task directly (handles root or child tasks)
+    if ('startDate' in updates || 'dueDate' in updates || stateUpdate.startDate !== undefined || stateUpdate.dueDate !== undefined) {
+      const newFrom = stateUpdate.startDate ? parseLocalDate(stateUpdate.startDate) : undefined;
+      const newTo = stateUpdate.dueDate ? parseLocalDate(stateUpdate.dueDate) : undefined;
+      setDateRangeStates((prev) => ({
+        ...prev,
+        [taskId]: (newFrom || newTo) ? { from: newFrom, to: newTo } : undefined,
+      }));
     }
     const newMap: Record<number, any[]> = {};
     let changed = false;
@@ -787,6 +817,32 @@ function TaskTableView({
 
     await onUpdateTask?.(taskId, updates, updatedData);
   }, [onUpdateTask]);
+
+  // Listen for task updates dispatched from Copilot so table and hierarchy rollups update in real-time
+  useEffect(() => {
+    const handleCopilotTaskUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const detail = customEvent.detail;
+      const taskList: any[] = detail?.tasks || (detail?.task ? [detail.task] : []);
+      const updates = detail?.updatedFields || detail?.updates;
+
+      if (taskList.length > 0) {
+        taskList.forEach((t) => {
+          const tId = t?.id || detail?.taskId;
+          if (tId) {
+            handleInlineUpdate(tId, updates || t, t);
+          }
+        });
+      } else if (detail?.taskId && updates) {
+        handleInlineUpdate(detail.taskId, updates, detail.task);
+      }
+    };
+
+    window.addEventListener("synlio:task-updated", handleCopilotTaskUpdate);
+    return () => {
+      window.removeEventListener("synlio:task-updated", handleCopilotTaskUpdate);
+    };
+  }, [handleInlineUpdate]);
 
   /** Toggle expand/collapse for a task row */
   const toggleExpand = useCallback(async (task: any) => {

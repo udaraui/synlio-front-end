@@ -18,6 +18,9 @@ import {
   Bookmark,
   Milestone,
   Target,
+  CheckSquare,
+  CheckCircle2,
+  Circle,
   // Ticket type icons
   Bug,
   Zap,
@@ -50,12 +53,38 @@ export const HIERARCHY_LEVEL_ICONS: { name: string; component: React.FC<any> }[]
   { name: 'Bookmark', component: Bookmark },
   { name: 'Milestone', component: Milestone },
   { name: 'Target', component: Target },
+  { name: 'CheckSquare', component: CheckSquare },
+  { name: 'CheckCircle2', component: CheckCircle2 },
+  { name: 'Circle', component: Circle },
 ];
 
 export const DEFAULT_HIERARCHY_LEVEL_ICON = HIERARCHY_LEVEL_ICONS[0].name;
 
-export const getHierarchyLevelIcon = (iconName: string): React.FC<any> =>
-  HIERARCHY_LEVEL_ICONS.find(({ name }) => name === iconName)?.component ?? Folder;
+const ALIAS_HIERARCHY_ICONS: Record<string, React.FC<any>> = {
+  'check-square': CheckSquare,
+  'checksquare': CheckSquare,
+  'check-circle': CheckCircle2,
+  'check-circle-2': CheckCircle2,
+  'checkcircle': CheckCircle2,
+  'checkcircle2': CheckCircle2,
+  'circle': Circle,
+  'box': Box,
+  'cube': Box,
+  'shapes': Shapes,
+  'folder': Folder,
+  'task': Box,
+  'subtask': Shapes,
+  'project': Folder,
+};
+
+export const getHierarchyLevelIcon = (iconName: string): React.FC<any> => {
+  if (!iconName) return Folder;
+  const clean = String(iconName).trim().toLowerCase();
+  const direct = HIERARCHY_LEVEL_ICONS.find(({ name }) => name.toLowerCase() === clean);
+  if (direct) return direct.component;
+  if (ALIAS_HIERARCHY_ICONS[clean]) return ALIAS_HIERARCHY_ICONS[clean];
+  return Folder;
+};
 
 // Ticket Type Icon Registry
 export const TICKET_TYPE_ICONS: { name: string; component: React.FC<any> }[] = [
@@ -74,5 +103,8 @@ export const TICKET_TYPE_ICONS: { name: string; component: React.FC<any> }[] = [
 
 export const DEFAULT_TICKET_TYPE_ICON = TICKET_TYPE_ICONS[0].name;
 
-export const getTicketTypeIcon = (iconName: string): React.FC<any> =>
-  TICKET_TYPE_ICONS.find(({ name }) => name === iconName)?.component ?? Bug;
+export const getTicketTypeIcon = (iconName: string): React.FC<any> => {
+  if (!iconName) return Bug;
+  const clean = String(iconName).trim().toLowerCase();
+  return TICKET_TYPE_ICONS.find(({ name }) => name.toLowerCase() === clean)?.component ?? Bug;
+};

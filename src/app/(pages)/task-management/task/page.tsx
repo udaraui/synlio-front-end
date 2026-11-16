@@ -2193,12 +2193,15 @@ function Page() {
                 statusBase: u.statusBase || item.statusBase,
                 severityName: u.severityName || item.severityName,
                 severityColor: u.severityColor || item.severityColor,
+                startDate: u.startDate !== undefined ? u.startDate : item.startDate,
+                dueDate: u.dueDate !== undefined ? u.dueDate : item.dueDate,
               };
             }
             return item;
           });
         });
       }
+      lastKeyRef.current = "";
       fetchData();
     };
     window.addEventListener("synlio:task-created", handleTaskChange);

@@ -1159,6 +1159,7 @@ interface ChatMessageItemProps {
   onCancelDraft?: (msgId: string) => void;
   onRetry?: (msgId: string) => void;
   isRetried?: boolean;
+  spaceId?: number;
 }
 
 const ChatMessageItem = React.memo(function ChatMessageItem({
@@ -1173,6 +1174,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
   onCancelDraft,
   onRetry,
   isRetried = false,
+  spaceId,
 }: ChatMessageItemProps) {
   const isFinished = !msg.isStreaming && !msg.isThinking;
   const isError =
@@ -1204,34 +1206,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
     )
   );
 
-  const parentNotice = useMemo(() => {
-    if (!msg.draftPayload) return "";
-    const drafts = Array.isArray(msg.draftPayload.drafts)
-      ? msg.draftPayload.drafts
-      : msg.draftPayload.draft
-      ? [msg.draftPayload.draft]
-      : [];
-    for (const d of drafts) {
-      if (d.parentTaskCode || d.parentTaskName) {
-        const code = d.parentTaskCode || "";
-        const name = d.parentTaskName || "";
-        const label = code && name ? `${code}: ${name}` : code || name;
-        if (label) return ` Saving will update ${label}.`;
-      }
-    }
-    const existing = drafts.find((d: any) => d.isExistingParent);
-    if (existing) {
-      const code = existing.code || "";
-      const name = existing.name || "";
-      const label = code && name ? `${code}: ${name}` : code || name;
-      if (label) return ` Saving will update ${label}.`;
-    }
-    return "";
-  }, [msg.draftPayload]);
-
-  const rawContent = parentNotice && !msg.content.includes("Saving will update")
-    ? `${msg.content.trim()}${parentNotice}`
-    : msg.content;
+  const rawContent = msg.content;
 
   return (
     <div
@@ -1309,6 +1284,7 @@ const ChatMessageItem = React.memo(function ChatMessageItem({
                   msg.draftPayload.entityType === "task" ? (
                     <TaskDraftCard
                       payload={msg.draftPayload}
+                      spaceId={spaceId}
                       onSelectOption={(field, opt: any) => {
                         onSelectOption?.(opt?.label || opt?.name, msg.id, opt, field);
                       }}
@@ -3133,6 +3109,7 @@ export function CopilotChatView({
                 key={msg.id}
                 msg={msg}
                 isLatest={index === messages.length - 1}
+                spaceId={activeTaskSpaceId ? Number(activeTaskSpaceId) : undefined}
                 onSelectAction={handleSelectAction}
                 onDismissAction={handleDismissAction}
                 actionState={actionState}
@@ -3210,11 +3187,29 @@ export function CopilotChatView({
                       } else if (field === "targetTicket" || field === "targetTask") {
                         // User selected a target ticket/task from disambiguation options
                         const lastP = lastWithPayload?.draftPayload;
-                        const targetCode = optObj?.code || optObj?.name || optionName;
-                        if (lastP?.changes?.assigneeName) {
-                          optionName = `Assign ${targetCode} to ${lastP.changes.assigneeName}`;
-                        } else if (lastP?.changes?.statusName) {
-                          optionName = `Move ${targetCode} to ${lastP.changes.statusName}`;
+                        let targetCode = optObj?.code || optObj?.name || optionName;
+                        if (typeof targetCode === "string" && targetCode.includes(":")) {
+                          targetCode = targetCode.split(":")[0].trim();
+                        }
+                        const ch = lastP?.changes || {};
+                        if (ch.name) {
+                          optionName = `rename ${targetCode} to "${ch.name}"`;
+                        } else if (ch.startDate && ch.dueDate) {
+                          optionName = `update start date of ${targetCode} to ${ch.startDate} and end date to ${ch.dueDate}`;
+                        } else if (ch.startDate) {
+                          optionName = `update start date of ${targetCode} to ${ch.startDate}`;
+                        } else if (ch.dueDate) {
+                          optionName = `update end date of ${targetCode} to ${ch.dueDate}`;
+                        } else if (ch.ticketTypeName) {
+                          optionName = `change ticket type of ${targetCode} to ${ch.ticketTypeName}`;
+                        } else if (ch.queueName) {
+                          optionName = `move ${targetCode} to ${ch.queueName} queue`;
+                        } else if (ch.assigneeName) {
+                          optionName = `assign ${targetCode} to ${ch.assigneeName}`;
+                        } else if (ch.statusName) {
+                          optionName = `move ${targetCode} to ${ch.statusName}`;
+                        } else if (ch.severityName) {
+                          optionName = `set priority of ${targetCode} to ${ch.severityName}`;
                         } else {
                           optionName = `Update ${targetCode}`;
                         }
