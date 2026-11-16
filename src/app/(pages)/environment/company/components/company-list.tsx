@@ -47,7 +47,7 @@ import {
   getCompanyNotificationEmailConfig,
   updateCompanyNotificationEmail,
 } from '@/services/company-management/company-services';
-import DeleteModal from '@/components/DeleteModal';
+import DeleteModal, { showDeleteBlockedToast } from '@/components/DeleteModal';
 import {
   Table,
   TableBody,
@@ -694,11 +694,21 @@ const CompanyList: React.FC<CompanyListProps> = ({
             onCompanyUpdate?.();
           }}
           onDelete={async () => {
-            const res = await deleteCompany(deletingCompanyId || 0);
-            if (res && (!res.data?.status || res.data.status < 400)) {
-              toast.success(res?.data?.message || "Company deleted");
+            try {
+              const res = await deleteCompany(deletingCompanyId || 0);
+              if (res && (!res.data?.status || res.data.status < 400)) {
+                toast.success(res?.data?.message || 'Company deleted successfully.');
+              } else if (res?.data) {
+                showDeleteBlockedToast(
+                  { response: { data: res.data } },
+                  'Failed to delete company.',
+                );
+              }
+              return res;
+            } catch (error: unknown) {
+              showDeleteBlockedToast(error, 'Failed to delete company.');
+              throw error;
             }
-            return res;
           }}
           id={deletingCompanyId || 0}
           title="Delete Company"

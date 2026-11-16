@@ -87,11 +87,12 @@ export function TaskSpaceForm({ open, onOpenChange, onUpdate, type, id }: TaskSp
         const { getTaskSpaceById } = await import('@/services/task-management/task-space.service');
         const response = await getTaskSpaceById(id);
         const space = response.data;
+        const currentDivisions = form.getValues('divisionId');
         form.reset({
           name: space.name,
           prefix: space.prefix,
           description: space.description || '',
-          divisionId: space.divisionId,
+          divisionId: space.divisionId || currentDivisions || 0,
         });
         setPrefixManuallyEdited(true);
       }
@@ -109,13 +110,29 @@ export function TaskSpaceForm({ open, onOpenChange, onUpdate, type, id }: TaskSp
       const response = await getAllDivisionsByCompanyId(companyId);
       const data = response.data || [];
       setDivisions(data);
-      if (data.length === 1 && type === 'create') {
-        form.setValue('divisionId', data[0].id, { shouldValidate: true, shouldDirty: true });
+      const currentDivisionId = form.getValues('divisionId');
+      if (data.length === 1 && (!currentDivisionId || Number(currentDivisionId) <= 0)) {
+        form.setValue('divisionId', data[0].id, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
       }
     } catch {
       toast.error('Failed to load divisions');
     }
   };
+
+  // Auto-select single division for both Create and Update forms when divisionId is empty/0
+  useEffect(() => {
+    if (!open || isInitializing || divisions.length !== 1) return;
+    const currentDivisionId = form.getValues('divisionId');
+    if (!currentDivisionId || Number(currentDivisionId) <= 0) {
+      form.setValue('divisionId', divisions[0].id, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [divisions, open, isInitializing, form]);
 
   const checkPrefix = async (prefix: string) => {
     if (!prefix || !activeCompanyId) { setPrefixError(''); return false; }

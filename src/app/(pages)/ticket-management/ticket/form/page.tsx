@@ -45,7 +45,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { isResourceActive } from "@/lib/utils";
 import RichTextEditor from "@/components/common/RichTextEditor";
 import {
   Command,
@@ -143,6 +144,10 @@ import {
 } from "../components/InlineEditableTicketComponents";
 import { createResourceLog, deleteResourceLog, getResourceTicketLogHistory, updateResourceLog } from "@/services/work-log/work-log.service";
 import { AssigneeType } from "@/enums/assignee-type.enum";
+import {
+  checkLinkedPulse,
+  CheckLinkedPulseResponse,
+} from "@/services/pulse/pulse.service";
 
 import { getHierarchyLevelIcon } from "@/enums/space-configure-icon.enum";
 import LinkWorkItemDialog from "@/components/link-management/LinkWorkItemDialog";
@@ -950,6 +955,56 @@ export default function CreateTicketPage() {
       };
 
       if (isEditMode && ticketId) {
+        const executeTicketUpdate = async () => {
+          try {
+            setIsSaving(true);
+            await updateTicket(Number(ticketId), ticketData);
+
+            // Upload new attachments if any
+            if (attachments.length > 0) {
+              const uploadPromises = attachments.map(async (file) => {
+                try {
+                  const uploadResponse = await uploadTicketAttachment(file);
+                  const attachmentUrl = uploadResponse.url;
+
+                  await createTicketAttachment({
+                    ticketId: Number(ticketId),
+                    link: attachmentUrl,
+                  });
+                } catch (error) {
+                  console.error("Error uploading attachment:", error);
+                  toast.error(`Failed to upload ${file.name}`);
+                }
+              });
+
+              await Promise.all(uploadPromises);
+            }
+
+            toast.success("Ticket updated");
+            router.push(`/ticket-management/ticket?ticketSpaceId=${ticketSpaceId}`);
+          } catch (error: any) {
+            console.error("Error updating ticket:", error);
+            toast.error(error?.response?.data?.message || "Failed to update ticket");
+          } finally {
+            setIsSaving(false);
+          }
+        };
+
+        if (
+          formData.name.trim() !== formDataSnapshot.current?.name ||
+          (initialFormData?.ticketSpaceId !== undefined &&
+            formData.ticketSpaceId !== initialFormData.ticketSpaceId)
+        ) {
+          const pulseCheck = await checkLinkedPulse("Ticket", Number(ticketId));
+          if (pulseCheck.isLinked) {
+            setUpdatePulseCount(pulseCheck.linkedPulseCount);
+            setPendingUpdateAction(() => executeTicketUpdate);
+            setShowUpdatePulseWarning(true);
+            setIsSaving(false);
+            return;
+          }
+        }
+
         // Update existing ticket
         await updateTicket(Number(ticketId), ticketData);
 
@@ -1033,6 +1088,33 @@ export default function CreateTicketPage() {
       `/ticket-management/ticket${ticketSpaceId ? `?ticketSpaceId=${ticketSpaceId}` : ""}`,
     );
   };
+
+  const [deletePulseCheck, setDeletePulseCheck] = useState<CheckLinkedPulseResponse>({
+    isLinked: false,
+    linkedPulseCount: 0,
+    linkedPulseWeekCount: 0,
+  });
+  const [showUpdatePulseWarning, setShowUpdatePulseWarning] = useState(false);
+  const [updatePulseCount, setUpdatePulseCount] = useState(0);
+  const [pendingUpdateAction, setPendingUpdateAction] = useState<(() => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    if (!isDeleteDialogOpen || !ticketId) {
+      setDeletePulseCheck({
+        isLinked: false,
+        linkedPulseCount: 0,
+        linkedPulseWeekCount: 0,
+      });
+      return;
+    }
+    let cancelled = false;
+    checkLinkedPulse("Ticket", Number(ticketId)).then((res) => {
+      if (!cancelled) setDeletePulseCheck(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDeleteDialogOpen, ticketId]);
 
   const handleDeleteTicket = async () => {
     if (!ticketId) return;
@@ -1547,23 +1629,33 @@ export default function CreateTicketPage() {
                   onBlur={async (e) => {
                     if (!isEditMode || !ticketId) return;
                     const name = e.target.value.trim();
-                    if (!name) return;
-                    try {
-                      beginAutoSave();
-                      const res = await patchTicketName(
-                        Number(ticketId),
-                        name,
-                        formDataSnapshot.current?.name ?? null,
-                      );
-                      formDataSnapshot.current = {
-                        ...formDataSnapshot.current!,
-                        name,
-                      };
-                      syncMeta(res);
-                    } catch {
-                      endAutoSave();
-                      toast.error("Failed to save title");
+                    if (!name || name === formDataSnapshot.current?.name) return;
+                    const saveTitle = async () => {
+                      try {
+                        beginAutoSave();
+                        const res = await patchTicketName(
+                          Number(ticketId),
+                          name,
+                          formDataSnapshot.current?.name ?? null,
+                        );
+                        formDataSnapshot.current = {
+                          ...formDataSnapshot.current!,
+                          name,
+                        };
+                        syncMeta(res);
+                      } catch {
+                        endAutoSave();
+                        toast.error("Failed to save title");
+                      }
+                    };
+                    const pulseCheck = await checkLinkedPulse("Ticket", Number(ticketId));
+                    if (pulseCheck.isLinked) {
+                      setUpdatePulseCount(pulseCheck.linkedPulseCount);
+                      setPendingUpdateAction(() => saveTitle);
+                      setShowUpdatePulseWarning(true);
+                      return;
                     }
+                    await saveTitle();
                   }}
                   required
                   className={cn(
@@ -3293,6 +3385,11 @@ export default function CreateTicketPage() {
                           <>
                             {(() => {
                               const filteredMembers = config.members
+                                .filter(
+                                  (m) =>
+                                    formData.assigneeId === m.id ||
+                                    isResourceActive(m),
+                                )
                                 .filter((m) => {
                                   if (!assigneeSearch) return true;
                                   const search = assigneeSearch.toLowerCase();
@@ -3419,6 +3516,12 @@ export default function CreateTicketPage() {
                                                     0,
                                                   )}
                                                 </AvatarFallback>
+                                                {!isResourceActive(member) && (
+                                                  <AvatarBadge
+                                                    className="bg-gray-400 dark:bg-gray-600 size-2"
+                                                    title="Inactive resource"
+                                                  />
+                                                )}
                                               </Avatar>
                                               <div className="flex flex-col">
                                                 <span className="text-sm">
@@ -3570,6 +3673,11 @@ export default function CreateTicketPage() {
                             <>
                               {(() => {
                                 const filteredMembers = config.members
+                                  .filter(
+                                    (m) =>
+                                      formData.participantIds.includes(m.id) ||
+                                      isResourceActive(m),
+                                  )
                                   .filter((m) => {
                                     if (!participantsSearch) return true;
                                     const search =
@@ -3652,6 +3760,12 @@ export default function CreateTicketPage() {
                                                       0,
                                                     )}
                                                   </AvatarFallback>
+                                                  {!isResourceActive(member) && (
+                                                    <AvatarBadge
+                                                      className="bg-gray-400 dark:bg-gray-600 size-2"
+                                                      title="Inactive resource"
+                                                    />
+                                                  )}
                                                 </Avatar>
                                                 <div className="flex flex-col">
                                                   <span className="text-sm">
@@ -3743,6 +3857,52 @@ export default function CreateTicketPage() {
         </div>
       </div>
 
+      {/* Linked Pulse Update Warning Dialog */}
+      <AlertDialog
+        open={showUpdatePulseWarning}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowUpdatePulseWarning(false);
+            setPendingUpdateAction(null);
+            if (formDataSnapshot.current?.name !== undefined) {
+              handleInputChange("name", formDataSnapshot.current.name);
+            }
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Linked Pulse Records Detected</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ticket is linked to {updatePulseCount} Pulse record(s). Updating its name or details will also update the linked Pulse records. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowUpdatePulseWarning(false);
+                setPendingUpdateAction(null);
+                if (formDataSnapshot.current?.name !== undefined) {
+                  handleInputChange("name", formDataSnapshot.current.name);
+                }
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const action = pendingUpdateAction;
+                setShowUpdatePulseWarning(false);
+                setPendingUpdateAction(null);
+                if (action) await action();
+              }}
+            >
+              OK / Update Both
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete confirmation dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
@@ -3753,10 +3913,19 @@ export default function CreateTicketPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Ticket</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete ticket{" "}
-              <strong>{ticketViewData?.code || formData.name || ""}</strong>? This action cannot be
-              undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to delete ticket{" "}
+                  <strong>{ticketViewData?.code || formData.name || ""}</strong>? This action cannot be
+                  undone.
+                </p>
+                {deletePulseCheck.isLinked && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                    Warning: This ticket is linked to {deletePulseCheck.linkedPulseCount} Pulse record(s) across {deletePulseCheck.linkedPulseWeekCount} Pulse Week(s). Deleting this ticket will permanently delete its linked Pulse records and recalculate the corresponding Pulse Week totals.
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

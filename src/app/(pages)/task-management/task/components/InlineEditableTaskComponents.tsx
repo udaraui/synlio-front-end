@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+import { cn, isResourceActive } from '@/lib/utils';
 import {
   Popover,
   PopoverContent,
@@ -39,7 +39,18 @@ import {
   patchTaskAssignee,
   patchTaskCoAssignees,
 } from '@/services/task-management/task.service';
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from '@/components/ui/avatar';
+import { checkLinkedPulse } from '@/services/pulse/pulse.service';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from '@/components/ui/avatar';
 
 // ─── User Avatar ─────────────────────────────────────────────────────────────
 
@@ -48,11 +59,13 @@ export const UserAvatar = ({
   lastName,
   profilePic,
   size = 'sm',
+  isInactive = false,
 }: {
   firstName?: string;
   lastName?: string;
   profilePic?: string | null;
   size?: 'xs' | 'sm' | 'md';
+  isInactive?: boolean;
 }) => {
   const sizeClasses = { xs: 'w-5 h-5 text-[10px]', sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm' };
   const fName = (firstName || '').trim();
@@ -85,6 +98,12 @@ export const UserAvatar = ({
     <Avatar key={finalProfilePic || initials} className={sizeClasses[size]}>
       {finalProfilePic && <AvatarImage src={finalProfilePic} alt={`${firstName} ${lastName}`} className="object-cover" />}
       <AvatarFallback className="text-xs font-semibold dark:text-black">{initials}</AvatarFallback>
+      {isInactive && (
+        <AvatarBadge
+          className="bg-gray-400 dark:bg-gray-600 size-2"
+          title="Inactive resource"
+        />
+      )}
     </Avatar>
   );
 };
@@ -135,10 +154,17 @@ export function ResourceRow({
   }, [r.id, fetchedSkills]);
 
   const skills = fetchedSkills ?? [];
+  const isInactive = !isResourceActive(r);
 
   const content = (
     <div className="flex items-center gap-2">
-      <UserAvatar firstName={r.first_name} lastName={r.last_name} profilePic={r.profile_pic} size="sm" />
+      <UserAvatar
+        firstName={r.first_name}
+        lastName={r.last_name}
+        profilePic={r.profile_pic}
+        size="sm"
+        isInactive={isInactive}
+      />
       <div className="flex flex-col">
         <span className="text-sm">{r.first_name} {r.last_name}</span>
         {r.email && <span className="text-xs text-muted-foreground">{r.email}</span>}
@@ -199,19 +225,29 @@ export function ResourceRow({
 
 interface InlineEditableTaskNameProps {
   name: string;
+  taskId?: number;
   onUpdate: (name: string) => Promise<void>;
   className?: string;
 }
 
 export function InlineEditableTaskName({
   name,
+  taskId,
   onUpdate,
   className,
 }: InlineEditableTaskNameProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(name);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPulseWarning, setShowPulseWarning] = useState(false);
+  const [linkedPulseCount, setLinkedPulseCount] = useState(0);
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    setValue(name);
+  }, [name]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -220,15 +256,10 @@ export function InlineEditableTaskName({
     }
   }, [isEditing]);
 
-  const handleSave = async () => {
-    if (value.trim() === '' || value === name) {
-      setValue(name);
-      setIsEditing(false);
-      return;
-    }
+  const executeUpdate = async (trimmedName: string) => {
     setIsLoading(true);
     try {
-      await onUpdate(value.trim());
+      await onUpdate(trimmedName);
       setIsEditing(false);
     } catch {
       setValue(name);
@@ -236,7 +267,56 @@ export function InlineEditableTaskName({
       toast.error('Failed to update task name', undefined, 'bottom-right');
     } finally {
       setIsLoading(false);
+      setPendingName(null);
+      setShowPulseWarning(false);
+      savingRef.current = false;
     }
+  };
+
+  const handleSave = async () => {
+    if (savingRef.current) return;
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed === name) {
+      setValue(name);
+      setIsEditing(false);
+      return;
+    }
+    savingRef.current = true;
+    setIsLoading(true);
+    try {
+      if (taskId) {
+        const pulseCheck = await checkLinkedPulse('Task', taskId);
+        if (pulseCheck.isLinked) {
+          setLinkedPulseCount(pulseCheck.linkedPulseCount);
+          setPendingName(trimmed);
+          setShowPulseWarning(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+      await executeUpdate(trimmed);
+    } catch {
+      setValue(name);
+      setIsEditing(false);
+      setIsLoading(false);
+      savingRef.current = false;
+      toast.error('Failed to update task name', undefined, 'bottom-right');
+    }
+  };
+
+  const handleCancelPulseWarning = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setShowPulseWarning(false);
+    setPendingName(null);
+    setValue(name);
+    setIsEditing(false);
+    savingRef.current = false;
+  };
+
+  const handleConfirmPulseWarning = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!pendingName) return;
+    await executeUpdate(pendingName);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -244,40 +324,64 @@ export function InlineEditableTaskName({
     else if (e.key === 'Escape') { setValue(name); setIsEditing(false); }
   };
 
-  if (isEditing) {
-    return (
-      <div className="relative flex items-center w-full">
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          disabled={isLoading}
-          onClick={(e) => e.stopPropagation()}
-          className={cn(
-            'bg-transparent border-0 outline-none focus:outline-none focus:ring-0 m-0 p-0 text-sm font-semibold w-full leading-tight',
-            isLoading && 'pr-5',
-            className,
-          )}
-          style={{ boxShadow: 'inset 0 -2px 0 0 var(--primary)', padding: 0, margin: 0, border: 'none' }}
-        />
-        {isLoading && (
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-0 flex-shrink-0" />
-        )}
-      </div>
-    );
-  }
-
   return (
-    <span
-      className={cn('cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors block', className)}
-      onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-      title="Click to edit"
-    >
-      {name}
-    </span>
+    <>
+      {isEditing ? (
+        <div className="relative flex items-center w-full">
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'bg-transparent border-0 outline-none focus:outline-none focus:ring-0 m-0 p-0 text-sm font-semibold w-full leading-tight',
+              isLoading && 'pr-5',
+              className,
+            )}
+            style={{ boxShadow: 'inset 0 -2px 0 0 var(--primary)', padding: 0, margin: 0, border: 'none' }}
+          />
+          {isLoading && (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-0 flex-shrink-0" />
+          )}
+        </div>
+      ) : (
+        <span
+          className={cn('cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors block', className)}
+          onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+          title="Click to edit"
+        >
+          {name}
+        </span>
+      )}
+
+      <AlertDialog
+        open={showPulseWarning}
+        onOpenChange={(open) => {
+          if (!open) handleCancelPulseWarning();
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Linked Pulse Records Detected</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task is linked to {linkedPulseCount} Pulse record(s). Updating its name or details will also update the linked Pulse records. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelPulseWarning}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmPulseWarning}>
+              OK / Update Both
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -577,7 +681,26 @@ export function InlineEditableTaskAssignee({
 
   const filteredResources = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return resources
+    const combinedMap = new Map<number, any>();
+    if (assignee?.id) {
+      combinedMap.set(Number(assignee.id), {
+        id: assignee.id,
+        first_name: assignee.first_name || assignee.firstName || assignee.userFirstName || '',
+        last_name: assignee.last_name || assignee.lastName || assignee.userLastName || '',
+        email: assignee.email || assignee.userEmail || '',
+        profile_pic: assignee.profile_pic || assignee.profilePic || assignee.userProfilePicture || null,
+        active_status: isResourceActive(assignee),
+      });
+    }
+    for (const r of resources) {
+      if (r && r.id != null) {
+        const existing = combinedMap.get(Number(r.id));
+        combinedMap.set(Number(r.id), existing ? { ...existing, ...r } : r);
+      }
+    }
+
+    return Array.from(combinedMap.values())
+      .filter((r) => assignee?.id === r.id || isResourceActive(r))
       .filter((r) =>
         `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
         r.email?.toLowerCase().includes(q)
@@ -767,9 +890,31 @@ export function InlineEditableTaskCoAssignees({
 
   useEffect(() => { if (!isOpen) setSearchQuery(''); }, [isOpen]);
 
+  const mergedPoolResources = useMemo(() => {
+    const combinedMap = new Map<number, any>();
+    for (const c of coAssignees) {
+      if (c && c.id != null) {
+        combinedMap.set(Number(c.id), {
+          ...c,
+          first_name: c.first_name || c.firstName || '',
+          last_name: c.last_name || c.lastName || '',
+          profile_pic: c.profile_pic || c.profilePic || null,
+          active_status: isResourceActive(c),
+        });
+      }
+    }
+    for (const r of resources) {
+      if (r && r.id != null) {
+        const existing = combinedMap.get(Number(r.id));
+        combinedMap.set(Number(r.id), existing ? { ...existing, ...r } : r);
+      }
+    }
+    return Array.from(combinedMap.values());
+  }, [resources, coAssignees]);
+
   const localCoAssignees = useMemo(() => {
     const originalOrder = new Map(coAssignees.map((c, i) => [c.id, i]));
-    const selected = resources.filter((r) => selectedIds.includes(r.id));
+    const selected = mergedPoolResources.filter((r) => selectedIds.includes(r.id));
     selected.sort((a, b) => {
       const indexA = originalOrder.has(a.id) ? originalOrder.get(a.id)! : Infinity;
       const indexB = originalOrder.has(b.id) ? originalOrder.get(b.id)! : Infinity;
@@ -777,7 +922,7 @@ export function InlineEditableTaskCoAssignees({
       return (a.first_name || '').localeCompare(b.first_name || '');
     });
     return selected;
-  }, [resources, selectedIds, coAssignees]);
+  }, [mergedPoolResources, selectedIds, coAssignees]);
 
   const handleOpenChange = async (open: boolean) => {
     if (!open && !isLoading) {
@@ -811,7 +956,8 @@ export function InlineEditableTaskCoAssignees({
 
   const filteredResources = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return resources
+    return mergedPoolResources
+      .filter((r) => selectedIds.includes(r.id) || isResourceActive(r))
       .filter((r) => `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q))
       .sort((a, b) => {
         const aSelected = selectedIds.includes(a.id) ? 1 : 0;
@@ -826,7 +972,7 @@ export function InlineEditableTaskCoAssignees({
         const bName = b.first_name || '';
         return aName.localeCompare(bName);
       });
-  }, [resources, searchQuery, selectedIds, taskMembers]);
+  }, [mergedPoolResources, searchQuery, selectedIds, taskMembers]);
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>

@@ -314,6 +314,12 @@ const GridView: React.FC<GridViewProps> = ({
                           email: r.email,
                           profile_pic: r.profile_pic,
                           working_hours: 0,
+                          active_status:
+                            typeof r.active === 'boolean'
+                              ? r.active
+                              : typeof (r as any).active_status === 'boolean'
+                                ? (r as any).active_status
+                                : true,
                         }))}
                         onChange={(newResources) => handleAddResources(resourcePool, newResources)}
                         showTrigger={true}

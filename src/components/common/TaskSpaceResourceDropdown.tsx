@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, isResourceActive } from '@/lib/utils';
 import {
   Popover,
   PopoverContent,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/command';
 import {
   Avatar,
+  AvatarBadge,
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
@@ -124,6 +125,8 @@ export interface TaskSpaceResourceDropdownProps {
   disabledResourceIds?: Set<number>;
   /** Whether to use generic ticket/company APIs instead of task space ones */
   spaceType?: 'task' | 'ticket';
+  /** Already-assigned resource objects so inactive assigned resources remain visible in the pop-up */
+  assignedResources?: any[];
 }
 
 
@@ -142,6 +145,7 @@ export function TaskSpaceResourceDropdown({
   skipApi = false,
   disabledResourceIds = new Set<number>(),
   spaceType = 'task',
+  assignedResources = [],
 }: TaskSpaceResourceDropdownProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [dropdownTab, setDropdownTab] = useState<'search' | 'groups' | 'space'>(
@@ -280,7 +284,9 @@ export function TaskSpaceResourceDropdown({
   const handleToggleAllInPool = async (pool: any) => {
     const poolResources: any[] = pool.resources ?? [];
     const addedInPool = poolResources.filter((r) => selectedResourceIds.has(r.id));
-    const notAddedInPool = poolResources.filter((r) => !selectedResourceIds.has(r.id));
+    const notAddedInPool = poolResources.filter(
+      (r) => !selectedResourceIds.has(r.id) && isResourceActive(r),
+    );
 
     setProcessingPoolId(pool.id);
     try {
@@ -294,7 +300,7 @@ export function TaskSpaceResourceDropdown({
           toast.success(`Removed ${addedInPool.length} resource${addedInPool.length !== 1 ? 's' : ''}`);
         }
       } else {
-        // None added → add all
+        // None added → add all active resources
         for (const r of notAddedInPool) {
           if (!skipApi) await addResourceToTaskSpace(taskSpaceId, r.id);
           onResourceAdded(r);
@@ -324,22 +330,25 @@ export function TaskSpaceResourceDropdown({
 
   // ── Space resources tab: local filter ─────────────────────────────────────
   const [spaceSearch, setSpaceSearch] = useState('');
-  const filteredSpaceResources = (preloadedResources ?? []).filter((r) => {
-    const q = spaceSearch.toLowerCase();
-    if (!q) return true;
-    return (
-      `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
-      r.email?.toLowerCase().includes(q) ||
-      (r.skills ?? []).some((s: string) => s.toLowerCase().includes(q))
-    );
-  }).sort((a, b) => {
-    const aSelected = selectedResourceIds.has(a.id) ? -1 : 0;
-    const bSelected = selectedResourceIds.has(b.id) ? -1 : 0;
-    if (aSelected !== bSelected) return aSelected - bSelected;
-    const aName = a.first_name || '';
-    const bName = b.first_name || '';
-    return aName.localeCompare(bName);
-  });
+  const filteredSpaceResources = (preloadedResources ?? [])
+    .filter((r) => selectedResourceIds.has(r.id) || isResourceActive(r))
+    .filter((r) => {
+      const q = spaceSearch.toLowerCase();
+      if (!q) return true;
+      return (
+        `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
+        r.email?.toLowerCase().includes(q) ||
+        (r.skills ?? []).some((s: string) => s.toLowerCase().includes(q))
+      );
+    })
+    .sort((a, b) => {
+      const aSelected = selectedResourceIds.has(a.id) ? -1 : 0;
+      const bSelected = selectedResourceIds.has(b.id) ? -1 : 0;
+      if (aSelected !== bSelected) return aSelected - bSelected;
+      const aName = a.first_name || '';
+      const bName = b.first_name || '';
+      return aName.localeCompare(bName);
+    });
 
   const defaultTrigger = (
     <Button size="sm" variant="outline" className="h-8 gap-1" disabled={disabled}>
@@ -407,19 +416,37 @@ export function TaskSpaceResourceDropdown({
                   Searching...
                 </div>
               )}
-              {!isSearching && resourceResults.length === 0 && (
-                <CommandEmpty>No resources found</CommandEmpty>
-              )}
-              {!isSearching && resourceResults.length > 0 && (() => {
+              {!isSearching && (() => {
+                // Merge any already-assigned resources not present in resourceResults so inactive assigned resources remain visible
+                const combinedMap = new Map<number, any>();
+                for (const ar of assignedResources) {
+                  if (ar && ar.id != null && selectedResourceIds.has(ar.id)) {
+                    combinedMap.set(Number(ar.id), ar);
+                  }
+                }
+                for (const r of resourceResults) {
+                  if (r && r.id != null) {
+                    const existing = combinedMap.get(Number(r.id));
+                    combinedMap.set(Number(r.id), existing ? { ...existing, ...r } : r);
+                  }
+                }
+                const mergedResources = Array.from(combinedMap.values()).filter(
+                  (r) => selectedResourceIds.has(r.id) || isResourceActive(r),
+                );
+
+                if (mergedResources.length === 0) {
+                  return <CommandEmpty>No resources found</CommandEmpty>;
+                }
+
                 // Client-side skill filter on top of API results
                 const q = resourceSearch.trim().toLowerCase();
                 const filtered = q
-                  ? resourceResults.filter((r) =>
+                  ? mergedResources.filter((r) =>
                     `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
                     r.email?.toLowerCase().includes(q) ||
                     (r.skills ?? []).some((s: string) => s.toLowerCase().includes(q)),
                   )
-                  : resourceResults;
+                  : mergedResources;
                 return (
                   <CommandGroup
                     heading={resourceSearch.trim() ? 'Search results' : 'Resources'}
@@ -440,6 +467,7 @@ export function TaskSpaceResourceDropdown({
                         const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
                         const isDisabled = disabledResourceIds.has(r.id);
                         const isToggling = togglingId === r.id;
+                        const isInactive = !isResourceActive(r);
                         const prevR = arr[index - 1];
                         const showDivider = index > 0 && selectedResourceIds.has(prevR?.id) && !isAdded;
                         const items: React.ReactNode[] = [];
@@ -472,6 +500,12 @@ export function TaskSpaceResourceDropdown({
                               <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
                                 {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || ''}
                               </AvatarFallback>
+                              {isInactive && (
+                                <AvatarBadge
+                                  className="bg-gray-400 dark:bg-gray-600 size-2"
+                                  title="Inactive resource"
+                                />
+                              )}
                             </Avatar>
                             <SkillsHoverPopover skills={r.skills ?? []} emptyText="No skills">
                               <div className="space-y-0.5">
@@ -563,12 +597,15 @@ export function TaskSpaceResourceDropdown({
                   return (
                     <div className="overflow-y-auto flex-1">
                       {displayPools.map((pool) => {
-                        const addedInPool = (pool.resources as any[]).filter((r) =>
+                        const eligiblePoolResources = ((pool.resources ?? []) as any[]).filter(
+                          (r) => selectedResourceIds.has(r.id) || isResourceActive(r),
+                        );
+                        const addedInPool = eligiblePoolResources.filter((r) =>
                           selectedResourceIds.has(r.id),
                         );
                         const allAdded =
-                          pool.resources.length > 0 &&
-                          addedInPool.length === pool.resources.length;
+                          eligiblePoolResources.length > 0 &&
+                          addedInPool.length === eligiblePoolResources.length;
                         const someAdded = addedInPool.length > 0 && !allAdded;
                         const isProcessingPool = processingPoolId === pool.id;
 
@@ -588,7 +625,7 @@ export function TaskSpaceResourceDropdown({
                                   ref={(el) => {
                                     if (el) el.indeterminate = someAdded;
                                   }}
-                                  disabled={pool.resources.length === 0}
+                                  disabled={eligiblePoolResources.length === 0}
                                   onChange={() => handleToggleAllInPool(pool)}
                                   className="h-3.5 w-3.5 rounded cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
                                   title={
@@ -601,7 +638,7 @@ export function TaskSpaceResourceDropdown({
                               <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                 <span className="text-xs font-semibold truncate">{pool.name}</span>
                                 <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                                  ({(pool.resources as any[]).length})
+                                  ({eligiblePoolResources.length})
                                 </span>
                                 {/*{addedInPool.length > 0 && (*/}
                                 {/*  <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full flex-shrink-0">*/}
@@ -612,19 +649,19 @@ export function TaskSpaceResourceDropdown({
                             </div>
 
                             {/* Resources in this pool */}
-                            {pool.resources.length === 0 ? (
+                            {eligiblePoolResources.length === 0 ? (
                               <p className="px-3 py-2 text-xs text-muted-foreground italic">
-                                No resources in this group
+                                No active resources in this group
                               </p>
                             ) : (() => {
                               const rq = groupResourceFilter.trim().toLowerCase();
                               const visibleResources = (rq
-                                ? (pool.resources as any[]).filter((r) =>
+                                ? eligiblePoolResources.filter((r) =>
                                   `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(rq) ||
                                   r.email?.toLowerCase().includes(rq) ||
                                   (r.skills ?? []).some((s: string) => s.toLowerCase().includes(rq)),
                                 )
-                                : [...(pool.resources as any[])]
+                                : [...eligiblePoolResources]
                               ).sort((a, b) => {
                                 const aName = a.first_name || '';
                                 const bName = b.first_name || '';
@@ -641,6 +678,7 @@ export function TaskSpaceResourceDropdown({
                                 const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
                                 const isDisabled = disabledResourceIds.has(r.id);
                                 const isToggling = togglingId === r.id;
+                                const isInactive = !isResourceActive(r);
                                 return (
                                   <div
                                     key={r.id}
@@ -675,6 +713,12 @@ export function TaskSpaceResourceDropdown({
                                       <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
                                         {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                                       </AvatarFallback>
+                                      {isInactive && (
+                                        <AvatarBadge
+                                          className="bg-gray-400 dark:bg-gray-600 size-2"
+                                          title="Inactive resource"
+                                        />
+                                      )}
                                     </Avatar>
                                     <SkillsHoverPopover skills={r.skills ?? []}>
                                       <div className="space-y-0.5">
@@ -730,6 +774,7 @@ export function TaskSpaceResourceDropdown({
                     const isAdded = selectedResourceIds.has(r.id) || disabledResourceIds.has(r.id);
                     const isDisabled = disabledResourceIds.has(r.id);
                     const isToggling = togglingId === r.id;
+                    const isInactive = !isResourceActive(r);
                     const prevR = filteredSpaceResources[index - 1];
                     const showDivider = index > 0 && selectedResourceIds.has(prevR?.id) && !isAdded;
                     const items: React.ReactNode[] = [];
@@ -762,6 +807,12 @@ export function TaskSpaceResourceDropdown({
                           <AvatarFallback className="bg-primary text-white dark:text-black text-xs font-semibold">
                             {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                           </AvatarFallback>
+                          {isInactive && (
+                            <AvatarBadge
+                              className="bg-gray-400 dark:bg-gray-600 size-2"
+                              title="Inactive resource"
+                            />
+                          )}
                         </Avatar>
                         <SkillsHoverPopover skills={r.skills ?? []} emptyText="No skills">
                           <div className="space-y-0.5">

@@ -122,6 +122,7 @@ export function TicketSpaceForm({
         // Get active company from localStorage
         const activeCompany = JSON.parse(localStorage.getItem('active_company') || '{}');
         const companyId = activeCompany?.companyId;
+        let loadedDivisions: { id: number; division: string }[] = [];
 
         if (companyId) {
           if (isMounted) {
@@ -132,10 +133,15 @@ export function TicketSpaceForm({
           try {
             const response = await getAllDivisionsByCompanyId(companyId);
             const divisionsData = response.data || [];
+            loadedDivisions = divisionsData;
 
             if (isMounted) {
               setDivisions(divisionsData);
-              if (divisionsData.length === 1 && type === 'create') {
+              const currentDivisionId = form.getValues('divisionId');
+              if (
+                divisionsData.length === 1 &&
+                (!currentDivisionId || Number(currentDivisionId) <= 0)
+              ) {
                 const divisionId = divisionsData[0].id;
                 form.setValue('divisionId', divisionId, {
                   shouldValidate: true,
@@ -167,11 +173,13 @@ export function TicketSpaceForm({
             const ticketSpace = response.data;
 
             if (isMounted) {
+              const fallbackDivisionId =
+                loadedDivisions.length === 1 ? loadedDivisions[0].id : 0;
               form.reset({
                 name: ticketSpace.name,
                 prefix: ticketSpace.prefix,
                 description: ticketSpace.description || '',
-                divisionId: ticketSpace.divisionId,
+                divisionId: ticketSpace.divisionId || fallbackDivisionId,
               });
               setPrefixManuallyEdited(true); // Prevent prefix auto-generation in edit mode
             }
@@ -200,6 +208,18 @@ export function TicketSpaceForm({
       isMounted = false;
     };
   }, [open, type, id, form]);
+
+  // Auto-select single division for both Create and Update forms when divisionId is empty/0
+  useEffect(() => {
+    if (!open || isInitializing || divisions.length !== 1) return;
+    const currentDivisionId = form.getValues('divisionId');
+    if (!currentDivisionId || Number(currentDivisionId) <= 0) {
+      form.setValue('divisionId', divisions[0].id, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [divisions, open, isInitializing, form]);
 
   const checkPrefixExists = useCallback(
     async (prefix: string) => {

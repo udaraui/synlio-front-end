@@ -55,7 +55,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Trash2, Plus, ArrowLeft, Save, Camera, User, ChevronDown, CheckCircle2, Loader2,
   Shapes,
@@ -288,7 +288,14 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
         getAllResourcesByCompanyOnly(companyId)
       ]);
 
-      setDivisions(divRes.data || []);
+      const fetchedDivisions = divRes.data || [];
+      setDivisions(fetchedDivisions);
+      if (fetchedDivisions.length === 1 && !form.getValues('division')) {
+        form.setValue('division', fetchedDivisions[0].id, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
       setCalendars(calRes.data || []);
       setSkillCategories(catRes.data || []);
       setCurrencies(currRes.data || []);
@@ -310,12 +317,21 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
     }
   }, [open, fetchDropdownData]);
 
-  // Auto select division if only one exists
+  // Auto select division if only one exists (both create and update forms when empty/null)
   useEffect(() => {
-    if (divisions.length === 1 && !form.getValues('division')) {
-      form.setValue('division', divisions[0].id, { shouldValidate: true });
+    const currentDivision = form.getValues('division');
+    if (
+      open &&
+      !loadingStates.main &&
+      divisions.length === 1 &&
+      (!currentDivision || Number(currentDivision) <= 0)
+    ) {
+      form.setValue('division', divisions[0].id, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     }
-  }, [divisions, form]);
+  }, [divisions, open, loadingStates.main, form]);
 
   // Auto select calendar if only one exists
   useEffect(() => {
@@ -500,7 +516,9 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
         mobile: data.mobile ? String(data.mobile) : '',
         working_hours: data.working_hours || 8,
         profile_pic: data.profile_pic || undefined,
-        division: data.division?.id,
+        division:
+          data.division?.id ||
+          (divisions.length === 1 ? divisions[0].id : undefined),
         calendar: data.calendar?.id,
         skills: mappedSkills,
         resourceCost: {
@@ -971,7 +989,13 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                     <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">No resources found</CommandEmpty>
                                     <CommandGroup>
                                       {resources
-                                        .filter(r => r.active_status && r.id !== resourceId)
+                                        .filter(r => (r.active_status || field.value === r.id) && r.id !== resourceId)
+                                        .sort((a, b) => {
+                                          const aSel = field.value === a.id ? 1 : 0;
+                                          const bSel = field.value === b.id ? 1 : 0;
+                                          if (aSel !== bSel) return bSel - aSel;
+                                          return (a.first_name || '').localeCompare(b.first_name || '');
+                                        })
                                         .map((r) => {
                                           const isSelected = field.value === r.id;
                                           return (
@@ -989,6 +1013,12 @@ export function ResourceMultiStepForm({ open, onOpenChange, onResourceUpdate, ty
                                                 <AvatarFallback className="bg-primary text-white text-xs font-semibold">
                                                   {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                                                 </AvatarFallback>
+                                                {!r.active_status && (
+                                                  <AvatarBadge
+                                                    className="bg-gray-400 dark:bg-gray-600 size-2"
+                                                    title="Inactive resource"
+                                                  />
+                                                )}
                                               </Avatar>
                                               <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                 <p className="text-sm font-medium text-foreground truncate leading-tight">

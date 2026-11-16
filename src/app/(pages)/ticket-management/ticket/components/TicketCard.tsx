@@ -202,6 +202,7 @@ export default function TicketCard({
           <span className="inline-flex items-center gap-1 w-full">
             <InlineEditableTicketName
               name={ticket.name}
+              ticketId={ticketId}
               onUpdate={async (name) => {
                 const { patchTicketName } = await import('@/services/ticket-management/ticket.service');
                 const updatedTicket = await patchTicketName(ticketId, name, ticket.name);

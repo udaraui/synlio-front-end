@@ -247,6 +247,7 @@ export default function TicketTableView({
                       <div className="flex-1 min-w-0 mx-1">
                         <InlineEditableTicketName
                           name={ticket.name}
+                          ticketId={ticket.id}
                           onUpdate={async (name) => {
                             const { patchTicketName } = await import('@/services/ticket-management/ticket.service');
                             const updatedTicket = await patchTicketName(ticket.id, name, ticket.name);

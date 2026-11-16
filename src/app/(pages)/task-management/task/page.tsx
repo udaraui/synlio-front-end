@@ -88,6 +88,10 @@ import {
   getBulkTaskRelations,
   getTaskById,
 } from "@/services/task-management/task.service";
+import {
+  checkLinkedPulse,
+  CheckLinkedPulseResponse,
+} from "@/services/pulse/pulse.service";
 import { exportTasksToExcel } from "@/services/task-management/task-export.service";
 import {
   searchTaskSpaces,
@@ -407,6 +411,29 @@ function Page() {
     resources: [],
   });
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [deletePulseCheck, setDeletePulseCheck] = useState<CheckLinkedPulseResponse>({
+    isLinked: false,
+    linkedPulseCount: 0,
+    linkedPulseWeekCount: 0,
+  });
+
+  useEffect(() => {
+    if (!deleteConfirmId) {
+      setDeletePulseCheck({
+        isLinked: false,
+        linkedPulseCount: 0,
+        linkedPulseWeekCount: 0,
+      });
+      return;
+    }
+    let cancelled = false;
+    checkLinkedPulse("Task", deleteConfirmId).then((res) => {
+      if (!cancelled) setDeletePulseCheck(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteConfirmId]);
   const tableViewHandleRef = React.useRef<{
     notifyTaskDeleted: (id: number) => void;
   } | null>(null);
@@ -4184,9 +4211,18 @@ function Page() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this task? This action cannot be
-              undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to delete this task? This action cannot be
+                  undone.
+                </p>
+                {deletePulseCheck.isLinked && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                    Warning: This task is linked to {deletePulseCheck.linkedPulseCount} Pulse record(s) across {deletePulseCheck.linkedPulseWeekCount} Pulse Week(s). Deleting this task will permanently delete its linked Pulse records and recalculate the corresponding Pulse Week totals.
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -19,7 +19,7 @@ import { usePrivilegeGuard } from "@/hooks/use-privilege-guard";
 import { safeParse } from "@/services/auth/auth-service";
 import { getAllCompany } from "@/services/company-management/company-services";
 import CalendarFormDrawer from "./form_drawer";
-import DeleteModal from "@/components/DeleteModal";
+import DeleteModal, { showDeleteBlockedToast } from "@/components/DeleteModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaginationControls } from "@/components/common/PaginationControls";
@@ -725,7 +725,23 @@ const CalendarList: React.FC<CalendarListProps> = () => {
             setDeletingId(null);
             fetchCalendars();
           }}
-          onDelete={() => deleteCalendar(deletingId || 0)}
+          onDelete={async () => {
+            try {
+              const res = await deleteCalendar(deletingId || 0);
+              if (res && (!res.data?.status || res.data.status < 400)) {
+                toast.success(res?.data?.message || "Calendar deleted successfully.");
+              } else if (res?.data) {
+                showDeleteBlockedToast(
+                  { response: { data: res.data } },
+                  "Failed to delete calendar.",
+                );
+              }
+              return res;
+            } catch (error: unknown) {
+              showDeleteBlockedToast(error, "Failed to delete calendar.");
+              throw error;
+            }
+          }}
           id={deletingId || 0}
           title="Delete Calendar"
           description="Are you sure you want to delete this calendar"

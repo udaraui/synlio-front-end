@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Check, Loader2, Pencil, Plus, Save, Trash, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isResourceActive } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Popover,
@@ -17,7 +17,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   createTmChecklist,
   deleteTmChecklist,
@@ -50,6 +50,8 @@ export interface ChecklistResource {
   last_name?: string;
   email?: string;
   profile_pic?: string | null;
+  active_status?: boolean;
+  isActive?: boolean;
 }
 
 /**
@@ -132,14 +134,16 @@ function ChecklistAssigneePicker({
   const displayName = selected ? fullNameOf(selected) : valueName ?? '';
   const displayPic = selected ? selected.profile_pic : valueProfilePic;
 
-  const filtered = resources.filter((r) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      fullNameOf(r).toLowerCase().startsWith(q) ||
-      !!r.email?.toLowerCase().startsWith(q)
-    );
-  });
+  const filtered = resources
+    .filter((r) => value === r.id || isResourceActive(r))
+    .filter((r) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        fullNameOf(r).toLowerCase().startsWith(q) ||
+        !!r.email?.toLowerCase().startsWith(q)
+      );
+    });
 
   const sorted = [...filtered].sort((a, b) => {
     const aSelected = value === a.id ? 1 : 0;
@@ -257,6 +261,12 @@ function ChecklistAssigneePicker({
                             <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                               {initialsOf(r)}
                             </AvatarFallback>
+                            {!isResourceActive(r) && (
+                              <AvatarBadge
+                                className="bg-gray-400 dark:bg-gray-600 size-2"
+                                title="Inactive resource"
+                              />
+                            )}
                           </Avatar>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm truncate leading-tight">

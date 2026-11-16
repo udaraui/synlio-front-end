@@ -36,7 +36,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { isResourceActive } from '@/lib/utils';
 import RichTextEditor from '@/components/common/RichTextEditor';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -141,6 +142,10 @@ import { createResourceLog, deleteResourceLog, getResourceTaskLogHistory, update
 import { AssigneeType } from "@/enums/assignee-type.enum";
 import { setMeetingActionState } from '@/services/common/meetings-integration.service';
 import { linkTaskToActivity } from '@/services/pulse/activity.service';
+import {
+  checkLinkedPulse,
+  CheckLinkedPulseResponse,
+} from '@/services/pulse/pulse.service';
 import LinkWorkItemDialog from '@/components/link-management/LinkWorkItemDialog';
 import {
   getWorkItemLinks,
@@ -926,6 +931,19 @@ export default function TaskFormPage() {
 
   // -- Submit -----------------------------------------------------------------
 
+  const executeTaskUpdate = async (payload: any) => {
+    try {
+      setIsSaving(true);
+      await updateTask(Number(taskId), payload);
+      toast.success('Task updated');
+      router.push(`/task-management/task${formData.taskSpaceId ? `?taskSpaceId=${formData.taskSpaceId}${meetingId ? `&meetingId=${meetingId}` : ''}` : ''}`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update task');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) { toast.error('Title is required'); return; }
@@ -942,6 +960,22 @@ export default function TaskFormPage() {
     try {
       setIsSaving(true);
       if (isEditMode) {
+        if (
+          taskId &&
+          (formData.name.trim() !== formDataSnapshot.current?.name ||
+            formData.taskSpaceId !== formDataSnapshot.current?.taskSpaceId)
+        ) {
+          const pulseCheck = await checkLinkedPulse('Task', Number(taskId));
+          if (pulseCheck.isLinked) {
+            setUpdatePulseCount(pulseCheck.linkedPulseCount);
+            setPendingUpdateAction(() => async () => {
+              await executeTaskUpdate(payload);
+            });
+            setShowUpdatePulseWarning(true);
+            setIsSaving(false);
+            return;
+          }
+        }
         await updateTask(Number(taskId), payload);
         toast.success('Task updated');
         router.push(`/task-management/task${formData.taskSpaceId ? `?taskSpaceId=${formData.taskSpaceId}${meetingId ? `&meetingId=${meetingId}` : ''}` : ''}`);
@@ -1016,6 +1050,33 @@ export default function TaskFormPage() {
       : '/task-management/task';
     router.push(base);
   };
+
+  const [deletePulseCheck, setDeletePulseCheck] = useState<CheckLinkedPulseResponse>({
+    isLinked: false,
+    linkedPulseCount: 0,
+    linkedPulseWeekCount: 0,
+  });
+  const [showUpdatePulseWarning, setShowUpdatePulseWarning] = useState(false);
+  const [updatePulseCount, setUpdatePulseCount] = useState(0);
+  const [pendingUpdateAction, setPendingUpdateAction] = useState<(() => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    if (!isDeleteDialogOpen || !taskId) {
+      setDeletePulseCheck({
+        isLinked: false,
+        linkedPulseCount: 0,
+        linkedPulseWeekCount: 0,
+      });
+      return;
+    }
+    let cancelled = false;
+    checkLinkedPulse('Task', Number(taskId)).then((res) => {
+      if (!cancelled) setDeletePulseCheck(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDeleteDialogOpen, taskId]);
 
   const handleDeleteTask = async () => {
     if (!taskId) return;
@@ -1143,6 +1204,9 @@ export default function TaskFormPage() {
   const allKnownResources: any[] = (() => {
     const base = config?.resources?.length ? config.resources : Object.values(taskViewResourceById);
     const map = new Map<number, any>(base.map((r: any) => [r.id, r]));
+    Object.values(taskViewResourceById).forEach((r: any) => {
+      if (r && r.id != null && !map.has(r.id)) map.set(r.id, r);
+    });
     Object.values(memberResourceCache).forEach((r: any) => map.set(r.id, r));
     return Array.from(map.values());
   })();
@@ -1343,13 +1407,23 @@ export default function TaskFormPage() {
                     if (!isEditMode || !taskId) return;
                     const name = e.target.value.trim();
                     if (!name || name === formDataSnapshot.current?.name) return;
-                    try {
-                      beginAutoSave();
-                      const res = await patchTaskName(Number(taskId), name, formDataSnapshot.current?.name ?? null, updatedBy);
-                      formDataSnapshot.current = { ...formDataSnapshot.current!, name };
-                      syncMeta(res);
-                      toast.success('Title saved');
-                    } catch { endAutoSave(); toast.error('Failed to save title'); }
+                    const saveTitle = async () => {
+                      try {
+                        beginAutoSave();
+                        const res = await patchTaskName(Number(taskId), name, formDataSnapshot.current?.name ?? null, updatedBy);
+                        formDataSnapshot.current = { ...formDataSnapshot.current!, name };
+                        syncMeta(res);
+                        toast.success('Title saved');
+                      } catch { endAutoSave(); toast.error('Failed to save title'); }
+                    };
+                    const pulseCheck = await checkLinkedPulse('Task', Number(taskId));
+                    if (pulseCheck.isLinked) {
+                      setUpdatePulseCount(pulseCheck.linkedPulseCount);
+                      setPendingUpdateAction(() => saveTitle);
+                      setShowUpdatePulseWarning(true);
+                      return;
+                    }
+                    await saveTitle();
                   }}
                   required
                   className="bg-white dark:bg-gray-900 shadow-none placeholder:opacity-80"
@@ -3039,6 +3113,7 @@ export default function TaskFormPage() {
                                   <CommandEmpty>No resource found.</CommandEmpty>
                                   <CommandGroup>
                                     {filteredResources(assigneeSearch)
+                                      .filter((r) => formData.assigneeId === r.id || isResourceActive(r))
                                       .sort((a, b) => {
                                         const aSelected = formData.assigneeId === a.id ? 1 : 0;
                                         const bSelected = formData.assigneeId === b.id ? 1 : 0;
@@ -3177,6 +3252,7 @@ export default function TaskFormPage() {
                                 <CommandEmpty>No resource found.</CommandEmpty>
                                 <CommandGroup>
                                   {filteredResources(coAssigneeSearch)
+                                    .filter((r) => formData.coAssigneeIds.includes(r.id) || isResourceActive(r))
                                     .sort((a, b) => {
                                       const aSelected = formData.coAssigneeIds.includes(a.id) ? 1 : 0;
                                       const bSelected = formData.coAssigneeIds.includes(b.id) ? 1 : 0;
@@ -3261,6 +3337,7 @@ export default function TaskFormPage() {
                       <TaskSpaceResourceDropdown
                         taskSpaceId={formData.taskSpaceId}
                         selectedResourceIds={new Set(formData.memberIds)}
+                        assignedResources={rootOwnMembers}
                         onResourceAdded={(r) => {
                           setMemberResourceCache((prev) => ({ ...prev, [r.id]: r }));
                           toggleMember(r.id);
@@ -3493,6 +3570,52 @@ export default function TaskFormPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Linked Pulse Update Warning Dialog */}
+      <AlertDialog
+        open={showUpdatePulseWarning}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowUpdatePulseWarning(false);
+            setPendingUpdateAction(null);
+            if (formDataSnapshot.current?.name !== undefined) {
+              set('name', formDataSnapshot.current.name);
+            }
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Linked Pulse Records Detected</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task is linked to {updatePulseCount} Pulse record(s). Updating its name or details will also update the linked Pulse records. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowUpdatePulseWarning(false);
+                setPendingUpdateAction(null);
+                if (formDataSnapshot.current?.name !== undefined) {
+                  set('name', formDataSnapshot.current.name);
+                }
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const action = pendingUpdateAction;
+                setShowUpdatePulseWarning(false);
+                setPendingUpdateAction(null);
+                if (action) await action();
+              }}
+            >
+              OK / Update Both
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete confirmation dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
@@ -3503,10 +3626,19 @@ export default function TaskFormPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete task{" "}
-              <strong>{taskViewData?.code || formData.name || ""}</strong>? This action cannot be
-              undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to delete task{" "}
+                  <strong>{taskViewData?.code || formData.name || ""}</strong>? This action cannot be
+                  undone.
+                </p>
+                {deletePulseCheck.isLinked && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                    Warning: This task is linked to {deletePulseCheck.linkedPulseCount} Pulse record(s) across {deletePulseCheck.linkedPulseWeekCount} Pulse Week(s). Deleting this task will permanently delete its linked Pulse records and recalculate the corresponding Pulse Week totals.
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

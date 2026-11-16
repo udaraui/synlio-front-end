@@ -356,6 +356,7 @@ export default function TaskCard({
             {configData && onUpdateTask ? (
               <InlineEditableTaskName
                 name={task.name}
+                taskId={taskId}
                 onUpdate={async (name) => {
                   const updated = await patchTaskName(taskId, name, task.name);
                   await onUpdateTask(taskId, { name }, updated);

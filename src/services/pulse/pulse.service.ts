@@ -149,3 +149,30 @@ export const logTimeOnPulseRecord = async (weekId: number, pulseId: number, data
     throw error;
   }
 };
+
+export interface CheckLinkedPulseResponse {
+  isLinked: boolean;
+  linkedPulseCount: number;
+  linkedPulseWeekCount: number;
+}
+
+export const checkLinkedPulse = async (
+  postType: 'Task' | 'Ticket',
+  postId: number,
+): Promise<CheckLinkedPulseResponse> => {
+  try {
+    const response = await axiosInstance.get<CheckLinkedPulseResponse>(
+      `${API_ENDPOINTS.PULSE}/check-linked/${postType}/${postId}`,
+      { withCredentials: true },
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error checking linked pulse records:', error);
+    return {
+      isLinked: false,
+      linkedPulseCount: 0,
+      linkedPulseWeekCount: 0,
+    };
+  }
+};
+

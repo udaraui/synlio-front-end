@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, isResourceActive } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -33,8 +33,19 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { checkLinkedPulse } from "@/services/pulse/pulse.service";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Avatar Component for user profile pictures
 export const UserAvatar = ({
@@ -42,11 +53,13 @@ export const UserAvatar = ({
   lastName,
   profilePicture,
   size = "sm",
+  isInactive = false,
 }: {
   firstName?: string;
   lastName?: string;
   profilePicture?: string;
   size?: "xs" | "sm" | "md";
+  isInactive?: boolean;
 }) => {
   const sizeClasses = {
     xs: "w-5 h-5 text-[10px]",
@@ -86,6 +99,12 @@ export const UserAvatar = ({
     <Avatar key={finalProfilePic || getInitials()} className={sizeClasses[size]}>
       {finalProfilePic && <AvatarImage src={finalProfilePic} alt={`${firstName} ${lastName}`} className="object-cover" />}
       <AvatarFallback className="text-xs font-semibold dark:text-black">{getInitials()}</AvatarFallback>
+      {isInactive && (
+        <AvatarBadge
+          className="bg-gray-400 dark:bg-gray-600 size-2"
+          title="Inactive resource"
+        />
+      )}
     </Avatar>
   );
 };
@@ -259,19 +278,29 @@ export function InlineEditableTicketType({
 
 interface InlineEditableTicketNameProps {
   name: string;
+  ticketId?: number;
   onUpdate: (name: string) => Promise<void>;
   className?: string;
 }
 
 export function InlineEditableTicketName({
   name,
+  ticketId,
   onUpdate,
   className,
 }: InlineEditableTicketNameProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(name);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPulseWarning, setShowPulseWarning] = useState(false);
+  const [linkedPulseCount, setLinkedPulseCount] = useState(0);
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    setValue(name);
+  }, [name]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -280,15 +309,10 @@ export function InlineEditableTicketName({
     }
   }, [isEditing]);
 
-  const handleSave = async () => {
-    if (value.trim() === "" || value === name) {
-      setValue(name);
-      setIsEditing(false);
-      return;
-    }
+  const executeUpdate = async (trimmedName: string) => {
     setIsLoading(true);
     try {
-      await onUpdate(value.trim());
+      await onUpdate(trimmedName);
       setIsEditing(false);
     } catch {
       setValue(name);
@@ -296,7 +320,56 @@ export function InlineEditableTicketName({
       toast.error("Failed to update ticket name", undefined, "bottom-right");
     } finally {
       setIsLoading(false);
+      setPendingName(null);
+      setShowPulseWarning(false);
+      savingRef.current = false;
     }
+  };
+
+  const handleSave = async () => {
+    if (savingRef.current) return;
+    const trimmed = value.trim();
+    if (trimmed === "" || trimmed === name) {
+      setValue(name);
+      setIsEditing(false);
+      return;
+    }
+    savingRef.current = true;
+    setIsLoading(true);
+    try {
+      if (ticketId) {
+        const pulseCheck = await checkLinkedPulse("Ticket", ticketId);
+        if (pulseCheck.isLinked) {
+          setLinkedPulseCount(pulseCheck.linkedPulseCount);
+          setPendingName(trimmed);
+          setShowPulseWarning(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+      await executeUpdate(trimmed);
+    } catch {
+      setValue(name);
+      setIsEditing(false);
+      setIsLoading(false);
+      savingRef.current = false;
+      toast.error("Failed to update ticket name", undefined, "bottom-right");
+    }
+  };
+
+  const handleCancelPulseWarning = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setShowPulseWarning(false);
+    setPendingName(null);
+    setValue(name);
+    setIsEditing(false);
+    savingRef.current = false;
+  };
+
+  const handleConfirmPulseWarning = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!pendingName) return;
+    await executeUpdate(pendingName);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -309,51 +382,75 @@ export function InlineEditableTicketName({
     }
   };
 
-  if (isEditing) {
-    return (
-      <div className="relative flex items-center w-full">
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          disabled={isLoading}
-          onClick={(e) => e.stopPropagation()}
+  return (
+    <>
+      {isEditing ? (
+        <div className="relative flex items-center w-full">
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 m-0 p-0 text-sm font-semibold w-full leading-tight",
+              isLoading && "pr-5",
+              className,
+            )}
+            style={{
+              boxShadow: "inset 0 -2px 0 0 var(--primary)",
+              padding: "0",
+              margin: "0",
+              border: "none",
+            }}
+          />
+          {isLoading && (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-0 flex-shrink-0" />
+          )}
+        </div>
+      ) : (
+        <span
           className={cn(
-            "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 m-0 p-0 text-sm font-semibold w-full leading-tight",
-            isLoading && "pr-5",
+            "cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0 py-0 transition-colors block",
             className,
           )}
-          style={{
-            boxShadow: "inset 0 -2px 0 0 var(--primary)",
-            padding: "0",
-            margin: "0",
-            border: "none",
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
           }}
-        />
-        {isLoading && (
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-0 flex-shrink-0" />
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <span
-      className={cn(
-        "cursor-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-0 py-0 transition-colors block",
-        className,
+          title="Click to edit"
+        >
+          {name}
+        </span>
       )}
-      onClick={(e) => {
-        e.stopPropagation();
-        setIsEditing(true);
-      }}
-      title="Click to edit"
-    >
-      {name}
-    </span>
+
+      <AlertDialog
+        open={showPulseWarning}
+        onOpenChange={(open) => {
+          if (!open) handleCancelPulseWarning();
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Linked Pulse Records Detected</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ticket is linked to {linkedPulseCount} Pulse record(s). Updating its name or details will also update the linked Pulse records. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelPulseWarning}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmPulseWarning}>
+              OK / Update Both
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -938,6 +1035,12 @@ export function InlineEditableAssignee({
   };
 
   const filteredMembers = members
+    .filter(
+      (member) =>
+        assignee?.id === member.userId ||
+        assignee?.id === member.id ||
+        isResourceActive(member),
+    )
     .filter((member) => {
       const fullName =
         `${member.userFirstName || ""} ${member.userLastName || ""}`.toLowerCase();
@@ -1046,6 +1149,7 @@ export function InlineEditableAssignee({
                               lastName={member.userLastName}
                               profilePicture={member.userProfilePicture}
                               size="sm"
+                              isInactive={!isResourceActive(member)}
                             />
                             <div className="flex flex-col">
                               <span className="text-sm">
@@ -1187,6 +1291,7 @@ export function InlineEditableParticipants({
 
   const filteredMembers = useMemo(() => {
     return members
+      .filter((member) => selectedIds.includes(member.id) || isResourceActive(member))
       .filter((member) => {
         const fullName =
           `${member.userFirstName || ""} ${member.userLastName || ""}`.toLowerCase();
@@ -1309,6 +1414,7 @@ export function InlineEditableParticipants({
                               lastName={member.userLastName}
                               profilePicture={member.userProfilePicture}
                               size="sm"
+                              isInactive={!isResourceActive(member)}
                             />
                             <div className="flex flex-col">
                               <span className="text-sm">

@@ -113,6 +113,8 @@ export interface TicketPermission {
   profile_picture?: string;
   userProfilePicture?: string;
   roles?: any[];
+  active_status?: boolean;
+  isActive?: boolean;
 }
 
 export interface TicketSpaceCreateConfig {

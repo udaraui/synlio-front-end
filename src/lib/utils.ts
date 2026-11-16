@@ -57,3 +57,39 @@ export const getFirstLastInitials = (
   return initials || fallback;
 };
 
+export interface ActiveStatusLike {
+  active_status?: boolean | null;
+  activeStatus?: boolean | null;
+  active?: boolean | null;
+  isActive?: boolean | null;
+  is_active?: boolean | null;
+  user?: {
+    isActive?: boolean | null;
+    active_status?: boolean | null;
+    is_active?: boolean | null;
+  } | null;
+}
+
+/**
+ * Determines whether a resource, space member, or user record is active.
+ * Defaults to `true` when no explicit status flag is present on the object.
+ */
+export const isResourceActive = (
+  resource?: ActiveStatusLike | object | null,
+): boolean => {
+  if (!resource || typeof resource !== 'object') return false;
+  const r = resource as ActiveStatusLike;
+  if (typeof r.active_status === 'boolean') return r.active_status;
+  if (typeof r.activeStatus === 'boolean') return r.activeStatus;
+  if (typeof r.active === 'boolean') return r.active;
+  if (typeof r.isActive === 'boolean') return r.isActive;
+  if (typeof r.is_active === 'boolean') return r.is_active;
+  if (r.user) {
+    if (typeof r.user.isActive === 'boolean') return r.user.isActive;
+    if (typeof r.user.active_status === 'boolean') return r.user.active_status;
+    if (typeof r.user.is_active === 'boolean') return r.user.is_active;
+  }
+  return true;
+};
+
+

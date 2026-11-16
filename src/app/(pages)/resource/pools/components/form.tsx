@@ -26,9 +26,10 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { isResourceActive } from '@/lib/utils';
 
 // Services
 import { getAllDivisionsByCompanyId } from '@/services/company-management/division-services';
@@ -68,15 +69,18 @@ function OwnerSelector({
   const selectedOwner = owners.find((o) => o.id === selectedOwnerId);
 
   const filteredOwners = useMemo(() => {
-    if (!searchQuery.trim()) return owners;
+    const eligible = owners.filter(
+      (o) => o.id === selectedOwnerId || isResourceActive(o),
+    );
+    if (!searchQuery.trim()) return eligible;
     const query = searchQuery.toLowerCase();
-    return owners.filter(
+    return eligible.filter(
       (o) =>
         o.first_name?.toLowerCase().includes(query) ||
         o.last_name?.toLowerCase().includes(query) ||
         o.email?.toLowerCase().includes(query),
     );
-  }, [owners, searchQuery]);
+  }, [owners, searchQuery, selectedOwnerId]);
 
   return (
     <Popover
@@ -159,6 +163,12 @@ function OwnerSelector({
                       <AvatarFallback className="bg-primary text-white text-xs font-semibold">
                         {((o.first_name?.trim()?.[0] || '') + (o.last_name?.trim()?.[0] || '')).toUpperCase() || '?'}
                       </AvatarFallback>
+                      {!isResourceActive(o) && (
+                        <AvatarBadge
+                          className="bg-gray-400 dark:bg-gray-600 size-2"
+                          title="Inactive"
+                        />
+                      )}
                     </Avatar>
                     <div className="space-y-0.5 flex-1 min-w-0">
                       <p className="text-sm font-medium truncate leading-tight">
@@ -247,13 +257,21 @@ export default function ResourcePoolFormModal({
     setLoadingStates(prev => ({ ...prev, divisions: true }));
     try {
       const response = await getAllDivisionsByCompanyId(companyId);
-      const divs = response.data || response;
+      const divs = response.data || response || [];
       setDivisions(divs);
 
-      // Auto-select division if creating and there's only 1 division
-      if (type === 'create' && divs && divs.length === 1) {
+      // Auto-select division if there is only 1 division and current division is empty/0
+      const currentDivision = form.getValues('division');
+      if (
+        Array.isArray(divs) &&
+        divs.length === 1 &&
+        (!currentDivision || Number(currentDivision) <= 0)
+      ) {
         const divId = divs[0].id;
-        form.setValue('division', divId);
+        form.setValue('division', divId, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         loadDependencies(divId, companyId);
       }
     } catch (e) {
@@ -262,6 +280,22 @@ export default function ResourcePoolFormModal({
       setLoadingStates(prev => ({ ...prev, divisions: false }));
     }
   };
+
+  // Auto-select single division for both Create and Update forms whenever division is empty/0
+  useEffect(() => {
+    if (!open || loadingStates.main || divisions.length !== 1) return;
+    const currentDivision = form.getValues('division');
+    if (!currentDivision || Number(currentDivision) <= 0) {
+      const divId = divisions[0].id;
+      form.setValue('division', divId, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      if (loggedCompany?.companyId) {
+        loadDependencies(divId, loggedCompany.companyId);
+      }
+    }
+  }, [divisions, open, loadingStates.main, loggedCompany, form]);
 
   const loadDependencies = async (divisionId: number, companyId: number) => {
     if (!divisionId || companyId === null || companyId === undefined) return;
@@ -286,10 +320,14 @@ export default function ResourcePoolFormModal({
       const response = await getById(id);
       const poolData = response.data || response;
       const companyId = poolData.company?.id || loggedCompany?.companyId;
-      const divisionId = poolData.division?.id;
+      const divisionId =
+        poolData.division?.id ||
+        (divisions.length === 1 ? divisions[0].id : 0);
 
-      if (divisionId && companyId) {
-        await loadDependencies(divisionId, companyId);
+      if (companyId) {
+        if (divisionId) {
+          await loadDependencies(divisionId, companyId);
+        }
         form.reset({
           name: poolData.name,
           company: companyId,
@@ -482,6 +520,12 @@ export default function ResourcePoolFormModal({
                                     <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                                       {res.first_name?.trim()?.charAt(0)}{res.last_name?.trim()?.charAt(0)}
                                     </AvatarFallback>
+                                    {!isResourceActive(res) && (
+                                      <AvatarBadge
+                                        className="bg-gray-400 dark:bg-gray-600 size-2"
+                                        title="Inactive resource"
+                                      />
+                                    )}
                                   </Avatar>
                                 </button>
                               );

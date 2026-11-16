@@ -2652,6 +2652,10 @@ function PermissionsTabContent({
                 ...initialSelectedResources.map((r: any) => r.id),
                 ...selectedResources.map((r: any) => r.id),
               ])}
+              assignedResources={[
+                ...initialSelectedResources,
+                ...selectedResources,
+              ]}
               onResourceAdded={handleResourceAdded}
               onResourceRemoved={handleResourceRemoved}
               skipApi={true}

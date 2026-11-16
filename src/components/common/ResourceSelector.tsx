@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Check, Users, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { isResourceActive } from '@/lib/utils';
 
 import { Resource } from '@/interfaces/resource';
 import { ResourcePool } from '@/interfaces/resource-pool';
@@ -288,6 +289,7 @@ export default function ResourceSelector({
     let addedCount = 0;
 
     pool.resources.forEach((poolRes: any) => {
+      if (!isResourceActive(poolRes)) return;
       const resId = poolRes.id || poolRes.resourceId;
       if (!newResources.some(r => (r.id || (r as any).resourceId) === resId)) {
         newResources.push(poolRes);
@@ -299,7 +301,7 @@ export default function ResourceSelector({
       onChange(newResources);
       toast.success(`Added ${addedCount} members from group`);
     } else {
-      toast.info('All group members are already selected');
+      toast.info('All active group members are already selected');
     }
   };
 
@@ -307,29 +309,55 @@ export default function ResourceSelector({
   const currentResourceList = activeTab === 'project' ? projectResources : allResources;
 
   const sortedFilteredResources = useMemo(() => {
-    let result = [];
-    if (activeTab === 'all' && searchQuery.trim()) {
-      result = [...searchedResources];
-    } else {
-      if (!searchQuery.trim()) {
-        result = [...currentResourceList];
-      } else {
-        const query = searchQuery.toLowerCase();
-        result = currentResourceList.filter(r =>
-          r.first_name?.toLowerCase().includes(query) ||
-          r.last_name?.toLowerCase().includes(query) ||
-          r.email?.toLowerCase().includes(query) ||
-          ((r as any).skills ?? []).some((s: string) => s.toLowerCase().includes(query))
-        );
+    const selectedIdSet = new Set(
+      selectedResources.map((sr) => Number(sr.id || (sr as any).resourceId)),
+    );
+
+    const sourceList =
+      activeTab === 'all' && searchQuery.trim()
+        ? searchedResources
+        : currentResourceList;
+
+    // Merge selectedResources with sourceList so already-assigned (even inactive) resources remain visible
+    const combinedMap = new Map<number, Resource>();
+    for (const sr of selectedResources) {
+      const id = Number(sr.id || (sr as any).resourceId);
+      if (id) combinedMap.set(id, sr);
+    }
+    for (const r of sourceList) {
+      const id = Number(r.id || (r as any).resourceId);
+      if (id) {
+        const existing = combinedMap.get(id);
+        combinedMap.set(id, existing ? { ...existing, ...r } : r);
       }
     }
 
+    let result = Array.from(combinedMap.values()).filter((r) => {
+      const id = Number(r.id || (r as any).resourceId);
+      return selectedIdSet.has(id) || isResourceActive(r);
+    });
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(r =>
+        r.first_name?.toLowerCase().includes(query) ||
+        r.last_name?.toLowerCase().includes(query) ||
+        r.email?.toLowerCase().includes(query) ||
+        ((r as any).skills ?? []).some((s: string) => s.toLowerCase().includes(query))
+      );
+    }
+
     return result.sort((a, b) => {
+      const aId = Number(a.id || (a as any).resourceId);
+      const bId = Number(b.id || (b as any).resourceId);
+      const aSel = selectedIdSet.has(aId) ? 1 : 0;
+      const bSel = selectedIdSet.has(bId) ? 1 : 0;
+      if (aSel !== bSel) return bSel - aSel;
       const aName = a.first_name || '';
       const bName = b.first_name || '';
       return aName.localeCompare(bName);
     });
-  }, [currentResourceList, searchQuery, searchedResources, activeTab]);
+  }, [currentResourceList, searchQuery, searchedResources, activeTab, selectedResources]);
 
   const filteredResourcePools = useMemo(() => {
     if (!searchQuery.trim()) return resourcePools;
@@ -472,6 +500,7 @@ export default function ResourceSelector({
                     const isSelected = selectedResources.some(
                       (sr) => (sr.id || (sr as any).resourceId) === resourceId
                     );
+                    const isInactive = !isResourceActive(r);
 
                     return (
                       <CommandItem
@@ -484,6 +513,12 @@ export default function ResourceSelector({
                           <AvatarFallback className="bg-primary text-white text-xs font-semibold">
                             {((r.first_name?.trim()?.[0] || '') + (r.last_name?.trim()?.[0] || '')).toUpperCase() || ''}
                           </AvatarFallback>
+                          {isInactive && (
+                            <AvatarBadge
+                              className="bg-gray-400 dark:bg-gray-600 size-2"
+                              title="Inactive resource"
+                            />
+                          )}
                         </Avatar>
 
                         <SkillsHoverPopover resourceId={Number(resourceId)} emptyText="No skills">

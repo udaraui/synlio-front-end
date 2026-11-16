@@ -74,6 +74,10 @@ import {
   deleteTicket,
   getBulkTicketRelations,
 } from "@/services/ticket-management/ticket.service";
+import {
+  checkLinkedPulse,
+  CheckLinkedPulseResponse,
+} from "@/services/pulse/pulse.service";
 import { exportTicketsToExcel } from "@/services/ticket-management/ticket-export.service";
 import {
   searchTicketSpaces,
@@ -276,6 +280,29 @@ function TicketPage() {
   const [data, setData] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<any>(null);
+  const [deletePulseCheck, setDeletePulseCheck] = useState<CheckLinkedPulseResponse>({
+    isLinked: false,
+    linkedPulseCount: 0,
+    linkedPulseWeekCount: 0,
+  });
+
+  useEffect(() => {
+    if (!deleteDialogOpen || !ticketToDelete?.id) {
+      setDeletePulseCheck({
+        isLinked: false,
+        linkedPulseCount: 0,
+        linkedPulseWeekCount: 0,
+      });
+      return;
+    }
+    let cancelled = false;
+    checkLinkedPulse("Ticket", Number(ticketToDelete.id)).then((res) => {
+      if (!cancelled) setDeletePulseCheck(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteDialogOpen, ticketToDelete?.id]);
 
   // Shared config for both Kanban and Filters
   const [config, setConfig] = useState<any>(null);
@@ -3897,10 +3924,19 @@ function TicketPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Ticket</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete ticket{" "}
-              <strong>{ticketToDelete?.code}</strong>? This action cannot be
-              undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to delete ticket{" "}
+                  <strong>{ticketToDelete?.code}</strong>? This action cannot be
+                  undone.
+                </p>
+                {deletePulseCheck.isLinked && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                    Warning: This ticket is linked to {deletePulseCheck.linkedPulseCount} Pulse record(s) across {deletePulseCheck.linkedPulseWeekCount} Pulse Week(s). Deleting this ticket will permanently delete its linked Pulse records and recalculate the corresponding Pulse Week totals.
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

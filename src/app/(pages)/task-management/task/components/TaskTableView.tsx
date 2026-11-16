@@ -1327,6 +1327,7 @@ function TaskTableView({
                   {configData ? (
                     <InlineEditableTaskName
                       name={task.name}
+                      taskId={task.id}
                       onUpdate={async (name) => {
                         const updated = await patchTaskName(task.id, name, task.name);
                         onUpdateTask?.(task.id, { name }, updated);

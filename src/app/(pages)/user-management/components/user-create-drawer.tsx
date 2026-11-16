@@ -176,7 +176,17 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
       };
       const fetchDivisions = async () => {
         const response = await getAllDivisionsByCompanyId(parseInt(selectedCompanyId));
-        if (response.status === 200) setDivisions(response.data);
+        if (response.status === 200) {
+          const fetchedDivisions = response.data || [];
+          setDivisions(fetchedDivisions);
+          const currentDivisions = form.getValues("divisions") || [];
+          if (fetchedDivisions.length === 1 && currentDivisions.length === 0) {
+            form.setValue("divisions", [fetchedDivisions[0].id], {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          }
+        }
       };
       fetchRoles();
       fetchDivisions();
@@ -240,15 +250,39 @@ export function UserCreateDrawer({ open, onOpenChange, onSubmit: onSubmitCallbac
   }, [debouncedEmail, form]);
 
   useEffect(() => {
-    getFilteredDivisions();
-  }, []);
+    if (open) {
+      getFilteredDivisions();
+    }
+  }, [open]);
+
+  // Auto-select division if only one division is available and none is currently selected
+  useEffect(() => {
+    if (!open || divisions.length !== 1) return;
+    const currentDivisions = form.getValues("divisions") || [];
+    if (currentDivisions.length === 0) {
+      form.setValue("divisions", [divisions[0].id], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [divisions, open, form]);
 
   const getFilteredDivisions = async () => {
     if (isSystemUser) return;
     const active_company = safeParse(localStorage.getItem("active_company"));
     if (active_company?.companyId) {
       const response = await getAllDivisionsByCompanyId(active_company.companyId);
-      if (response.status === 200) setDivisions(response.data);
+      if (response.status === 200) {
+        const fetchedDivisions = response.data || [];
+        setDivisions(fetchedDivisions);
+        const currentDivisions = form.getValues("divisions") || [];
+        if (fetchedDivisions.length === 1 && currentDivisions.length === 0) {
+          form.setValue("divisions", [fetchedDivisions[0].id], {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+        }
+      }
     }
   };
 

@@ -171,7 +171,20 @@ export function UserEditDrawer({
       };
       const fetchDivisions = async () => {
         const response = await getAllDivisionsByCompanyId(parseInt(selectedCompanyId));
-        if (response.status === 200) setDivisions(response.data);
+        if (response.status === 200) {
+          const fetchedDivisions = response.data || [];
+          setDivisions(fetchedDivisions);
+          const currentDivisions = form.getValues("divisions") || [];
+          const hasSelectedInCompany = currentDivisions.some((id: number) =>
+            fetchedDivisions.some((d: { id: number }) => d.id === id)
+          );
+          if (fetchedDivisions.length === 1 && !hasSelectedInCompany) {
+            form.setValue("divisions", [...currentDivisions, fetchedDivisions[0].id], {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          }
+        }
       };
       Promise.all([fetchRoles(), fetchDivisions()]).finally(() => {
         setIsLoadingDropdowns(false);
@@ -232,8 +245,25 @@ export function UserEditDrawer({
   }, [user, form, defaultCompanyId]);
 
   useEffect(() => {
-    getFilteredDivisions();
-  }, []);
+    if (open) {
+      getFilteredDivisions();
+    }
+  }, [open]);
+
+  // Auto-select division if only one division exists for the company and none is currently selected
+  useEffect(() => {
+    if (!open || isLoadingDropdowns || divisions.length !== 1) return;
+    const currentDivisions = form.getValues("divisions") || [];
+    const hasSelectedInCompany = currentDivisions.some((id: number) =>
+      divisions.some((d: { id: number }) => d.id === id)
+    );
+    if (!hasSelectedInCompany) {
+      form.setValue("divisions", [...currentDivisions, divisions[0].id], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  }, [divisions, open, isLoadingDropdowns, user, form]);
 
   const getFilteredDivisions = async () => {
     if (isSystemUser) return;
@@ -241,7 +271,20 @@ export function UserEditDrawer({
     const active_company = safeParse(localStorage.getItem("active_company"));
     if (active_company?.companyId) {
       const response = await getAllDivisionsByCompanyId(active_company.companyId);
-      if (response.status === 200) setDivisions(response.data);
+      if (response.status === 200) {
+        const fetchedDivisions = response.data || [];
+        setDivisions(fetchedDivisions);
+        const currentDivisions = form.getValues("divisions") || [];
+        const hasSelectedInCompany = currentDivisions.some((id: number) =>
+          fetchedDivisions.some((d: { id: number }) => d.id === id)
+        );
+        if (fetchedDivisions.length === 1 && !hasSelectedInCompany) {
+          form.setValue("divisions", [...currentDivisions, fetchedDivisions[0].id], {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+        }
+      }
     }
     setIsLoadingDropdowns(false);
   };

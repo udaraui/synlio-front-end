@@ -2066,6 +2066,7 @@ function ResourcesTabContent({
             <TaskSpaceResourceDropdown
               taskSpaceId={Number(taskSpaceId)}
               selectedResourceIds={resourceIds}
+              assignedResources={resources}
               onResourceAdded={(resource) => {
                 const newResource = { ...resource, profile_pic: resource.profile_picture || resource.profile_pic };
                 setResources((prev) => [...prev, newResource]);

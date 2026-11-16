@@ -47,7 +47,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { deleteRole, disableRole } from '@/services/user-management/role-services';
-import DeleteModal from '@/components/DeleteModal';
+import DeleteModal, { showDeleteBlockedToast } from '@/components/DeleteModal';
 import {
   Table,
   TableBody,
@@ -494,7 +494,23 @@ function RoleList({
             setDeletingRoleId(null);
             onRoleUpdate?.();
           }}
-          onDelete={() => deleteRole(deletingRoleId || 0)}
+          onDelete={async () => {
+            try {
+              const res = await deleteRole(deletingRoleId || 0);
+              if (res && (!res.data?.status || res.data.status < 400)) {
+                toast.success(res?.data?.message || 'Role deleted successfully.');
+              } else if (res?.data) {
+                showDeleteBlockedToast(
+                  { response: { data: res.data } },
+                  'Failed to delete role.',
+                );
+              }
+              return res;
+            } catch (error: unknown) {
+              showDeleteBlockedToast(error, 'Failed to delete role.');
+              throw error;
+            }
+          }}
           id={deletingRoleId || 0}
           title="Delete Role"
           description="Are you sure you want to delete this role?"
