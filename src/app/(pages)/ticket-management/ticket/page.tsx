@@ -226,18 +226,38 @@ function enrichTickets(tickets: any[], currentConfig: any): any[] {
     if (!enriched.status && enriched.statusId) {
       enriched.status = currentConfig.statuses?.find((s: any) => s.id === enriched.statusId);
     }
+    if (!enriched.statusName && enriched.status?.name) {
+      enriched.statusName = enriched.status.name;
+    }
     if (!enriched.severity && enriched.severityId) {
       enriched.severity = currentConfig.severities?.find((s: any) => s.id === enriched.severityId);
+    }
+    if (!enriched.severityName && enriched.severity?.name) {
+      enriched.severityName = enriched.severity.name;
     }
     if (!enriched.ticketType && enriched.ticketTypeId) {
       enriched.ticketType = currentConfig.types?.find((s: any) => s.id === enriched.ticketTypeId);
     }
+    if (!enriched.ticketTypeName && enriched.ticketType?.name) {
+      enriched.ticketTypeName = enriched.ticketType.name;
+    }
     if (!enriched.queue && enriched.queueId) {
       enriched.queue = currentConfig.queues?.find((s: any) => s.id === enriched.queueId);
+    }
+    if (!enriched.queueName && enriched.queue?.name) {
+      enriched.queueName = enriched.queue.name;
     }
     if (!enriched.assignee && enriched.assigneeId) {
       const mem = currentConfig.members?.find((m: any) => m.id === enriched.assigneeId);
       if (mem) enriched.assignee = transformToUserFormat(mem);
+    }
+    if (!enriched.assigneeName && enriched.assignee) {
+      const fullName = `${enriched.assignee.first_name || ""} ${enriched.assignee.last_name || ""}`.trim();
+      if (fullName) {
+        enriched.assigneeName = fullName;
+      } else if (enriched.assignee.email) {
+        enriched.assigneeName = enriched.assignee.email;
+      }
     }
     return enriched;
   });
