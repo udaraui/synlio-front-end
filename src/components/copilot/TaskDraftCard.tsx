@@ -172,8 +172,8 @@ function computeRollupForChildren(
   const ends: number[] = [];
 
   children.forEach((c) => {
-    const s = c.draft.startDate;
-    const d = c.draft.dueDate;
+    const s = c.draft.changes?.startDate ?? c.draft.startDate;
+    const d = c.draft.changes?.dueDate ?? c.draft.dueDate;
     if (s) {
       const t = new Date(s).getTime();
       if (!isNaN(t)) starts.push(t);
@@ -185,21 +185,21 @@ function computeRollupForChildren(
   });
 
   const rolledStartDate =
-    starts.length > 0 ? format(new Date(Math.min(...starts)), "yyyy-MM-dd") : (currentParent.startDate ?? null);
+    starts.length > 0 ? format(new Date(Math.min(...starts)), "yyyy-MM-dd") : (currentParent.changes?.startDate ?? currentParent.startDate ?? null);
   const rolledDueDate =
-    ends.length > 0 ? format(new Date(Math.max(...ends)), "yyyy-MM-dd") : (currentParent.dueDate ?? null);
+    ends.length > 0 ? format(new Date(Math.max(...ends)), "yyyy-MM-dd") : (currentParent.changes?.dueDate ?? currentParent.dueDate ?? null);
 
-  let rolledStatusId = currentParent.statusId;
-  let rolledStatusName = currentParent.statusName;
-  let rolledStatusColor = currentParent.statusColor;
+  let rolledStatusId = currentParent.changes?.statusId ?? currentParent.statusId;
+  let rolledStatusName = currentParent.changes?.statusName ?? currentParent.statusName;
+  let rolledStatusColor = currentParent.changes?.statusColor ?? currentParent.statusColor;
 
   if (statuses && statuses.length > 0) {
-    const currentParentStatus = statuses.find((s) => s.id === currentParent.statusId);
+    const currentParentStatus = statuses.find((s) => s.id === rolledStatusId);
     const parentBase = currentParentStatus?.base;
 
     const childrenWithBase = children
       .map((c) => {
-        const sid = c.draft.statusId;
+        const sid = c.draft.changes?.statusId ?? c.draft.statusId;
         const sObj = statuses.find((s) => s.id === sid);
         return sObj;
       })
@@ -260,6 +260,20 @@ function computeNodeRollup(node: TaskDraftTreeNode, statuses: any[]) {
     node.draft.statusId = rollup.statusId;
     node.draft.statusName = rollup.statusName;
     node.draft.statusColor = rollup.statusColor;
+  }
+  if (node.draft.changes) {
+    node.draft.changes = {
+      ...node.draft.changes,
+      startDate: rollup.startDate,
+      dueDate: rollup.dueDate,
+      ...(rollup.statusId
+        ? {
+            statusId: rollup.statusId,
+            statusName: rollup.statusName,
+            statusColor: rollup.statusColor,
+          }
+        : {}),
+    };
   }
 }
 
@@ -811,6 +825,7 @@ export function TaskDraftCard({
       if (isUpdateMode) {
         updated[index] = {
           ...updated[index],
+          ...updates,
           changes: {
             ...updated[index]?.changes,
             ...updates,
@@ -898,6 +913,18 @@ export function TaskDraftCard({
               statusId: rollup.statusId ?? updated[parentIndex].statusId,
               statusName: rollup.statusName ?? updated[parentIndex].statusName,
               statusColor: rollup.statusColor ?? updated[parentIndex].statusColor,
+              ...(isUpdateMode
+                ? {
+                    changes: {
+                      ...updated[parentIndex]?.changes,
+                      startDate: rollup.startDate,
+                      dueDate: rollup.dueDate,
+                      statusId: rollup.statusId ?? updated[parentIndex].statusId,
+                      statusName: rollup.statusName ?? updated[parentIndex].statusName,
+                      statusColor: rollup.statusColor ?? updated[parentIndex].statusColor,
+                    },
+                  }
+                : {}),
             };
 
             currIndex = parentIndex; // walk one level higher
