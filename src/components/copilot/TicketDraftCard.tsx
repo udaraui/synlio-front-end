@@ -887,12 +887,27 @@ function SingleTicketDraftItem({
                 <InlineEditableTicketName
                   name={draft.name || ""}
                   onUpdate={async (name) => {
-                    const updated = { ...draft, name };
-                    setDraft(updated);
-                    onUpdateDraft?.(updated);
+                    handleFieldEdit({ ...draft, name });
                   }}
                   className="font-semibold text-foreground truncate text-[14px]"
                 />
+              )}
+              {effectiveError && (
+                <TooltipProvider>
+                  <Tooltip delayDuration={150}>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800 shrink-0 cursor-help select-none">
+                        <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                        Save failed
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-xs p-2 shadow-md bg-white dark:bg-zinc-900 border-red-200 dark:border-red-900">
+                      <p className="font-semibold text-red-600 dark:text-red-400 mb-0.5">Failed to save</p>
+                      <p className="text-popover-foreground leading-relaxed">{effectiveError}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 border-t border-border/50 pt-1">Click the retry icon below to try again</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               {(draft.description || (draft.name && draft.name.length > 35)) && (
                 <HoverCard openDelay={150}>
@@ -1110,13 +1125,19 @@ function SingleTicketDraftItem({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                className={`h-7 w-7 p-0 cursor-pointer ${
+                  effectiveError
+                    ? "hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 hover:text-red-600"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700 text-primary"
+                }`}
                 onClick={handleConfirmCreate}
                 disabled={isSubmitting || !draft.name || !draft.ticketSpaceId}
-                title={isUpdateAction ? "Update ticket" : "Save ticket"}
+                title={effectiveError ? "Retry saving ticket" : (isUpdateAction ? "Update ticket" : "Save ticket")}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                ) : effectiveError ? (
+                  <RotateCcw className="w-3.5 h-3.5 text-red-500" />
                 ) : (
                   <Save className="w-3.5 h-3.5 text-primary" />
                 )}
@@ -1143,6 +1164,9 @@ function SingleTicketDraftTableRow({
   warnings = [],
   createdTicketProp,
   isSubmittingProp,
+  failedError,
+  onClearError,
+  onError,
   onCreated,
   onUpdateDraft,
   onDismiss,
@@ -1157,6 +1181,9 @@ function SingleTicketDraftTableRow({
   warnings?: string[];
   createdTicketProp?: { id: number; code?: string; name: string; ticketSpaceId?: number } | null;
   isSubmittingProp?: boolean;
+  failedError?: string | null;
+  onClearError?: () => void;
+  onError?: (errMsg: string) => void;
   onCreated?: (created: { id: number; code?: string; name: string; ticketSpaceId?: number }) => void;
   onUpdateDraft?: (updated: TicketDraftData) => void;
   onDismiss: () => void;
@@ -1166,6 +1193,7 @@ function SingleTicketDraftTableRow({
   const { user } = useAuth();
   const [draft, setDraft] = useState<TicketDraftData>(initialDraft);
   const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
+  const [internalError, setInternalError] = useState<string | null>(null);
   const [internalCreatedTicket, setInternalCreatedTicket] = useState<{
     id: number;
     code?: string;
@@ -1175,6 +1203,14 @@ function SingleTicketDraftTableRow({
 
   const createdTicket = createdTicketProp || internalCreatedTicket;
   const isSubmitting = isSubmittingProp || internalIsSubmitting;
+  const effectiveError = failedError || internalError;
+
+  const handleFieldEdit = (updated: TicketDraftData) => {
+    setDraft(updated);
+    setInternalError(null);
+    onClearError?.();
+    onUpdateDraft?.(updated);
+  };
 
   useEffect(() => {
     setDraft((prev) => {
@@ -1508,7 +1544,11 @@ function SingleTicketDraftTableRow({
   }, [warnings, draft.assigneeId, currentAssignee]);
 
   return (
-    <tr className={`h-[48px] hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors group ${!isLast ? "border-b border-border/70" : ""}`}>
+    <tr
+      className={`h-[48px] hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors group ${
+        !isLast ? "border-b border-border/70" : ""
+      } ${effectiveError ? "bg-red-50/20 dark:bg-red-950/15 border-l-2 border-l-red-500" : ""}`}
+    >
       {/* 1. Merged Code & Title (Pinned to Left End) */}
       <td className="py-2.5 px-3.5 align-middle min-w-[220px] max-w-[320px] sticky left-0 z-10 bg-card group-hover:bg-gray-50 dark:group-hover:bg-zinc-900 transition-colors shadow-[1px_0_0_0_hsl(var(--border))]">
         <div className="flex items-center gap-2 min-w-0 h-7">
@@ -1527,12 +1567,27 @@ function SingleTicketDraftTableRow({
               <InlineEditableTicketName
                 name={draft.name || ""}
                 onUpdate={async (name) => {
-                  const updated = { ...draft, name };
-                  setDraft(updated);
-                  onUpdateDraft?.(updated);
+                  handleFieldEdit({ ...draft, name });
                 }}
                 className="font-medium text-foreground truncate text-xs sm:text-sm"
               />
+            )}
+            {effectiveError && (
+              <TooltipProvider>
+                <Tooltip delayDuration={150}>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800 shrink-0 cursor-help select-none">
+                      <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                      Save failed
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs max-w-xs p-2 shadow-md bg-white dark:bg-zinc-900 border-red-200 dark:border-red-900">
+                    <p className="font-semibold text-red-600 dark:text-red-400 mb-0.5">Failed to save</p>
+                    <p className="text-popover-foreground leading-relaxed">{effectiveError}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 border-t border-border/50 pt-1">Click the retry icon to try again</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {(draft.description || (draft.name && draft.name.length > 30)) && (
               <HoverCard openDelay={150}>
@@ -1874,13 +1929,19 @@ function SingleTicketDraftTableRow({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                className={`h-7 w-7 p-0 cursor-pointer ${
+                  effectiveError
+                    ? "hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 hover:text-red-600"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700 text-primary"
+                }`}
                 onClick={handleConfirmCreate}
                 disabled={isSubmitting || !draft.name || !draft.ticketSpaceId}
-                title={isUpdateAction ? "Update ticket" : "Save ticket"}
+                title={effectiveError ? "Retry saving ticket" : (isUpdateAction ? "Update ticket" : "Save ticket")}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                ) : effectiveError ? (
+                  <RotateCcw className="w-3.5 h-3.5 text-red-500" />
                 ) : (
                   <Save className="w-3.5 h-3.5 text-primary" />
                 )}
@@ -1902,11 +1963,14 @@ function TicketDraftTableView({
   spaceData,
   warnings,
   createdTicketsMap,
+  failedTicketsMap,
   isSubmittingAll,
   isUpdateAction = false,
   setCreatedTicketsMap,
   setEditedDraftsMap,
   onUpdateDraft,
+  onClearError,
+  onError,
   handleDismissOne,
 }: {
   visibleDrafts: Array<{ draft: TicketDraftData; index: number }>;
@@ -1916,11 +1980,14 @@ function TicketDraftTableView({
   spaceData?: any;
   warnings: string[];
   createdTicketsMap: Record<number, any>;
+  failedTicketsMap?: Record<number, string>;
   isSubmittingAll: boolean;
   isUpdateAction?: boolean;
   setCreatedTicketsMap: React.Dispatch<React.SetStateAction<Record<number, any>>>;
   setEditedDraftsMap: React.Dispatch<React.SetStateAction<Record<number, TicketDraftData>>>;
   onUpdateDraft?: (updated: TicketDraftData) => void;
+  onClearError?: (index: number) => void;
+  onError?: (index: number, msg: string) => void;
   handleDismissOne: (index: number) => void;
 }) {
   return (
@@ -1976,14 +2043,19 @@ function TicketDraftTableView({
                   spaceData={spaceData}
                   warnings={cardWarnings}
                   createdTicketProp={createdTicketsMap[index]}
+                  failedError={failedTicketsMap?.[index]}
                   isSubmittingProp={isSubmittingAll}
                   isUpdateAction={isUpdateAction}
                   isLast={rowIdx === visibleDrafts.length - 1}
                   onCreated={(created) => {
                     setCreatedTicketsMap((prev) => ({ ...prev, [index]: created }));
+                    onClearError?.(index);
                   }}
+                  onClearError={() => onClearError?.(index)}
+                  onError={(errMsg) => onError?.(index, errMsg)}
                   onUpdateDraft={(updated) => {
                     setEditedDraftsMap((prev) => ({ ...prev, [index]: updated }));
+                    onClearError?.(index);
                     onUpdateDraft?.(updated);
                   }}
                   onDismiss={() => handleDismissOne(index)}
@@ -2023,6 +2095,7 @@ export function TicketDraftCard({
   const isUpdateAction = payload.action === "UPDATE_TICKET";
   const [isSubmittingAll, setIsSubmittingAll] = useState(false);
   const [createdTicketsMap, setCreatedTicketsMap] = useState<Record<number, any>>({});
+  const [failedTicketsMap, setFailedTicketsMap] = useState<Record<number, string>>({});
   const [editedDraftsMap, setEditedDraftsMap] = useState<Record<number, TicketDraftData>>({});
 
   // Sync with Ticket Page view mode ('card' | 'table' | 'kanban')
@@ -2079,6 +2152,7 @@ export function TicketDraftCard({
     setSelectedSpaceId(null);
     setIsOptionSelected(false);
     setDismissedIndexSet(new Set());
+    setFailedTicketsMap({});
 
     const initialCreated: Record<number, any> = {};
     draftsList.forEach((d: any, idx: number) => {
@@ -2255,11 +2329,8 @@ export function TicketDraftCard({
       if (uncreated.length === 0) return;
 
       if (isUpdateAction) {
-        // Bulk mutation of existing tickets via direct patchTicket
-        const updatedList: any[] = [];
-        const updatedMap: Record<number, any> = {};
-
-        for (const { draft: rawItem, index } of uncreated) {
+        // Bulk mutation of existing tickets via Promise.allSettled
+        const updatePromises = uncreated.map(async ({ draft: rawItem, index }) => {
           const item = resolveTicketDraftEntities(
             rawItem,
             spaceConfigs,
@@ -2284,7 +2355,9 @@ export function TicketDraftCard({
             }
           }
 
-          if (!ticketId) continue;
+          if (!ticketId) {
+            throw new Error(`Ticket ID could not be resolved for ${item.code || item.name || "ticket"}`);
+          }
 
           let itemAssigneeId = item.assigneeId;
           const isMe =
@@ -2318,10 +2391,11 @@ export function TicketDraftCard({
             plannedEffort: item.plannedEffort,
           };
 
-          try {
-            const res = await patchTicket(ticketId, updateDto);
-            const updated = res || item;
-            const updatedObj = {
+          const res = await patchTicket(ticketId, updateDto);
+          const updated = res || item;
+          return {
+            index,
+            ticket: {
               id: updated.id || ticketId,
               code: updated.code || item.code,
               name: updated.name || item.name,
@@ -2332,36 +2406,69 @@ export function TicketDraftCard({
               statusColor: updated.status?.color || updated.statusColor || item.statusColor,
               queueName: updated.queue?.name || updated.queueName || item.queueName,
               assigneeName: updated.assigneeName || item.assigneeName,
-            };
+            },
+          };
+        });
 
-            updatedMap[index] = updatedObj;
-            updatedList.push(updatedObj);
-          } catch (patchErr) {
-            console.error(`Failed to patch ticket ${item.code}:`, patchErr);
+        const settledResults = await Promise.allSettled(updatePromises);
+        const updatedList: any[] = [];
+        const newlyCreatedMap: Record<number, any> = {};
+        const newlyFailedMap: Record<number, string> = {};
+
+        settledResults.forEach((res, i) => {
+          const original = uncreated[i];
+          if (!original) return;
+          if (res.status === "fulfilled") {
+            const val = res.value;
+            newlyCreatedMap[val.index] = val.ticket;
+            updatedList.push(val.ticket);
+          } else {
+            const err = res.reason;
+            const errorMsg =
+              err?.response?.data?.message ||
+              err?.message ||
+              "Failed to update ticket";
+            newlyFailedMap[original.index] = errorMsg;
           }
+        });
+
+        if (Object.keys(newlyCreatedMap).length > 0) {
+          setCreatedTicketsMap((prev) => ({ ...prev, ...newlyCreatedMap }));
+          setFailedTicketsMap((prev) => {
+            const next = { ...prev };
+            Object.keys(newlyCreatedMap).forEach((k) => delete next[Number(k)]);
+            return { ...next, ...newlyFailedMap };
+          });
+
+          if (typeof window !== "undefined") {
+            setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent("synlio:ticket-updated", {
+                  detail: {
+                    tickets: updatedList,
+                    ticketSpaceId: effectiveSpaceId,
+                  },
+                })
+              );
+            }, 50);
+          }
+        } else {
+          setFailedTicketsMap((prev) => ({ ...prev, ...newlyFailedMap }));
         }
 
-        setCreatedTicketsMap((prev) => ({ ...prev, ...updatedMap }));
-
-        if (typeof window !== "undefined") {
-          setTimeout(() => {
-            window.dispatchEvent(
-              new CustomEvent("synlio:ticket-updated", {
-                detail: {
-                  tickets: updatedList,
-                  ticketSpaceId: effectiveSpaceId,
-                },
-              })
-            );
-          }, 50);
+        const failCount = Object.keys(newlyFailedMap).length;
+        if (failCount === 0) {
+          toast.success(`Successfully updated all ${updatedList.length} ticket${updatedList.length > 1 ? "s" : ""}!`);
+        } else if (updatedList.length > 0) {
+          toast.warning(`Updated ${updatedList.length} ticket(s), but ${failCount} failed. Check the errors and retry.`);
+        } else {
+          toast.error(`Failed to update tickets. Check the errors and retry.`);
         }
-
-        toast.success(`Successfully updated ${updatedList.length} ticket${updatedList.length > 1 ? "s" : ""}`);
         return;
       }
 
-      // Build payload array for single atomic bulk transaction with fully resolved entities
-      const payloads = uncreated.map(({ draft: rawItem }) => {
+      // Creation mode: Promise.allSettled with individual createTicket calls for row isolation
+      const createPromises = uncreated.map(async ({ draft: rawItem, index }) => {
         const item = resolveTicketDraftEntities(
           rawItem,
           spaceConfigs,
@@ -2371,7 +2478,7 @@ export function TicketDraftCard({
           effectiveSpaceId
         );
 
-        return {
+        const payload = {
           name: (item.name || "").trim(),
           description: item.description || "",
           ticketSpaceId: item.ticketSpaceId || effectiveSpaceId,
@@ -2384,48 +2491,83 @@ export function TicketDraftCard({
           completionDate: item.completionDate ? new Date(item.completionDate).toISOString() : undefined,
           plannedEffort: item.plannedEffort,
         };
-      });
 
-      // Send single HTTP request for transactional creation
-      const rawResult = await createTicket(payloads);
-      const resultsArray: any[] = Array.isArray(rawResult) ? rawResult : [rawResult];
-
-      const updatedMap: Record<number, any> = {};
-      resultsArray.forEach((result, idx) => {
-        const original = uncreated[idx];
-        if (!original) return;
+        const res = await createTicket([payload]);
+        const resultsArray = Array.isArray(res) ? res : [res];
+        const result = resultsArray[0];
         const ticketId = result?.ticketId || result?.id || 0;
         const code = result?.code || result?.prefixCode;
-        updatedMap[original.index] = {
-          id: ticketId,
-          code,
-          name: original.draft.name,
-          ticketSpaceId: original.draft.ticketSpaceId || result?.ticketSpaceId,
+        return {
+          index,
+          ticket: {
+            id: ticketId,
+            code,
+            name: rawItem.name,
+            ticketSpaceId: rawItem.ticketSpaceId || result?.ticketSpaceId,
+          },
+          rawResult: result,
         };
       });
 
-      setCreatedTicketsMap((prev) => ({ ...prev, ...updatedMap }));
+      const settledResults = await Promise.allSettled(createPromises);
+      const newlyCreatedMap: Record<number, any> = {};
+      const newlyFailedMap: Record<number, string> = {};
+      const createdResults: any[] = [];
 
-      // Dispatch single refresh event to TicketPage AFTER render tick
-      if (typeof window !== "undefined") {
-        setTimeout(() => {
-          window.dispatchEvent(
-            new CustomEvent("synlio:ticket-created", {
-              detail: {
-                ticket: resultsArray[0],
-                tickets: resultsArray,
-                count: resultsArray.length,
-              },
-            })
-          );
-        }, 0);
+      settledResults.forEach((res, i) => {
+        const original = uncreated[i];
+        if (!original) return;
+        if (res.status === "fulfilled") {
+          const val = res.value;
+          newlyCreatedMap[val.index] = val.ticket;
+          createdResults.push(val.rawResult);
+        } else {
+          const err = res.reason;
+          const errorMsg =
+            err?.response?.data?.message ||
+            err?.message ||
+            "Failed to create ticket";
+          newlyFailedMap[original.index] = errorMsg;
+        }
+      });
+
+      if (Object.keys(newlyCreatedMap).length > 0) {
+        setCreatedTicketsMap((prev) => ({ ...prev, ...newlyCreatedMap }));
+        setFailedTicketsMap((prev) => {
+          const next = { ...prev };
+          Object.keys(newlyCreatedMap).forEach((k) => delete next[Number(k)]);
+          return { ...next, ...newlyFailedMap };
+        });
+
+        if (typeof window !== "undefined") {
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("synlio:ticket-created", {
+                detail: {
+                  ticket: createdResults[0],
+                  tickets: createdResults,
+                  count: createdResults.length,
+                },
+              })
+            );
+          }, 0);
+        }
+      } else {
+        setFailedTicketsMap((prev) => ({ ...prev, ...newlyFailedMap }));
       }
 
-      toast.success(
-        resultsArray.length === 1
-          ? "Ticket created successfully!"
-          : `Successfully created all ${resultsArray.length} tickets!`
-      );
+      const failCount = Object.keys(newlyFailedMap).length;
+      if (failCount === 0) {
+        toast.success(
+          createdResults.length === 1
+            ? "Ticket created successfully!"
+            : `Successfully created all ${createdResults.length} tickets!`
+        );
+      } else if (createdResults.length > 0) {
+        toast.warning(`Created ${createdResults.length} ticket(s), but ${failCount} failed. Check the errors and retry.`);
+      } else {
+        toast.error("Failed to create tickets. Check the errors and retry.");
+      }
     } catch (err: any) {
       console.error("Failed to create all tickets:", err);
       toast.error(err?.response?.data?.message || "Failed to create some tickets");
@@ -2521,6 +2663,10 @@ export function TicketDraftCard({
       new Map(rawOptions.map((s) => [s.id, s])).values()
     );
 
+    if (spaceOptions.length === 0) {
+      return null;
+    }
+
     return (
       <div className="my-2.5 flex flex-wrap items-center gap-1.5 animate-in fade-in-50">
         {spaceOptions.map((space) => {
@@ -2599,12 +2745,23 @@ export function TicketDraftCard({
   // Render bulk action footer card
   const renderBulkActionCard = () => {
     const createdCount = visibleDrafts.length - uncreatedCount;
+    const failedCount = visibleDrafts.filter(
+      ({ index }) => failedTicketsMap[index] && !createdTicketsMap[index]
+    ).length;
+
     return (
       <div className="flex flex-col @[560px]:flex-row @[560px]:items-center copilot-bulk-action-card justify-between gap-3 bg-muted/20 px-4 py-3 rounded-xl border border-border">
         <div className="text-sm flex items-center gap-1.5">
           {uncreatedCount === 0 ? (
             <span className="font-semibold flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> All {visibleDrafts.length} tickets {isUpdateAction ? "updated" : "created"} successfully
+            </span>
+          ) : failedCount > 0 ? (
+            <span className="text-red-600 dark:text-red-400 flex items-center gap-1.5 font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                <strong>{failedCount}</strong> ticket{failedCount > 1 ? "s" : ""} failed to save. Review the issues and retry.
+              </span>
             </span>
           ) : createdCount > 0 ? (
             <span>
@@ -2633,7 +2790,7 @@ export function TicketDraftCard({
               </Button>
               <Button
                 type="button"
-                variant="default"
+                variant={failedCount > 0 ? "destructive" : "default"}
                 size="sm"
                 disabled={isSubmittingAll}
                 onClick={handleCreateAll}
@@ -2643,6 +2800,11 @@ export function TicketDraftCard({
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>{isUpdateAction ? "Updating" : "Saving"} ({uncreatedCount})...</span>
+                  </>
+                ) : failedCount > 0 ? (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Retry Failed ({failedCount})</span>
                   </>
                 ) : (
                   <>
@@ -2671,11 +2833,22 @@ export function TicketDraftCard({
           spaceData={spaceData}
           warnings={warnings}
           createdTicketsMap={createdTicketsMap}
+          failedTicketsMap={failedTicketsMap}
           isSubmittingAll={isSubmittingAll}
           isUpdateAction={isUpdateAction}
           setCreatedTicketsMap={setCreatedTicketsMap}
           setEditedDraftsMap={setEditedDraftsMap}
           onUpdateDraft={onUpdateDraft}
+          onClearError={(index) => {
+            setFailedTicketsMap((prev) => {
+              const next = { ...prev };
+              delete next[index];
+              return next;
+            });
+          }}
+          onError={(index, errMsg) => {
+            setFailedTicketsMap((prev) => ({ ...prev, [index]: errMsg }));
+          }}
           handleDismissOne={handleDismissOne}
         />
         {visibleDrafts.length > 1 && (
@@ -2721,12 +2894,33 @@ export function TicketDraftCard({
                 spaceData={spaceData}
                 warnings={cardWarnings}
                 createdTicketProp={createdTicketsMap[index]}
+                failedError={failedTicketsMap[index]}
                 isSubmittingProp={isSubmittingAll}
                 onCreated={(created) => {
                   setCreatedTicketsMap((prev) => ({ ...prev, [index]: created }));
+                  setFailedTicketsMap((prev) => {
+                    const next = { ...prev };
+                    delete next[index];
+                    return next;
+                  });
+                }}
+                onClearError={() => {
+                  setFailedTicketsMap((prev) => {
+                    const next = { ...prev };
+                    delete next[index];
+                    return next;
+                  });
+                }}
+                onError={(errMsg) => {
+                  setFailedTicketsMap((prev) => ({ ...prev, [index]: errMsg }));
                 }}
                 onUpdateDraft={(updated) => {
                   setEditedDraftsMap((prev) => ({ ...prev, [index]: updated }));
+                  setFailedTicketsMap((prev) => {
+                    const next = { ...prev };
+                    delete next[index];
+                    return next;
+                  });
                   onUpdateDraft?.(updated);
                 }}
                 onDismiss={() => handleDismissOne(index)}
@@ -2758,12 +2952,33 @@ export function TicketDraftCard({
         spaceData={spaceData}
         warnings={[...(singleItem.draft.assigneeWarning ? [singleItem.draft.assigneeWarning] : []), ...warnings]}
         createdTicketProp={createdTicketsMap[singleItem.index]}
+        failedError={failedTicketsMap[singleItem.index]}
         isSubmittingProp={isSubmittingAll}
         onCreated={(created) => {
           setCreatedTicketsMap((prev) => ({ ...prev, [singleItem.index]: created }));
+          setFailedTicketsMap((prev) => {
+            const next = { ...prev };
+            delete next[singleItem.index];
+            return next;
+          });
+        }}
+        onClearError={() => {
+          setFailedTicketsMap((prev) => {
+            const next = { ...prev };
+            delete next[singleItem.index];
+            return next;
+          });
+        }}
+        onError={(errMsg) => {
+          setFailedTicketsMap((prev) => ({ ...prev, [singleItem.index]: errMsg }));
         }}
         onUpdateDraft={(updated) => {
           setEditedDraftsMap((prev) => ({ ...prev, [singleItem.index]: updated }));
+          setFailedTicketsMap((prev) => {
+            const next = { ...prev };
+            delete next[singleItem.index];
+            return next;
+          });
           onUpdateDraft?.(updated);
         }}
         onDismiss={() => handleDismissOne(singleItem.index)}

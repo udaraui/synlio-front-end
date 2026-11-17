@@ -2178,9 +2178,12 @@ function Page() {
       const customEvent = e as CustomEvent;
       const updated = customEvent.detail?.task;
       const updatedList: any[] = customEvent.detail?.tasks || (updated ? [updated] : []);
-      if (updatedList.length > 0) {
+      const parentUpdates: any[] = customEvent.detail?.parentUpdates || [];
+      const combinedUpdates = [...updatedList, ...parentUpdates];
+
+      if (combinedUpdates.length > 0) {
         setData((prev) => {
-          const map = new Map(updatedList.map((t) => [t.id, t]));
+          const map = new Map(combinedUpdates.map((t) => [t.id, t]));
           return prev.map((item) => {
             if (map.has(item.id)) {
               const u = map.get(item.id);
@@ -2195,6 +2198,9 @@ function Page() {
                 severityColor: u.severityColor || item.severityColor,
                 startDate: u.startDate !== undefined ? u.startDate : item.startDate,
                 dueDate: u.dueDate !== undefined ? u.dueDate : item.dueDate,
+                progressPercentage: u.progressPercentage !== undefined ? u.progressPercentage : item.progressPercentage,
+                estimateEffort: u.estimateEffort !== undefined ? u.estimateEffort : item.estimateEffort,
+                actualEffort: u.actualEffort !== undefined ? u.actualEffort : item.actualEffort,
               };
             }
             return item;

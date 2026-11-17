@@ -68,6 +68,11 @@ export interface TaskDraftData {
   parentTaskAssigneeProfilePicUrl?: string | null;
   parentTaskStartDate?: string | null;
   parentTaskDueDate?: string | null;
+  parentTaskHierarchyLevelConfigId?: number;
+  parentTaskHierarchyLevelName?: string;
+  parentTaskHierarchyLevelIcon?: string;
+  parentTaskHierarchyLevelColor?: string;
+  parentTaskHierarchyLevelSequence?: number;
   hierarchyLevelConfigId?: number;
   hierarchyLevelName?: string;
   hierarchyLevelIcon?: string;
@@ -391,9 +396,11 @@ function buildDraftTree(
             id: draft.parentTaskId || pDetails?.id,
             code: draft.parentTaskCode || pDetails?.code || "PARENT",
             name: draft.parentTaskName || pDetails?.name || "Parent Project",
-            hierarchyLevelName: pDetails?.hierarchyLevelConfig?.name || pDetails?.hierarchyLevelName || "Project",
-            hierarchyLevelIcon: pDetails?.hierarchyLevelConfig?.icon || pDetails?.hierarchyLevelIcon || "Folder",
-            hierarchyLevelColor: pDetails?.hierarchyLevelConfig?.color || pDetails?.hierarchyLevelColor || "#3B82F6",
+            hierarchyLevelConfigId: draft.parentTaskHierarchyLevelConfigId ?? pDetails?.hierarchyLevelConfigId ?? pDetails?.hierarchyLevelConfig?.id,
+            hierarchyLevelName: draft.parentTaskHierarchyLevelName || pDetails?.hierarchyLevelConfig?.name || pDetails?.hierarchyLevelName || undefined,
+            hierarchyLevelIcon: draft.parentTaskHierarchyLevelIcon || pDetails?.hierarchyLevelConfig?.icon || pDetails?.hierarchyLevelIcon || undefined,
+            hierarchyLevelColor: draft.parentTaskHierarchyLevelColor || pDetails?.hierarchyLevelConfig?.color || pDetails?.hierarchyLevelColor || undefined,
+            hierarchyLevelSequence: draft.parentTaskHierarchyLevelSequence ?? pDetails?.hierarchyLevelSequence ?? pDetails?.hierarchyLevelConfig?.sequence,
             taskSpaceId: draft.taskSpaceId || pDetails?.taskSpaceId,
             statusId: originalStatusId,
             statusName: originalStatusName,
@@ -1015,6 +1022,7 @@ export function TaskDraftCard({
               task: updatedTaskObj,
               updatedFields: updateDto,
               updates: updateDto,
+              parentUpdates: updatedTaskObj?.parentUpdates || [],
             },
           })
         );
@@ -1177,6 +1185,7 @@ export function TaskDraftCard({
             count: successCount,
             tasks: updatedTaskList,
             task: updatedTaskList[0],
+            parentUpdates: updatedTaskList.flatMap((t: any) => t?.parentUpdates || []),
           },
         })
       );
@@ -1304,39 +1313,56 @@ export function TaskDraftCard({
               // 4. Inferred from task code depth (e.g. PTS-P7 is Level 1, PTS-P7-T3 is Level 2, PTS-P7-T3-S1 is Level 3)
               // 5. Matching config by name
               // 6. Visual tree depth fallback (ONLY in CREATE_TASK mode)
-              const codeLevelParts = node.draft.code ? node.draft.code.split("-").slice(1) : [];
-              const inferredDepthIndex = codeLevelParts.length > 0 ? codeLevelParts.length - 1 : null;
+              const cleanCode = (node.draft.code || "").replace(/^-+/, "");
+              const codeParts = cleanCode.split("-").filter(Boolean);
+              const depthParts = codeParts.length > 0 && (
+                (activeSpacePrefix && codeParts[0].toUpperCase() === activeSpacePrefix.toUpperCase()) ||
+                !/^[A-Za-z]+\d+$/i.test(codeParts[0])
+              ) ? codeParts.slice(1) : codeParts;
+              const inferredDepthIndex = depthParts.length > 0 ? depthParts.length - 1 : null;
               const inferredConfig =
                 inferredDepthIndex !== null && sortedHierarchyConfigs.length > 0
                   ? sortedHierarchyConfigs[Math.min(Math.max(0, inferredDepthIndex), sortedHierarchyConfigs.length - 1)]
                   : null;
 
+              const fallbackDepthIcon =
+                depthParts.length >= 3 ? "Target" : depthParts.length === 2 ? "Package" : "Folder";
+              const fallbackDepthColor =
+                depthParts.length >= 3 ? "#eab308" : depthParts.length === 2 ? "#84cc16" : "#3B82F6";
+              const fallbackDepthName =
+                depthParts.length >= 3 ? "Sub Task" : depthParts.length === 2 ? "Task" : "Project";
+
               const matchingHl =
-                hierarchyConfigs.find((h) => h.id === node.draft.hierarchyLevelConfigId) ||
+                (node.draft.hierarchyLevelConfigId !== undefined && node.draft.hierarchyLevelConfigId !== null
+                  ? hierarchyConfigs.find((h) => Number(h.id) === Number(node.draft.hierarchyLevelConfigId))
+                  : null) ||
                 (node.draft.hierarchyLevelSequence !== undefined && node.draft.hierarchyLevelSequence !== null
-                  ? hierarchyConfigs.find((h) => h.sequence === node.draft.hierarchyLevelSequence || h.sequence === (node.draft.hierarchyLevelSequence! - 1))
+                  ? (hierarchyConfigs.find((h) => h.sequence === node.draft.hierarchyLevelSequence) ||
+                     hierarchyConfigs.find((h) => h.sequence === Number(node.draft.hierarchyLevelSequence) - 1))
                   : null) ||
                 inferredConfig ||
-                hierarchyConfigs.find((h) => h.name?.toLowerCase() === node.draft.hierarchyLevelName?.toLowerCase()) ||
+                (node.draft.hierarchyLevelName
+                  ? hierarchyConfigs.find((h) => h.name?.toLowerCase() === node.draft.hierarchyLevelName?.toLowerCase())
+                  : null) ||
                 (!isUpdateMode && sortedHierarchyConfigs.length > node.depth ? sortedHierarchyConfigs[node.depth] : null);
 
               const effectiveHlIcon =
                 node.draft.hierarchyLevelIcon ||
                 matchingHl?.icon ||
                 inferredConfig?.icon ||
-                "Folder";
+                fallbackDepthIcon;
 
               const effectiveHlColor =
                 node.draft.hierarchyLevelColor ||
                 matchingHl?.color ||
                 inferredConfig?.color ||
-                "#3B82F6";
+                fallbackDepthColor;
 
               const effectiveHlName =
                 node.draft.hierarchyLevelName ||
                 matchingHl?.name ||
                 inferredConfig?.name ||
-                "Task";
+                fallbackDepthName;
 
               const HierarchyIcon = getHierarchyLevelIcon(effectiveHlIcon);
               const hlColor = effectiveHlColor;

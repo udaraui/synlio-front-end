@@ -698,19 +698,62 @@ function TaskTableView({
         // The API response includes every level the backend updated, so we apply
         // them here as a final override — this guarantees every level is correct
         // regardless of which rows are currently expanded.
-        const serverParentUpdates: Array<{ id: number; startDate: string | null; dueDate: string | null }> =
-          updatedData?.parentUpdates ?? [];
+        const serverParentUpdates: Array<{
+          id: number;
+          startDate: string | null;
+          dueDate: string | null;
+          statusId?: number;
+          statusName?: string;
+          statusColor?: string;
+          statusBase?: string;
+          progressPercentage?: number;
+          estimateEffort?: number;
+          actualEffort?: number;
+        }> = updatedData?.parentUpdates ?? [];
         if (serverParentUpdates.length > 0) {
           const serverDateRanges: Record<number, DateRange | undefined> = {};
+          let mapModified = false;
           for (const pu of serverParentUpdates) {
             serverDateRanges[pu.id] = {
               from: pu.startDate ? parseLocalDate(pu.startDate) : undefined,
               to: pu.dueDate ? parseLocalDate(pu.dueDate) : undefined,
             };
-            // Push to page-level data so root-level tasks also reflect the change
-            onUpdateTask?.(pu.id, { startDate: pu.startDate, dueDate: pu.dueDate });
+            const parentFieldUpdates: Record<string, any> = {
+              startDate: pu.startDate,
+              dueDate: pu.dueDate,
+              ...(pu.statusId !== undefined ? {
+                statusId: pu.statusId,
+                statusName: pu.statusName,
+                statusColor: pu.statusColor,
+                statusBase: pu.statusBase,
+              } : {}),
+              ...(pu.progressPercentage !== undefined ? { progressPercentage: pu.progressPercentage } : {}),
+              ...(pu.estimateEffort !== undefined ? { estimateEffort: pu.estimateEffort } : {}),
+              ...(pu.actualEffort !== undefined ? { actualEffort: pu.actualEffort } : {}),
+            };
+
+            // 1. Push to page-level data so root-level tasks also reflect the change
+            onUpdateTask?.(pu.id, parentFieldUpdates);
+
+            // 2. Also update in newMap (childTasksMap) so intermediate parents reflect the change
+            for (const [key, children] of Object.entries(newMap)) {
+              newMap[Number(key)] = children.map((c) => {
+                if (c.id === pu.id) {
+                  mapModified = true;
+                  return {
+                    ...c,
+                    ...parentFieldUpdates,
+                  };
+                }
+                return c;
+              });
+            }
           }
           setDateRangeStates((prev) => ({ ...prev, ...serverDateRanges }));
+          if (mapModified) {
+            childTasksMapRef.current = newMap;
+            setChildTasksMap({ ...newMap });
+          }
         }
       }
 
@@ -836,13 +879,25 @@ function TaskTableView({
       } else if (detail?.taskId && updates) {
         handleInlineUpdate(detail.taskId, updates, detail.task);
       }
+
+      // Re-fetch all currently expanded tasks so that intermediate parents and child hierarchies
+      // reflect accurate real-time values from the server
+      const metas = Object.values(expandedTasksMetaRef.current);
+      const tasksById: Record<number, any> = Object.fromEntries(tasks.map((t) => [t.id, t]));
+      metas.forEach((meta) => {
+        if (expandedTaskIds.has(meta.id)) {
+          fetchChildTasksInline(tasksById[meta.id] ?? meta, true);
+        }
+      });
     };
 
     window.addEventListener("synlio:task-updated", handleCopilotTaskUpdate);
+    window.addEventListener("synlio:task-created", handleCopilotTaskUpdate);
     return () => {
       window.removeEventListener("synlio:task-updated", handleCopilotTaskUpdate);
+      window.removeEventListener("synlio:task-created", handleCopilotTaskUpdate);
     };
-  }, [handleInlineUpdate]);
+  }, [handleInlineUpdate, fetchChildTasksInline, tasks, expandedTaskIds]);
 
   /** Toggle expand/collapse for a task row */
   const toggleExpand = useCallback(async (task: any) => {
