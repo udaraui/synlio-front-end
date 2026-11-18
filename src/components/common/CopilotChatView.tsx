@@ -1139,8 +1139,9 @@ const markdownComponents = {
       return <strong className="font-semibold text-foreground">{tagMatch[1]}</strong>;
     }
 
-    return inline ? (
-      <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary" {...props}>{children}</code>
+    const isInline = inline ?? (!className && !String(children).includes('\n'));
+    return isInline ? (
+      <code className="text-primary font-medium" {...props}>{children}</code>
     ) : (
       <code className={`block bg-muted p-4 rounded-lg text-sm font-mono my-4 overflow-x-auto text-primary ${className}`} {...props}>{children}</code>
     );

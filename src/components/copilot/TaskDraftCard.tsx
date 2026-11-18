@@ -1396,7 +1396,8 @@ export function TaskDraftCard({
               const HierarchyIcon = getHierarchyLevelIcon(effectiveHlIcon);
               const hlColor = effectiveHlColor;
 
-              const hasChildren = node.children.length > 0 || Boolean(node.draft.hasChildren);
+              const hasVisibleChildren = node.children.length > 0;
+              const hasChildren = hasVisibleChildren || Boolean(node.draft.hasChildren);
               const hasChildrenWithDates =
                 Boolean(node.draft.hasChildrenWithDates) ||
                 node.children.some(
@@ -1489,7 +1490,7 @@ export function TaskDraftCard({
                       style={{ paddingLeft: `${node.depth * 20}px` }}
                     >
                       {/* Expand / Collapse Chevron */}
-                      {hasChildren ? (
+                      {hasVisibleChildren ? (
                         <button
                           type="button"
                           className="flex items-center justify-center h-5 w-5 flex-shrink-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
