@@ -78,6 +78,8 @@ export interface TaskDraftData {
   hierarchyLevelIcon?: string;
   hierarchyLevelColor?: string;
   hierarchyLevelSequence?: number;
+  hasChildren?: boolean;
+  hasChildrenWithDates?: boolean;
   statusId?: number;
   statusName?: string;
   statusColor?: string;
@@ -1394,15 +1396,18 @@ export function TaskDraftCard({
               const HierarchyIcon = getHierarchyLevelIcon(effectiveHlIcon);
               const hlColor = effectiveHlColor;
 
-              const hasChildren = node.children.length > 0;
-              const hasChildrenWithDates = node.children.some(
-                (c) =>
-                  (c.draft.startDate && !isNaN(new Date(c.draft.startDate).getTime())) ||
-                  (c.draft.dueDate && !isNaN(new Date(c.draft.dueDate).getTime())) ||
-                  (c.draft.changes?.startDate && !isNaN(new Date(c.draft.changes.startDate).getTime())) ||
-                  (c.draft.changes?.dueDate && !isNaN(new Date(c.draft.changes.dueDate).getTime()))
-              );
+              const hasChildren = node.children.length > 0 || Boolean(node.draft.hasChildren);
+              const hasChildrenWithDates =
+                Boolean(node.draft.hasChildrenWithDates) ||
+                node.children.some(
+                  (c) =>
+                    (c.draft.startDate && !isNaN(new Date(c.draft.startDate).getTime())) ||
+                    (c.draft.dueDate && !isNaN(new Date(c.draft.dueDate).getTime())) ||
+                    (c.draft.changes?.startDate && !isNaN(new Date(c.draft.changes.startDate).getTime())) ||
+                    (c.draft.changes?.dueDate && !isNaN(new Date(c.draft.changes.dueDate).getTime()))
+                );
               const isDateLockedByChildren = node.isExistingParent || hasChildrenWithDates;
+              const isStatusLockedByChildren = node.isExistingParent || hasChildren;
               const isExpanded = expandedIds.has(node.id);
 
               // Check if saving child tasks impacts this node
@@ -1586,10 +1591,10 @@ export function TaskDraftCard({
                   {/* 2. STATUS Column */}
                   <td className="px-4 py-2 align-middle">
                     <div className="flex flex-col gap-0.5 items-start w-fit">
-                      {node.isExistingParent || isSaved ? (
+                      {isStatusLockedByChildren || isSaved ? (
                         <span
                           className="inline-flex items-center gap-1.5 px-2 py-0.5 w-fit shrink-0 self-start bg-muted/40 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[140px] min-w-0 cursor-default select-none opacity-85"
-                          title={isSaved ? "Saved task" : "Locked parent project status"}
+                          title={isSaved ? "Saved task" : hasChildren ? "Status rolls up automatically from child tasks" : "Locked parent project status"}
                         >
                           {resolvedStatus ? (
                             <>
